@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Anexo de Liquidación</title>
+    <style>
+        @page {
+            size: A4 portrait; /* Changed to portrait */
+            margin: 1cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 8px;
+            color: #333;
+        }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .header-table td {
+            vertical-align: top;
+            padding: 0;
+        }
+        .header-table .logo-cell {
+            width: 33%;
+            text-align: left;
+        }
+        .header-table .title-cell {
+            width: 34%;
+            text-align: center;
+        }
+        .header-table .date-page-cell {
+            width: 33%;
+            text-align: right;
+        }
+        .header-table .main-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .info-table td {
+            padding: 2px 5px;
+            vertical-align: top;
+        }
+        .info-table .label {
+            font-weight: bold;
+            width: 15%;
+        }
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7.5px;
+            margin-bottom: 20px;
+        }
+        .main-table th, .main-table td {
+            /* Removed general borders */
+            padding: 4px;
+            text-align: center;
+        }
+        .main-table thead th { /* Borders for main table headers */
+            border: 1px solid #999;
+            background-color: transparent; /* Removed gray shading */
+            font-weight: bold;
+        }
+        .main-table tfoot th { /* Borders for main table footer */
+            border: 1px solid #999;
+        }
+        .main-table .text-right {
+            text-align: right;
+        }
+        .main-table .text-left {
+            text-align: left;
+        }
+        .summary-container {
+            display: flex;
+            justify-content: center; /* Centered summary table */
+            align-items: flex-start;
+            gap: 20px; /* Space between tables */
+        }
+        .summary-table {
+            border-collapse: collapse;
+            width: 45%; /* Adjusted width for two tables */
+            font-size: 8px;
+        }
+        .summary-table td {
+            /* Removed general borders */
+            padding: 4px;
+        }
+        .summary-table tr:first-child td { /* Borders for summary table header row */
+            border: 1px solid #999;
+            background-color: transparent; /* Removed gray shading */
+        }
+        .summary-table tr:last-child td { /* Borders for summary table last row */
+            border: 1px solid #999;
+        }
+        .summary-table .label {
+            font-weight: bold;
+            background-color: transparent; /* Removed gray shading */
+            width: 60%;
+        }
+        .summary-table .value {
+            text-align: right;
+        }
+
+    </style>
+</head>
+<body>
+
+    <table class="header-table">
+        <tr>
+            <td class="logo-cell">
+                <img src="static/logo_inandes.png" alt="Logo Inandes" style="width: 150px; margin-bottom: 5px;">
+            </td>
+            <td class="title-cell">
+                <p class="main-title">ANEXO N° - {{ anexo_number }}</p>
+            </td>
+            <td class="date-page-cell">
+                <p><strong>Fecha:</strong> {{ print_date.strftime('%d/%m/%Y') }}</p>
+                <p><strong>Hora:</strong> {{ print_date.strftime('%H:%M:%S') }}</p>
+                <p><strong>Página:</strong> 1</p>
+            </td>
+        </tr>
+    </table>
+
+    <table class="info-table">
+        <tr>
+            <td class="label">EMISOR:</td>
+            <td>{{ emisor.nombre }}</td>
+            <td class="label">PAGADOR:</td>
+            <td>{{ pagador.nombre }}</td>
+        </tr>
+        <tr>
+            <td class="label">RUC EMISOR:</td>
+            <td>{{ emisor.ruc }}</td>
+            <td class="label">RUC PAGADOR:</td>
+            <td>{{ pagador.ruc }}</td>
+        </tr>
+        <tr>
+            <td class="label">Moneda:</td>
+            <td colspan="3">{{ moneda }}</td>
+        </tr>
+    </table>
+
+    <table class="main-table">
+        <thead>
+            <tr>
+                <th>N° Factura</th>
+                <th>Monto Neto de Factura</th>
+                <th>Capital</th>
+                <th>Fecha de Vencimiento</th>
+                <th>Fecha de Desembolso</th>
+                <th>Plazo de Operacion (días)</th>
+                <th>Intereses</th>
+                <th>Monto a Desembolsar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in invoices %}
+            <tr>
+                <td>{{ inv.numero_factura }}</td>
+                <td class="text-right">{{ inv.monto_neto_factura | format_currency('') }}</td>
+                <td class="text-right">{{ inv.recalculate_result.calculo_con_tasa_encontrada.capital | format_currency('') }}</td>
+                <td>{{ inv.fecha_pago_calculada }}</td>
+                <td>{{ inv.fecha_desembolso_factoring }}</td>
+                <td>{{ inv.plazo_operacion_calculado }}</td>
+                <td class="text-right">{{ inv.recalculate_result.desglose_final_detallado.interes.monto | format_currency('') }}</td>
+                <td class="text-right">{{ inv.recalculate_result.desglose_final_detallado.abono.monto | format_currency('') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <th class="text-left">TOTALES</th>
+                <th class="text-right">{{ totals.monto_neto | format_currency('') }}</th>
+                <th class="text-right">{{ totals.capital | format_currency('') }}</th>
+                <th colspan="3"></th>
+                <th class="text-right">{{ totals.intereses | format_currency('') }}</th>
+                <th class="text-right">{{ totals.monto_desembolsar | format_currency('') }}</th>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="summary-container">
+        <table class="summary-table">
+            <tr>
+                <td colspan="2" style="text-align:center; font-weight:bold;">RESUMEN DE LIQUIDACION</td>
+            </tr>
+            <tr>
+                <td class="label">Monto a desembolsar</td>
+                <td class="value">{{ totals.monto_desembolsar | format_currency('S/') }}</td>
+            </tr>
+            <tr>
+                <td class="label">Comisiones</td>
+                <td class="value">{{ totals.comisiones | format_currency('S/') }}</td>
+            </tr>
+            <tr>
+                <td class="label">Margen de Seguridad</td>
+                <td class="value">{{ totals.margen_seguridad | format_currency('S/') }}</td>
+            </tr>
+            <tr>
+                <td class="label">IGV</td>
+                <td class="value">{{ totals.igv | format_currency('S/') }}</td>
+            </tr>
+            <tr>
+                <td class="label">Neto a desembolsar</td>
+                <td class="value">{{ totals.neto_desembolsar | format_currency('S/') }}</td>
+            </tr>
+        </table>
+
+        <table class="summary-table">
+            <tr>
+                <td colspan="2" style="text-align:center; font-weight:bold;">Forma de Desembolso</td>
+            </tr>
+            <tr>
+                <td class="label">Forma de Desembolso</td>
+                <td class="value">{{ deposit_info.forma_desembolso }}</td>
+            </tr>
+            <tr>
+                <td class="label">Beneficiario</td>
+                <td class="value">{{ deposit_info.beneficiario }}</td>
+            </tr>
+            <tr>
+                <td class="label">DNI Beneficiario</td>
+                <td class="value">{{ deposit_info.dni_beneficiario }}</td>
+            </tr>
+            <tr>
+                <td class="label">RUC Beneficiario</td>
+                <td class="value">{{ deposit_info.ruc_beneficiario }}</td>
+            </tr>
+            <tr>
+                <td class="label">Banco</td>
+                <td class="value">{{ deposit_info.banco }}</td>
+            </tr>
+            <tr>
+                <td class="label">Deposito en Cta.</td>
+                <td class="value">{{ deposit_info.deposito_cta }}</td>
+            </tr>
+            <tr>
+                <td class="label">CCI</td>
+                <td class="value">{{ deposit_info.cci }}</td>
+            </tr>
+            <tr>
+                <td class="label">Tipo Cuenta</td>
+                <td class="value">{{ deposit_info.tipo_cuenta }}</td>
+            </tr>
+        </table>
+    </div>
+
+</body>
+</html>

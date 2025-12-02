@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>LIQUIDACION ADELANTO OPERACIÓN FACTORING</title>
+    <style>
+        @page {
+            size: landscape;
+            margin: 40px;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10px;
+        }
+        .header, .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .header .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .header .doc-info {
+            text-align: right;
+            border: 1px solid #000;
+            padding: 5px;
+        }
+        .doc-info table {
+            width: auto;
+            border-collapse: collapse;
+            margin-left: auto;
+        }
+        .doc-info td {
+            padding: 2px 5px;
+            border: none;
+        }
+        .section {
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 9px;
+        }
+        .main-table th, .main-table td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: center;
+        }
+                .main-table th {
+            background-color: white;
+        }
+        .main-table .text-right {
+            text-align: right;
+        }
+        .main-table .text-left {
+            text-align: left;
+        }
+        .totals-row td {
+            font-weight: bold;
+            background-color: #e0e0e0;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .info-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .info-box table {
+            width: 100%;
+        }
+        .info-box td {
+            padding: 2px 0;
+        }
+        .signatures {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 40px;
+        }
+        .signature-box {
+            text-align: center;
+            width: 20%;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+        }
+        .header-info-title {
+            padding: 1px;
+            font-weight: bold;
+            padding-right: 15px;
+        }
+        .header-info-value {
+            padding: 1px;
+            text-align: justify;
+        }
+        .new-signature-cell {
+            width: 33.33%;
+            text-align: center;
+            vertical-align: top;
+            padding: 0; /* Remove padding */
+            font-size: 9px; /* Smaller font size */
+            line-height: 1.5; /* Tighter line spacing */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header" style="display: flex; align-items: center; width: 100%;">
+        <!-- Izquierda: Logo -->
+        <div style="width: 33.3%; text-align: left;">
+            <img src="file:///C:/Users/rguti/inandes_factoring_app_SCC/static/logo_inandes.png" alt="Inandes Logo" style="max-width: 150px; height: auto;">
+        </div>
+        
+        <!-- Centro: Título -->
+        <div style="width: 33.3%; text-align: center;">
+            <h3 style="margin: 0; font-size: 16px;">ANEXO N° {{ main_invoice.contract_number }}-{{ main_invoice.anexo_number }}</h3>
+        </div>
+    
+        <!-- Derecha: Info de Fecha/Hora -->
+        <div style="width: 33.3%; text-align: right; font-size: 9px;">
+            Fecha: {{ print_date.strftime("%d/%m/%y") }}<br>
+            Hora: {{ print_date.strftime("%H:%M:%S") }}<br>
+            Pagina: 1
+        </div>
+    </div>
+
+    
+
+    <table style="width: 100%; border-collapse: collapse; border: none; margin-top: 15px; font-size: 10px;">
+        <tr style="vertical-align: top;">
+            <!-- Column 1 -->
+            <td style="width: 40%; padding: 0 10px 0 0;">
+                <table width="100%">
+                    <tr><td class="header-info-title">PAGADOR</td><td class="header-info-value">{{ main_invoice.aceptante_nombre }}</td></tr>
+                    <tr><td class="header-info-title">RUC PAGADOR</td><td class="header-info-value">{{ main_invoice.aceptante_ruc }}</td></tr>
+                    <tr><td class="header-info-title">RUTA</td><td class="header-info-value">TSFNOR-{{ main_invoice.contract_number }}-{{ main_invoice.anexo_number }}</td></tr>
+                    <tr><td class="header-info-title">MONEDA</td><td class="header-info-value">{{ main_invoice.moneda_factura }}</td></tr>
+                </table>
+            </td>
+            <!-- Column 2 -->
+            <td style="width: 60%; padding: 0 10px 0 0;">
+                <table width="100%">
+                    <tr><td class="header-info-title">TASA DE INTERES COMPENSATORIO</td><td class="header-info-value">{{ "{:,.2f}".format(main_invoice.interes_mensual) }} %</td></tr>
+                    <tr><td class="header-info-title">COMISIÓN DE ESTRUCTURACION</td><td class="header-info-value">{{ "{:,.2f}".format(main_invoice.comision_de_estructuracion_global) }} %</td></tr>
+                    <tr><td class="header-info-title">TASA DE INTERES MORATORIO</td><td class="header-info-value">{{ "{:,.2f}".format(main_invoice.interes_moratorio) }} %</td></tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <table class="main-table">
+        <thead>
+            <tr>
+                <th>N° Factura</th>
+                <th>Monto Total de Factura</th>
+                <th>Detracción / Retención</th>
+                <th>Monto Neto de Factura</th>
+                <th>Tasa de Avance Aplicada</th>
+                <th>Capital Disponible</th>
+                <th>Fecha de Desembolso</th>
+                <th>Fecha de Vencimiento</th>
+                <th>Plazo de Operacion (días)</th>
+                <th>Margen de Seguridad</th>
+                <th>Capital</th>
+                <th>Intereses</th>
+                <th>Comisión de Estructuración</th>
+                <th>Comisión de Afiliación</th>
+                <th>IGV</th>
+                <th>Monto a Desembolsar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for invoice in invoices %}
+            <tr>
+                <td class="text-left">{{ invoice.numero_factura }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.monto_total_factura) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.detraccion_monto) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.monto_neto_factura) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.recalculate_result.resultado_busqueda.tasa_avance_encontrada * 100) }}%</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital) }}</td>
+                <td class="text-right">{{ invoice.fecha_desembolso_factoring }}</td>
+                <td class="text-right">{{ invoice.fecha_pago_calculada }}</td>
+                <td class="text-right">{{ invoice.plazo_operacion_calculado }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.margen_seguridad.monto) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.interes.monto) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_afiliacion.monto) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_interes + invoice.recalculate_result.calculo_con_tasa_encontrada.igv_comision_estructuracion + invoice.recalculate_result.calculo_con_tasa_encontrada.igv_afiliacion) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.abono.monto) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="totals-row">
+                <td class="text-left">TOTALES</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_monto_total_factura) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_detraccion_monto) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_monto_neto_factura) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_tasa_avance_aplicada * 100) }}%</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_capital) }}</td>
+                <td class="text-right"></td> {# Placeholder for Fecha de Desembolso total #}
+                <td class="text-right"></td> {# Placeholder for Fecha de Vencimiento total #}
+                <td class="text-right">{{ total_plazo_operacion_calculado }}</td> {# Sum for days #}
+                <td class="text-right">{{ "{:,.2f}".format(total_margen_seguridad) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_capital) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_intereses) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_comision_estructuracion) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_comision_afiliacion) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_igv) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(total_monto_desembolsar) }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- OBSERVACIONES section removed as per user request -->
+
+    <!-- Old signatures section removed as per user request -->
+
+    <table style="width: 100%; border-collapse: collapse; margin-top: 40px; page-break-inside: avoid;">
+        <tr>
+            <td class="new-signature-cell">
+                _________________________________<br>
+                Juan Ricardo Gallo Pizarro<br>
+                Gerente General<br>
+                DNI 02816271<br>
+                INANDES CAPITAL FACTOR SAC
+            </td>
+            <td class="new-signature-cell">
+                _________________________________<br>
+                {% if signatory_data.get('Depositario 1') %}{{ signatory_data.get('Depositario 1') }}<br>{% else %}<br>{% endif %}
+                Depositario 1<br>
+                {% if signatory_data.get('DNI Depositario 1') %}DNI {{ signatory_data.get('DNI Depositario 1') }}<br>{% else %}<br>{% endif %}
+                {{ main_invoice.emisor_nombre }}
+            </td>
+            <td class="new-signature-cell">
+                _________________________________<br>
+                {% if signatory_data.get('Garante/Fiador solidario 1') %}{{ signatory_data.get('Garante/Fiador solidario 1') }}<br>{% else %}<br>{% endif %}
+                Garante/Fiador solidario 1<br>
+                {% if signatory_data.get('DNI Garante/Fiador solidario 1') %}DNI {{ signatory_data.get('DNI Garante/Fiador solidario 1') }}<br>{% else %}<br>{% endif %}
+                {{ main_invoice.emisor_nombre }}
+            </td>
+        </tr>
+        <tr><td colspan="3" style="height: 25px;">&nbsp;</td></tr>
+        <tr>
+            <td class="new-signature-cell">
+                <!-- Empty cell -->
+            </td>
+            <td class="new-signature-cell">
+                _________________________________<br>
+                {% if signatory_data.get('Garante/Fiador solidario 2') %}{{ signatory_data.get('Garante/Fiador solidario 2') }}<br>{% else %}<br>{% endif %}
+                Garante/Fiador solidario 2<br>
+                {% if signatory_data.get('DNI Garante/Fiador solidario 2') %}DNI {{ signatory_data.get('DNI Garante/Fiador solidario 2') }}<br>{% else %}<br>{% endif %}
+                {{ main_invoice.emisor_nombre }}
+            </td>
+            <td class="new-signature-cell">
+                <!-- Empty cell -->
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

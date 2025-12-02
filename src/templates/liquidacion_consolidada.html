@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Liquidacion Consolidada</title>
+    <style>
+        body { font-family: sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #dddddd; text-align: left; padding: 8px; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Liquidación de Factoring</h1>
+    <p><strong>Contrato:</strong> {{ contract_name }}</p>
+    <p><strong>Anexo:</strong> {{ anexo_number }}</p>
+    <p><strong>Emisor:</strong> {{ emisor_nombre }} ({{ emisor_ruc }})</p>
+    <p><strong>Fecha:</strong> {{ document_date }}</p>
+
+    <h2>Facturas Incluidas</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Factura</th>
+                <th>Monto Neto</th>
+                <th>Capital</th>
+                <th>Intereses</th>
+                <th>Desembolso</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for factura in facturas %}
+            <tr>
+                <td>{{ factura.invoice_series_and_number }}</td>
+                <td>{{ "%.2f"|format(factura.invoice_net_amount) }}</td>
+                <td>{{ "%.2f"|format(factura.advance_amount) }}</td>
+                <td>{{ "%.2f"|format(factura.interes_calculado) }}</td>
+                <td>{{ "%.2f"|format(factura.initial_disbursement) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Resumen Total</h2>
+    <p><strong>Total Monto Neto:</strong> {{ "%.2f"|format(total_monto_neto) }}</p>
+    <p><strong>Total Capital Calculado:</strong> {{ "%.2f"|format(total_capital_calculado) }}</p>
+    <p><strong>Total a Desembolsar:</strong> {{ "%.2f"|format(total_a_depositar) }}</p>
+
+</body>
+</html>

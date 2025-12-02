@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+requests
+supabase
+# Añade aquí cualquier otra librería específica que tu backend utilice.

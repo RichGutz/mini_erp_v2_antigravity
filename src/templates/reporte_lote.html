@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Liquidación de Lote</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            font-size: 10px;
+            margin: 20px;
+        }
+        h1, h2, h3, h4 {
+            text-align: center;
+        }
+        h1 { font-size: 18px; }
+        h2 { font-size: 16px; }
+        h3 { font-size: 14px; }
+        h4 { font-size: 12px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            margin-bottom: 25px;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 6px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .text-right { text-align: right; }
+        .summary-table th { text-align: right; }
+        .summary-table td { text-align: right; font-weight: bold; }
+        .invoice-section {
+            page-break-inside: avoid;
+        }
+        .header, .footer {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Reporte de Liquidación de Lote de Factoring</h1>
+        <p><strong>Contrato Marco:</strong> {{ contract_number }} | <strong>Anexo:</strong> {{ anexo_number }} | <strong>Fecha de Reporte:</strong> {{ report_date }}</p>
+    </div>
+
+    <h2>Detalle por Factura</h2>
+
+    {% for factura in facturas %}
+    <div class="invoice-section">
+        <h3>Factura: {{ factura.numero_factura }} | Emisor: {{ factura.emisor_nombre }}</h3>
+        
+        <h4>Perfil de la Operación Original</h4>
+        <table>
+            <tr>
+                <th>Monto Neto Original</th>
+                <th>Capital Desembolsado</th>
+                <th>Fecha Pago Original</th>
+                <th>Plazo Original</th>
+            </tr>
+            <tr>
+                <td class="text-right">{{ factura.moneda }} {{ "{:,.2f}".format(factura.monto_neto_factura) }}</td>
+                <td class="text-right">{{ factura.moneda }} {{ "{:,.2f}".format(factura.capital_original) }}</td>
+                <td>{{ factura.fecha_pago_original }}</td>
+                <td>{{ factura.plazo_original }} días</td>
+            </tr>
+        </table>
+
+        <h4>Cálculo de Liquidación</h4>
+        <table>
+            <tr>
+                <th>Concepto</th>
+                <th>Detalle</th>
+                <th class="text-right">Monto ({{ factura.moneda }})</th>
+            </tr>
+            <tr>
+                <td>Fecha de Pago Real</td>
+                <td>Fecha en que se recibió el pago</td>
+                <td class="text-right">{{ factura.liquidation_params.fecha_pago_real }}</td>
+            </tr>
+            <tr>
+                <td>Monto Recibido</td>
+                <td>Monto total abonado en la fecha de pago</td>
+                <td class="text-right">{{ "{:,.2f}".format(factura.liquidation_params.monto_recibido) }}</td>
+            </tr>
+            <tr>
+                <td>Días de Diferencia</td>
+                <td>{{ factura.result.dias_diferencia }} días ({{ factura.result.tipo_pago }})</td>
+                <td class="text-right">-</td>
+            </tr>
+            <tr>
+                <td>Capital por Liquidar</td>
+                <td>Saldo de capital antes del pago actual</td>
+                <td class="text-right">{{ "{:,.2f}".format(factura.result.parametros_calculo.capital_base) }}</td>
+            </tr>
+            <tr>
+                <td style="color: red;">(+) Interés Compensatorio</td>
+                <td>Tasa: {{ factura.liquidation_params.tasa_interes_compensatoria_pct }}% mensual</td>
+                <td class="text-right" style="color: red;">{{ "{:,.2f}".format(factura.result.desglose_cargos.interes_compensatorio) }}</td>
+            </tr>
+            <tr>
+                <td style="color: red;">(+) IGV s/ Int. Compensatorio</td>
+                <td>18% sobre el interés</td>
+                <td class="text-right" style="color: red;">{{ "{:,.2f}".format(factura.result.desglose_cargos.igv_interes_compensatorio) }}</td>
+            </tr>
+            <tr>
+                <td style="color: red;">(+) Interés Moratorio</td>
+                <td>Tasa: {{ (factura.liquidation_params.tasa_interes_moratoria_pct * 12)|round(2) }}% anual</td>
+                <td class="text-right" style="color: red;">{{ "{:,.2f}".format(factura.result.desglose_cargos.interes_moratorio) }}</td>
+            </tr>
+            <tr>
+                <td style="color: red;">(+) IGV s/ Int. Moratorio</td>
+                <td>18% sobre el interés</td>
+                <td class="text-right" style="color: red;">{{ "{:,.2f}".format(factura.result.desglose_cargos.igv_interes_moratorio) }}</td>
+            </tr>
+             <tr>
+                <td style="color: green;">(-) Devolución de Intereses</td>
+                <td>Por pago anticipado</td>
+                <td class="text-right" style="color: green;">{{ "{:,.2f}".format(factura.result.desglose_creditos.interes_a_devolver) }}</td>
+            </tr>
+            <tr>
+                <td style="color: green;">(-) Devolución de IGV</td>
+                <td>18% sobre la devolución</td>
+                <td class="text-right" style="color: green;">{{ "{:,.2f}".format(factura.result.desglose_creditos.igv_interes_a_devolver) }}</td>
+            </tr>
+            <tr>
+                <th colspan="2">Saldo Final de la Factura</th>
+                <th class="text-right">{{ "{:,.2f}".format(factura.result.liquidacion_final.saldo_final_a_liquidar) }}</th>
+            </tr>
+        </table>
+    </div>
+    {% endfor %}
+
+    <div class="summary-section">
+        <h2>Resumen Consolidado del Lote</h2>
+        <table class="summary-table">
+            <tr>
+                <th>Total Capital Desembolsado</th>
+                <td>{{ summary.moneda }} {{ "{:,.2f}".format(summary.total_capital_desembolsado) }}</td>
+            </tr>
+            <tr>
+                <th>Total Pagado en esta Liquidación</th>
+                <td>{{ summary.moneda }} {{ "{:,.2f}".format(summary.total_pagado) }}</td>
+            </tr>
+            <tr>
+                <th style="color: red;">Total Cargos (Intereses + IGV)</th>
+                <td style="color: red;">{{ summary.moneda }} {{ "{:,.2f}".format(summary.total_cargos) }}</td>
+            </tr>
+            <tr>
+                <th style="color: green;">Total Créditos (Devoluciones)</th>
+                <td style="color: green;">{{ summary.moneda }} {{ "{:,.2f}".format(summary.total_creditos) }}</td>
+            </tr>
+            <tr>
+                <th>SALDO FINAL CONSOLIDADO</th>
+                <td>{{ summary.moneda }} {{ "{:,.2f}".format(summary.saldo_final_consolidado) }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>_________________________</p>
+        <p>Firma Autorizada</p>
+    </div>
+
+</body>
+</html>

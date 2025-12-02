@@ -1,0 +1,11 @@
+streamlit
+streamlit_oauth
+supabase
+jinja2
+weasyprint
+requests
+streamlit_mermaid
+pdfplumber
+fpdf2
+python-dotenv
+# Forzar-Reconstruccion-Completa-V20250901
