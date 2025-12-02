@@ -51,22 +51,16 @@ def update_date_calculations(invoice, changed_field=None):
 
         fecha_emision_dt = datetime.datetime.strptime(fecha_emision_str, "%d-%m-%Y")
 
-        if changed_field == 'plazo' and invoice.get('plazo_credito_dias', 0) > 0:
-            plazo = int(invoice['plazo_credito_dias'])
-            fecha_pago_dt = fecha_emision_dt + datetime.timedelta(days=plazo)
-            invoice['fecha_pago_calculada'] = fecha_pago_dt.strftime("%d-%m-%Y")
-        elif changed_field == 'fecha' and invoice.get('fecha_pago_calculada'):
+        # Solo calculamos desde fecha de pago (campo plazo_credito eliminado de UI)
+        if invoice.get('fecha_pago_calculada'):
             fecha_pago_dt = datetime.datetime.strptime(invoice['fecha_pago_calculada'], "%d-%m-%Y")
             if fecha_pago_dt > fecha_emision_dt:
                 invoice['plazo_credito_dias'] = (fecha_pago_dt - fecha_emision_dt).days
             else:
                 invoice['plazo_credito_dias'] = 0
-        elif invoice.get('plazo_credito_dias', 0) > 0:
-             plazo = int(invoice['plazo_credito_dias'])
-             fecha_pago_dt = fecha_emision_dt + datetime.timedelta(days=plazo)
-             invoice['fecha_pago_calculada'] = fecha_pago_dt.strftime("%d-%m-%Y")
         else:
             invoice['fecha_pago_calculada'] = ""
+            invoice['plazo_credito_dias'] = 0
 
         if invoice.get('fecha_pago_calculada') and invoice.get('fecha_desembolso_factoring'):
             fecha_pago_dt = datetime.datetime.strptime(invoice['fecha_pago_calculada'], "%d-%m-%Y")
@@ -87,7 +81,7 @@ def validate_inputs(invoice):
         "fecha_emision_factura": "Fecha de Emisión",
         "tasa_de_avance": "Tasa de Avance",
         "interes_mensual": "Interés Mensual",
-        "plazo_credito_dias": "Plazo de Crédito (días)", "fecha_desembolso_factoring": "Fecha de Desembolso",
+        "fecha_pago_calculada": "Fecha de Pago", "fecha_desembolso_factoring": "Fecha de Desembolso",
     }
     is_valid = True
     for key, name in required_fields.items():
@@ -453,7 +447,7 @@ if st.session_state.invoices_data:
                 except (ValueError, TypeError):
                     return None
 
-            col_fecha_emision, col_plazo_credito, col_fecha_pago, col_fecha_desembolso, col_plazo_operacion, col_dias_minimos = st.columns(6)
+            col_fecha_emision, col_fecha_pago, col_fecha_desembolso, col_plazo_operacion, col_dias_minimos = st.columns(5)
 
             with col_fecha_emision:
                 fecha_emision_obj = to_date_obj(invoice.get('fecha_emision_factura'))
@@ -474,11 +468,6 @@ if st.session_state.invoices_data:
                     else:
                         invoice['fecha_emision_factura'] = ''
 
-            def plazo_changed(idx):
-                new_plazo = st.session_state.get(f"plazo_credito_dias_{idx}")
-                st.session_state.invoices_data[idx]['plazo_credito_dias'] = new_plazo
-                update_date_calculations(st.session_state.invoices_data[idx], changed_field='plazo')
-
             def fecha_pago_changed(idx):
                 new_date_obj = st.session_state.get(f"fecha_pago_calculada_{idx}")
                 if new_date_obj:
@@ -494,18 +483,6 @@ if st.session_state.invoices_data:
                 else:
                     st.session_state.invoices_data[idx]['fecha_desembolso_factoring'] = ''
                 update_date_calculations(st.session_state.invoices_data[idx])
-
-            with col_plazo_credito:
-                plazo_value = invoice.get('plazo_credito_dias')
-                display_value = int(plazo_value) if plazo_value is not None else 0
-                st.number_input(
-                    "Plazo de Crédito (días)",
-                    min_value=0,
-                    step=1,
-                    key=f"plazo_credito_dias_{idx}",
-                    on_change=plazo_changed,
-                    args=(idx,)
-                )
 
             with col_fecha_pago:
                 fecha_pago_obj = to_date_obj(invoice.get('fecha_pago_calculada'))

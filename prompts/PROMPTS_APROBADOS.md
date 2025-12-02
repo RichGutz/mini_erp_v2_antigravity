@@ -102,3 +102,48 @@ Eres un experto desarrollador Python...
 1.  Modificado `pages/01_Operaciones.py` línea 463: Agregado parámetro `value` al `st.date_input`.
 2.  Corregido import incorrecto en línea 18: Cambiado de `pages.liquidacion_builder` a `src.utils.pdf_generators`.
 **Resultado:** El campo "Fecha de Emisión" ahora muestra correctamente la fecha parseada del PDF.
+
+---
+
+## Prompt Simplificación UI: Eliminar Campo "Plazo de Crédito"
+**Fecha:** 2025-12-02
+**Contexto:** El usuario reporta que el campo "Plazo de Crédito (días)" no le sirve y prefiere trabajar solo con "Fecha de Pago".
+
+```markdown
+**Rol:** Frontend Developer (Streamlit).
+**Objetivo:** Simplificar la UI del módulo de Operaciones eliminando el campo "Plazo de Crédito (días)" y dejando solo "Fecha de Pago".
+
+**Análisis Previo:**
+- El campo `plazo_credito_dias` debe mantenerse internamente (se calcula automáticamente)
+- La validación debe cambiar de `plazo_credito_dias` a `fecha_pago_calculada`
+- Riesgo: BAJO (cambios seguros y bien delimitados)
+
+**Tareas:**
+1.  **Función `update_date_calculations`:**
+    *   Eliminar bloque `if changed_field == 'plazo'`
+    *   Simplificar lógica para calcular solo desde fecha de pago
+    *   Mantener cálculo automático de `plazo_credito_dias` (interno)
+
+2.  **Función `validate_inputs`:**
+    *   Cambiar validación: `"plazo_credito_dias"` → `"fecha_pago_calculada"`
+
+3.  **UI (líneas ~456-508):**
+    *   Reducir columnas de 6 a 5
+    *   Eliminar callback `plazo_changed`
+    *   Eliminar widget `st.number_input` de "Plazo de Crédito (días)"
+
+4.  **Verificación:**
+    *   Probar carga de PDF
+    *   Ingresar fecha de pago manualmente
+    *   Verificar que `plazo_operacion_calculado` se muestre correctamente
+```
+
+### Ejecución (2025-12-02)
+**Estado:** Completado.
+**Cambios Realizados:**
+1.  Simplificada función `update_date_calculations` (líneas 43-80): Eliminados bloques de cálculo desde plazo.
+2.  Actualizada función `validate_inputs` (línea 234): Cambiada validación a `fecha_pago_calculada`.
+3.  Reducidas columnas de 6 a 5 (línea 456).
+4.  Eliminado callback `plazo_changed` (líneas 477-480).
+5.  Eliminado widget `st.number_input` de plazo (líneas 498-508).
+**Resultado:** UI simplificada. El usuario solo ingresa "Fecha de Pago" y el sistema calcula automáticamente el plazo interno.
