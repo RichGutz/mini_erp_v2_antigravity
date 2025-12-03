@@ -507,7 +507,9 @@ if st.session_state.invoices_data:
                 )
 
             with col_plazo_operacion:
-                st.number_input("Plazo de Operación (días)", value=invoice.get('plazo_operacion_calculado', 0), disabled=True, key=f"plazo_operacion_calculado_{idx}", label_visibility="visible")
+                # Leer directamente desde session_state para obtener el valor actualizado
+                plazo_actual = st.session_state.invoices_data[idx].get('plazo_operacion_calculado', 0)
+                st.number_input("Plazo de Operación (días)", value=plazo_actual, disabled=True, key=f"plazo_operacion_calculado_{idx}", label_visibility="visible")
             
             with col_dias_minimos:
                 invoice['dias_minimos_interes_individual'] = st.number_input("Días Mín. Interés", value=invoice.get('dias_minimos_interes_individual', 15), min_value=0, step=1, key=f"dias_minimos_interes_individual_{idx}")
