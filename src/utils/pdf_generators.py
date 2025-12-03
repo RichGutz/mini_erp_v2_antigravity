@@ -27,22 +27,17 @@ def _generate_pdf_in_memory(
     """
     Core PDF generation function that returns the PDF as bytes.
     """
-    try:
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        templates_dir = os.path.join(project_root, 'src', 'templates')
-        
-        env = Environment(loader=FileSystemLoader(templates_dir))
-        env.globals['format_currency'] = _format_currency
-        template = env.get_template(template_name)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    templates_dir = os.path.join(project_root, 'src', 'templates')
+    
+    env = Environment(loader=FileSystemLoader(templates_dir))
+    env.filters['format_currency'] = _format_currency
+    template = env.get_template(template_name)
 
-        html_out = template.render(template_data)
-        
-        base_url = project_root
-        return HTML(string=html_out, base_url=base_url).write_pdf()
-        
-    except Exception as e:
-        print(f"[ERROR in PDF Generation]: {e}")
-        return None
+    html_out = template.render(template_data)
+    
+    base_url = project_root
+    return HTML(string=html_out, base_url=base_url).write_pdf()
 
 # --- Public Functions for Specific Reports ---
 
