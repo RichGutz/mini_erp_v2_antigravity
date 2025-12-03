@@ -65,9 +65,15 @@ def update_date_calculations(invoice, changed_field=None):
         if invoice.get('fecha_pago_calculada') and invoice.get('fecha_desembolso_factoring'):
             fecha_pago_dt = datetime.datetime.strptime(invoice['fecha_pago_calculada'], "%d-%m-%Y")
             fecha_desembolso_dt = datetime.datetime.strptime(invoice['fecha_desembolso_factoring'], "%d-%m-%Y")
-            invoice['plazo_operacion_calculado'] = (fecha_pago_dt - fecha_desembolso_dt).days if fecha_pago_dt >= fecha_desembolso_dt else 0
+            if fecha_pago_dt >= fecha_desembolso_dt:
+                invoice['plazo_operacion_calculado'] = (fecha_pago_dt - fecha_desembolso_dt).days
+            else:
+                invoice['plazo_operacion_calculado'] = 0
+                # Marcar que hay un error de fechas para mostrar warning en UI
+                invoice['fecha_error'] = True
         else:
             invoice['plazo_operacion_calculado'] = 0
+            invoice['fecha_error'] = False
 
     except (ValueError, TypeError, AttributeError):
         invoice['fecha_pago_calculada'] = ""
@@ -509,6 +515,9 @@ if st.session_state.invoices_data:
             with col_plazo_operacion:
                 # Leer directamente desde session_state para obtener el valor actualizado
                 plazo_actual = st.session_state.invoices_data[idx].get('plazo_operacion_calculado', 0)
+                # Mostrar warning si las fechas están en orden incorrecto
+                if st.session_state.invoices_data[idx].get('fecha_error', False):
+                    st.warning("⚠️ La Fecha de Pago debe ser posterior a la Fecha de Desembolso")
                 st.number_input("Plazo de Operación (días)", value=plazo_actual, disabled=True, key=f"plazo_operacion_calculado_{idx}", label_visibility="visible")
             
             with col_dias_minimos:
