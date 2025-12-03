@@ -488,6 +488,7 @@ if st.session_state.invoices_data:
                 fecha_pago_obj = to_date_obj(invoice.get('fecha_pago_calculada'))
                 st.date_input(
                     "Fecha de Pago",
+                    value=fecha_pago_obj if fecha_pago_obj else datetime.date.today(),
                     key=f"fecha_pago_calculada_{idx}",
                     format="DD-MM-YYYY",
                     on_change=fecha_pago_changed,
@@ -498,6 +499,7 @@ if st.session_state.invoices_data:
                 fecha_desembolso_obj = to_date_obj(invoice.get('fecha_desembolso_factoring'))
                 st.date_input(
                     "Fecha de Desembolso",
+                    value=fecha_desembolso_obj if fecha_desembolso_obj else datetime.date.today(),
                     key=f"fecha_desembolso_factoring_{idx}",
                     format="DD-MM-YYYY",
                     on_change=fecha_desembolso_changed,
