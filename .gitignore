@@ -51,3 +51,6 @@ htmlcov/
 # Temporary files
 *.tmp
 *.bak
+
+# Documentation with secrets
+prompts/PROMPTS_APROBADOS.md
