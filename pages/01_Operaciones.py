@@ -453,7 +453,7 @@ if st.session_state.invoices_data:
                 except (ValueError, TypeError):
                     return None
 
-            col_fecha_emision, col_fecha_pago, col_fecha_desembolso, col_plazo_operacion, col_dias_minimos = st.columns(5)
+            col_fecha_emision, col_fecha_desembolso, col_fecha_pago, col_plazo_operacion, col_dias_minimos = st.columns(5)
 
             with col_fecha_emision:
                 fecha_emision_obj = to_date_obj(invoice.get('fecha_emision_factura'))
@@ -490,17 +490,6 @@ if st.session_state.invoices_data:
                     st.session_state.invoices_data[idx]['fecha_desembolso_factoring'] = ''
                 update_date_calculations(st.session_state.invoices_data[idx])
 
-            with col_fecha_pago:
-                fecha_pago_obj = to_date_obj(invoice.get('fecha_pago_calculada'))
-                st.date_input(
-                    "Fecha de Pago",
-                    value=fecha_pago_obj if fecha_pago_obj else datetime.date.today(),
-                    key=f"fecha_pago_calculada_{idx}",
-                    format="DD-MM-YYYY",
-                    on_change=fecha_pago_changed,
-                    args=(idx,)
-                )
-
             with col_fecha_desembolso:
                 fecha_desembolso_obj = to_date_obj(invoice.get('fecha_desembolso_factoring'))
                 st.date_input(
@@ -512,13 +501,25 @@ if st.session_state.invoices_data:
                     args=(idx,)
                 )
 
+            with col_fecha_pago:
+                fecha_pago_obj = to_date_obj(invoice.get('fecha_pago_calculada'))
+                st.date_input(
+                    "Fecha de Pago",
+                    value=fecha_pago_obj if fecha_pago_obj else datetime.date.today(),
+                    key=f"fecha_pago_calculada_{idx}",
+                    format="DD-MM-YYYY",
+                    on_change=fecha_pago_changed,
+                    args=(idx,)
+                )
+
             with col_plazo_operacion:
                 # Leer directamente desde session_state para obtener el valor actualizado
                 plazo_actual = st.session_state.invoices_data[idx].get('plazo_operacion_calculado', 0)
                 # Mostrar warning si las fechas están en orden incorrecto
                 if st.session_state.invoices_data[idx].get('fecha_error', False):
                     st.warning("⚠️ La Fecha de Pago debe ser posterior a la Fecha de Desembolso")
-                st.number_input("Plazo de Operación (días)", value=plazo_actual, disabled=True, key=f"plazo_operacion_calculado_{idx}", label_visibility="visible")
+                # Usar text_input en lugar de number_input para eliminar controles +/-
+                st.text_input("Plazo de Operación (días)", value=str(plazo_actual), disabled=True, key=f"plazo_operacion_calculado_{idx}", label_visibility="visible")
             
             with col_dias_minimos:
                 invoice['dias_minimos_interes_individual'] = st.number_input("Días Mín. Interés", value=invoice.get('dias_minimos_interes_individual', 15), min_value=0, step=1, key=f"dias_minimos_interes_individual_{idx}")
