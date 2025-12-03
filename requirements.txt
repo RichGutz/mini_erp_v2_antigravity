@@ -8,4 +8,7 @@ streamlit_mermaid
 pdfplumber
 fpdf2
 python-dotenv
+fastapi
+uvicorn
+pydantic
 # Forzar-Reconstruccion-Completa-V20250901
