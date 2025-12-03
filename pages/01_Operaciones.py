@@ -319,7 +319,7 @@ with st.expander("", expanded=True):
                                 'comision_afiliacion_usd': st.session_state.default_comision_afiliacion_usd,
                                 'aplicar_comision_afiliacion': False,
                                 'detraccion_porcentaje': 0.0,
-                                'fecha_pago_calculada': '',
+                                'fecha_pago_calculada': parsed_data.get('fecha_vencimiento', ''),
                                 'plazo_operacion_calculado': 0,
                                 'initial_calc_result': None,
                                 'recalculate_result': None,
