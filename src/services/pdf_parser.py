@@ -102,6 +102,29 @@ def extract_fields_from_pdf(pdf_path: str) -> dict:
                 # If it fails, it's likely already in DD-MM-YYYY, so just store it.
                 extracted_data['fecha_emision'] = date_str
 
+        # --- Due Date (Vencimiento) ---
+        # Strategy 1: Look for "Información del crédito" table (common in electronic invoices)
+        # Pattern: quota number, date, amount. e.g. "1 24/04/2025 1,318.80"
+        credit_info_match = re.search(r'Informaci[oó]n del cr[eé]dito', normalized_text, re.IGNORECASE)
+        due_date_found = None
+        
+        if credit_info_match:
+            # Search in the text following the header
+            post_header_text = normalized_text[credit_info_match.end():]
+            # Regex for: boundary, digits (quota), spaces, date (DD/MM/YYYY or DD-MM-YYYY), spaces
+            quota_match = re.search(r'\b\d+\s+(\d{2}[-/]\d{2}[-/]\d{4})\s+', post_header_text)
+            if quota_match:
+                due_date_found = quota_match.group(1).replace('/', '-')
+
+        # Strategy 2: Explicit "Fecha de Vencimiento" label
+        if not due_date_found:
+            venc_match = re.search(r'Fecha de Vencimiento\s*:?\s*(\d{2}[-/]\d{2}[-/]\d{4})', normalized_text, re.IGNORECASE)
+            if venc_match:
+                due_date_found = venc_match.group(1).replace('/', '-')
+
+        if due_date_found:
+            extracted_data['fecha_vencimiento'] = due_date_found
+
         # --- Currency ---
         son_line_match = re.search(r'SON:.*?((?:SOLES|PEN)|(?:DOLAR|DOLARES|USD|US\$))', normalized_text, re.IGNORECASE)
         if son_line_match:
