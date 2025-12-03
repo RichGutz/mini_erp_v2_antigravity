@@ -149,46 +149,54 @@ def propagate_commission_changes():
 
 def handle_global_payment_date_change():
     if st.session_state.get('aplicar_fecha_vencimiento_global') and st.session_state.get('fecha_vencimiento_global'):
-        global_due_date_str = st.session_state.fecha_vencimiento_global.strftime('%d-%m-%Y')
-        for invoice in st.session_state.invoices_data:
+        global_due_date_obj = st.session_state.fecha_vencimiento_global
+        global_due_date_str = global_due_date_obj.strftime('%d-%m-%Y')
+        for idx, invoice in enumerate(st.session_state.invoices_data):
             invoice['fecha_pago_calculada'] = global_due_date_str
+            st.session_state[f"fecha_pago_calculada_{idx}"] = global_due_date_obj
             update_date_calculations(invoice, changed_field='fecha')
         st.toast("Fecha de pago global aplicada a todas las facturas.")
 
 def handle_global_disbursement_date_change():
     if st.session_state.get('aplicar_fecha_desembolso_global') and st.session_state.get('fecha_desembolso_global'):
-        global_disbursement_date_str = st.session_state.fecha_desembolso_global.strftime('%d-%m-%Y')
-        for invoice in st.session_state.invoices_data:
+        global_disbursement_date_obj = st.session_state.fecha_desembolso_global
+        global_disbursement_date_str = global_disbursement_date_obj.strftime('%d-%m-%Y')
+        for idx, invoice in enumerate(st.session_state.invoices_data):
             invoice['fecha_desembolso_factoring'] = global_disbursement_date_str
+            st.session_state[f"fecha_desembolso_factoring_{idx}"] = global_disbursement_date_obj
             update_date_calculations(invoice)
         st.toast("Fecha de desembolso global aplicada a todas las facturas.")
 
 def handle_global_tasa_avance_change():
     if st.session_state.get('aplicar_tasa_avance_global') and st.session_state.get('tasa_avance_global') is not None:
         global_tasa = st.session_state.tasa_avance_global
-        for invoice in st.session_state.invoices_data:
+        for idx, invoice in enumerate(st.session_state.invoices_data):
             invoice['tasa_de_avance'] = global_tasa
+            st.session_state[f"tasa_de_avance_{idx}"] = global_tasa
         st.toast("Tasa de avance global aplicada a todas las facturas.")
 
 def handle_global_interes_mensual_change():
     if st.session_state.get('aplicar_interes_mensual_global') and st.session_state.get('interes_mensual_global') is not None:
         global_interes = st.session_state.interes_mensual_global
-        for invoice in st.session_state.invoices_data:
+        for idx, invoice in enumerate(st.session_state.invoices_data):
             invoice['interes_mensual'] = global_interes
+            st.session_state[f"interes_mensual_{idx}"] = global_interes
         st.toast("Interés mensual global aplicado a todas las facturas.")
 
 def handle_global_interes_moratorio_change():
     if st.session_state.get('aplicar_interes_moratorio_global') and st.session_state.get('interes_moratorio_global') is not None:
         global_interes_moratorio = st.session_state.interes_moratorio_global
-        for invoice in st.session_state.invoices_data:
+        for idx, invoice in enumerate(st.session_state.invoices_data):
             invoice['interes_moratorio'] = global_interes_moratorio
+            st.session_state[f"interes_moratorio_{idx}"] = global_interes_moratorio
         st.toast("Interés moratorio global aplicado a todas las facturas.")
 
 def handle_global_min_interest_days_change():
     if st.session_state.get('aplicar_dias_interes_minimo_global'):
         global_min_days = st.session_state.dias_interes_minimo_global
-        for invoice in st.session_state.invoices_data:
+        for idx, invoice in enumerate(st.session_state.invoices_data):
             invoice['dias_minimos_interes_individual'] = global_min_days
+            st.session_state[f"dias_minimos_interes_individual_{idx}"] = global_min_days
         st.toast("Días de interés mínimo global aplicado a todas las facturas.")
 
 # --- Inicialización del Session State ---
