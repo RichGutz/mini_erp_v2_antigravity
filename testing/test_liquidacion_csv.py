@@ -48,11 +48,70 @@ def run_test():
             "fecha_pago": datetime.date(2025, 4, 6), # 103 días
             "monto_pagado": 16350.00,
             "saldo_esperado": 1652.30
+        },
+        {
+            "nombre": "Liquidacion 9A (Pago Parcial con Mora)",
+            "fecha_pago": datetime.date(2025, 4, 4), # 101 días
+            "monto_pagado": 17850.00,
+            "saldo_esperado": 80.09
         }
     ]
 
     sistema = SistemaFactoringCompleto()
+
+    # Test específico para 9B (Nuevo Calendario)
+    print("\nProbando: Liquidacion 9B (Nuevo Calendario)")
+    capital_remanente = 80.09
+    fecha_inicio_remanente = datetime.date(2025, 4, 4) # Fecha de corte de la 9A
     
+    operacion_remanente = {
+        "id_operacion": "TEST-CSV-9B",
+        "capital_operacion": capital_remanente,
+        "monto_desembolsado": capital_remanente, 
+        "interes_compensatorio": 0.0, # Nuevo calendario empieza limpio
+        "igv_interes": 0.0,
+        "tasa_interes_mensual": TASA_MENSUAL,
+        "fecha_desembolso": fecha_inicio_remanente,
+        "fecha_vencimiento": fecha_inicio_remanente # Vence el mismo día (deuda exigible)
+    }
+    
+    # Simular al 06/04/2025 (2 días después)
+    fecha_simulacion = datetime.date(2025, 4, 6)
+    saldo_esperado_9b = 80.40 # Línea 155 del CSV (aprox)
+    
+    # Nota: Para 9B, el CSV calcula moratorios desde el día 1.
+    # Mi sistema calculará moratorios si fecha_pago > fecha_vencimiento.
+    
+    resultado_9b = sistema.liquidar_operacion_con_back_door(
+        operacion=operacion_remanente,
+        fecha_pago=fecha_simulacion,
+        monto_pagado=0.0, # Solo queremos ver cuánto debe
+        monto_minimo=100.0
+    )
+    
+    # En 9B, el saldo es Saldo Global + Monto Pagado (0) = Saldo Global.
+    # Pero ojo: Liquidación calcula "cuánto falta pagar".
+    # Si pagué 0, el saldo global es la deuda total.
+    
+    saldo_calculado_9b = resultado_9b['saldo_global']
+    diferencia_9b = abs(saldo_calculado_9b - saldo_esperado_9b)
+    
+    print(f"  Fecha Simulacion: {fecha_simulacion}")
+    print(f"  Saldo Esperado (CSV): {saldo_esperado_9b}")
+    print(f"  Saldo Calculado (Sys): {saldo_calculado_9b:.2f}")
+    print(f"  Diferencia: {diferencia_9b:.2f}")
+    
+    if diferencia_9b < 0.10:
+        print("  ✅ RESULTADO: COINCIDE")
+    else:
+        print("  ❌ RESULTADO: DISCREPANCIA")
+        print("  Desglose Calculado 9B:")
+        print(f"    Interés Devengado: {resultado_9b['interes_devengado']}")
+        print(f"    Moratorios: {resultado_9b['interes_moratorio']}")
+        print(f"    Delta Capital: {resultado_9b['delta_capital']}")
+
+
+
     # Configurar operación base
     operacion_base = {
         "id_operacion": "TEST-CSV",
