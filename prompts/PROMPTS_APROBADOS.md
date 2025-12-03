@@ -147,3 +147,49 @@ Eres un experto desarrollador Python...
 4.  Eliminado callback `plazo_changed` (líneas 477-480).
 5.  Eliminado widget `st.number_input` de plazo (líneas 498-508).
 **Resultado:** UI simplificada. El usuario solo ingresa "Fecha de Pago" y el sistema calcula automáticamente el plazo interno.
+
+**Fix Adicional (2025-12-02):**
+- Agregado parámetro `value` a widgets `st.date_input` de fecha de pago y desembolso
+- **Problema resuelto:** Los cambios en las fechas ahora actualizan inmediatamente el "Plazo de Operación (días)"
+- Commit: `fix: Agregar value a date_input para cálculos inmediatos de plazo`
+
+**Fix Adicional 2 (2025-12-02):**
+- Modificado widget de "Plazo de Operación" para leer directamente desde `st.session_state.invoices_data[idx]`
+- **Problema resuelto:** El plazo de operación ahora se actualiza correctamente cuando cambian las fechas
+- **Causa raíz:** El widget leía de la variable local `invoice` que no se actualizaba después de los callbacks
+- Commit: `fix: Plazo de operación ahora lee desde session_state para actualización inmediata`
+
+**Validación de Fechas (2025-12-02):**
+- Agregado warning cuando la fecha de pago es anterior a la fecha de desembolso
+- **Lógica de negocio:** La fecha de desembolso debe ser anterior a la fecha de pago
+- **Comportamiento:** Si las fechas están en orden incorrecto, muestra warning y plazo = 0
+- Commit: `feat: Agregar warning cuando fecha de pago es anterior a fecha de desembolso`
+
+---
+
+## [Validado] Método de Testing del Algoritmo Universal
+**Fecha:** 2025-12-02
+**Contexto:** Validación rigurosa del motor de cálculo `src/core/factoring_system.py` contra escenarios de negocio reales.
+
+```markdown
+**Objetivo:** Asegurar que el algoritmo de "Liquidación Universal" coincida matemáticamente con la lógica de negocio definida en el archivo `CASOS.LIQUIDACIONES.COMPREHENSIVE.CHRISTIE.FEEDBACK.csv`.
+
+**Metodología:**
+1.  **Script Automatizado:** Se creó `testing/test_liquidacion_csv.py`.
+2.  **Datos de Entrada:** Extraídos directamente del CSV (Capital: 17,822.01, Tasa: 2%, Mora: 3%).
+3.  **Escenarios Validados:**
+    *   **Liquidación 1 (Pago Anticipado):** Verifica devolución de intereses cobrados en exceso.
+    *   **Liquidación 2 (Pago Parcial):** Verifica saldo negativo (deuda de Inandes al cliente) por pago parcial anticipado.
+    *   **Liquidación 3 (Back Door):** Verifica que saldos menores al mínimo (S/ 100) se perdonen automáticamente (Saldo 0.01 -> 0.00).
+    *   **Liquidación 5 (Mora):** Verifica cálculo de intereses moratorios (3% mensual) sobre días de atraso.
+    *   **Liquidación 9A (Pago Parcial con Mora):** Verifica cálculo complejo donde el pago parcial cubre intereses y mora, dejando un remanente de capital.
+    *   **Liquidación 9B (Nuevo Calendario):** Verifica que el remanente de la 9A se convierta correctamente en el capital inicial de un nuevo calendario.
+
+**Resultados:**
+✅ Todos los escenarios pasaron con coincidencia exacta (o diferencia < 0.01 por redondeo).
+- El algoritmo implementa fielmente la fórmula de interés compuesto (Excel POWER).
+- La lógica de "Back Door" (reducción en cascada) funciona según lo especificado.
+- La transición de mora a nuevo calendario (9A -> 9B) es correcta.
+
+**Artefacto:** `testing/test_liquidacion_csv.py` (Disponible en el repositorio para regression testing).
+```
