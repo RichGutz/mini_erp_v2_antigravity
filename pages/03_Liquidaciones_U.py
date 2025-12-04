@@ -418,3 +418,56 @@ if st.session_state.vista_actual_universal == 'busqueda':
 elif st.session_state.vista_actual_universal == 'liquidacion':
     mostrar_liquidacion_universal()
 
+# --- Diagrama de Flujo de los 6 Casos ---
+st.markdown("---")
+st.markdown("### 📊 Diagrama de Flujo: Los 6 Casos de Liquidación")
+
+from streamlit_mermaid import st_mermaid
+
+mermaid_code = """
+graph TD
+    Start([Inicio: Liquidación]) --> CalcDeltas[Calcular Deltas<br/>ΔInt = Devengado - Original<br/>ΔCap = Capital - Pagado<br/>Saldo = ΔInt + ΔCap]
+    
+    CalcDeltas --> CheckSaldo{Saldo Global}
+    
+    CheckSaldo -->|Saldo < 0| SaldoNeg[Saldo Negativo<br/>Cliente pagó de más]
+    CheckSaldo -->|Saldo > 0| SaldoPos[Saldo Positivo<br/>Cliente debe dinero]
+    
+    SaldoNeg --> CheckNeg1{ΔInt < 0 AND<br/>ΔCap < 0?}
+    CheckNeg1 -->|Sí| Caso1[CASO 1: LIQUIDADO<br/>Devolver todo el exceso]
+    CheckNeg1 -->|No| CheckNeg2{ΔInt > 0 AND<br/>ΔCap < 0?}
+    CheckNeg2 -->|Sí| Caso5[CASO 5: LIQUIDADO<br/>Facturar Int + Devolver Cap]
+    CheckNeg2 -->|No| Caso6[CASO 6: LIQUIDADO<br/>NC + Devolver saldo]
+    
+    SaldoPos --> CheckPos1{ΔInt < 0 AND<br/>ΔCap > 0?}
+    CheckPos1 -->|Sí| Caso2[CASO 2: EN PROCESO<br/>NC + Calendario]
+    CheckPos1 -->|No| CheckPos2{ΔInt > 0 AND<br/>ΔCap > 0?}
+    CheckPos2 -->|Sí| Caso3[CASO 3: EN PROCESO<br/>Facturar + Calendario]
+    CheckPos2 -->|No| Caso4[CASO 4: EN PROCESO<br/>Facturar Int + Evaluar]
+    
+    Caso1 --> End([Fin])
+    Caso2 --> End
+    Caso3 --> End
+    Caso4 --> End
+    Caso5 --> End
+    Caso6 --> End
+    
+    style Caso1 fill:#10b981,stroke:#059669,color:#fff
+    style Caso5 fill:#06b6d4,stroke:#0891b2,color:#fff
+    style Caso6 fill:#8b5cf6,stroke:#7c3aed,color:#fff
+    style Caso2 fill:#f59e0b,stroke:#d97706,color:#fff
+    style Caso3 fill:#ef4444,stroke:#dc2626,color:#fff
+    style Caso4 fill:#f97316,stroke:#ea580c,color:#fff
+    style SaldoNeg fill:#fef3c7,stroke:#f59e0b
+    style SaldoPos fill:#fee2e2,stroke:#ef4444
+"""
+
+st_mermaid(mermaid_code, height=800)
+
+st.markdown("""
+**Leyenda:**
+- 🟢 **Verde/Cyan/Púrpura**: Casos LIQUIDADOS (saldo negativo)
+- 🟠 **Naranja/Rojo**: Casos EN PROCESO (saldo positivo)
+- **ΔInt**: Delta de Intereses
+- **ΔCap**: Delta de Capital
+""")
