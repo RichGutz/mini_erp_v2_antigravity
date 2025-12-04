@@ -78,7 +78,7 @@ def safe_decimal(value, default=Decimal('0.0')) -> Decimal:
 def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -> str:
     """
     Genera tabla markdown con desglose detallado de cálculos de liquidación.
-    Similar a la tabla del módulo de Operaciones.
+    Enfocado en comparar DEVENGADO vs FACTURADO.
     """
     if resultado.get("error"):
         return f"**Error:** {resultado.get('error')}"
@@ -92,8 +92,8 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     monto_desemb = resultado.get('monto_desembolsado', 0)
     monto_pagado = resultado.get('monto_pagado', 0)
     
-    lines.append(f"| **DATOS ORIGINALES DE LA OPERACIÓN** | | | |")
-    lines.append(f"| Capital Operación | {capital_op:,.2f} | `Dato original` | Capital financiado en la operación |")
+    lines.append(f"| **DATOS DE LA OPERACIÓN** | | | |")
+    lines.append(f"| Capital Operación | {capital_op:,.2f} | `Dato original` | Capital financiado |")
     lines.append(f"| Monto Desembolsado | {monto_desemb:,.2f} | `Dato original` | Monto entregado al cliente |")
     lines.append(f"| Monto Pagado | {monto_pagado:,.2f} | `Dato de entrada` | Monto recibido del cliente |")
     
@@ -103,41 +103,63 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     fecha_liq = resultado.get('fecha_liquidacion', 'N/A')
     
     lines.append(f"| | | | |")
-    lines.append(f"| **CÁLCULO DE PERÍODOS** | | | |")
-    lines.append(f"| Fecha de Liquidación | N/A | `Dato de entrada` | {fecha_liq} |")
-    lines.append(f"| Días Transcurridos | {dias_trans} | `Fecha Liquidación - Fecha Desembolso` | Días desde el desembolso hasta la liquidación |")
-    lines.append(f"| Días de Mora | {dias_mora} | `Fecha Liquidación - Fecha Vencimiento` | Días de atraso (0 si pago antes del vencimiento) |")
+    lines.append(f"| **PERÍODOS** | | | |")
+    lines.append(f"| Fecha de Liquidación | - | `Dato de entrada` | {fecha_liq} |")
+    lines.append(f"| Días Transcurridos | {dias_trans} | `Fecha Liq - Fecha Desemb` | Días desde desembolso |")
+    lines.append(f"| Días de Mora | {dias_mora} | `Fecha Liq - Fecha Venc` | Días de atraso |")
     
-    # Intereses devengados
+    # COMPARACIÓN: DEVENGADO VS FACTURADO
     interes_dev = resultado.get('interes_devengado', 0)
     igv_int_dev = resultado.get('igv_interes_devengado', 0)
     tasa_mensual = factura_original.get('interes_mensual', 0) if factura_original else 0
     
-    lines.append(f"| | | | |")
-    lines.append(f"| **INTERESES COMPENSATORIOS DEVENGADOS** | | | |")
-    lines.append(f"| Interés Devengado | {interes_dev:,.2f} | `Capital × Tasa Mensual × (Días / 30)` | `{capital_op:,.2f} × {tasa_mensual:.2f}% × ({dias_trans} / 30) = {interes_dev:,.2f}` |")
-    lines.append(f"| IGV Interés Devengado | {igv_int_dev:,.2f} | `Interés × 18%` | `{interes_dev:,.2f} × 18% = {igv_int_dev:,.2f}` |")
+    # Obtener valores originales de la factura
+    interes_original = factura_original.get('interes_compensatorio', 0) if factura_original else 0
+    igv_original = factura_original.get('igv_interes', 0) if factura_original else 0
     
-    # Intereses moratorios
+    lines.append(f"| | | | |")
+    lines.append(f"| **COMPARACIÓN: DEVENGADO VS FACTURADO** | | | |")
+    lines.append(f"| | | | |")
+    
+    # Intereses Compensatorios
+    lines.append(f"| **Interés Compensatorio** | | | |")
+    lines.append(f"| → Facturado (Original) | {interes_original:,.2f} | `Valor en operación original` | Interés cobrado al desembolsar |")
+    lines.append(f"| → Devengado (Calculado) | {interes_dev:,.2f} | `Capital × Tasa × (Días/30)` | `{capital_op:,.2f} × {tasa_mensual:.2f}% × ({dias_trans}/30) = {interes_dev:,.2f}` |")
+    
+    delta_int = resultado.get('delta_intereses', 0)
+    delta_signo = "+" if delta_int >= 0 else ""
+    lines.append(f"| → **Diferencia (Delta)** | **{delta_signo}{delta_int:,.2f}** | `Devengado - Facturado` | `{interes_dev:,.2f} - {interes_original:,.2f} = {delta_int:,.2f}` |")
+    
+    lines.append(f"| | | | |")
+    
+    # IGV sobre Intereses
+    lines.append(f"| **IGV sobre Intereses** | | | |")
+    lines.append(f"| → Facturado (Original) | {igv_original:,.2f} | `Valor en operación original` | IGV cobrado al desembolsar |")
+    lines.append(f"| → Devengado (Calculado) | {igv_int_dev:,.2f} | `Interés Devengado × 18%` | `{interes_dev:,.2f} × 18% = {igv_int_dev:,.2f}` |")
+    
+    delta_igv_int = resultado.get('delta_igv_intereses', 0)
+    delta_igv_signo = "+" if delta_igv_int >= 0 else ""
+    lines.append(f"| → **Diferencia (Delta)** | **{delta_igv_signo}{delta_igv_int:,.2f}** | `Devengado - Facturado` | `{igv_int_dev:,.2f} - {igv_original:,.2f} = {delta_igv_int:,.2f}` |")
+    
+    # Intereses moratorios (si hay mora)
     if dias_mora > 0:
         interes_mor = resultado.get('interes_moratorio', 0)
         igv_mor = resultado.get('igv_moratorio', 0)
         
         lines.append(f"| | | | |")
         lines.append(f"| **INTERESES MORATORIOS** | | | |")
-        lines.append(f"| Interés Moratorio | {interes_mor:,.2f} | `Capital × Tasa Moratoria × (Días Mora / 30)` | Calculado sobre {dias_mora} días de mora |")
-        lines.append(f"| IGV Moratorio | {igv_mor:,.2f} | `Interés Moratorio × 18%` | `{interes_mor:,.2f} × 18% = {igv_mor:,.2f}` |")
+        lines.append(f"| → Interés Moratorio | {interes_mor:,.2f} | `Capital × Tasa Mora × (Días/30)` | {dias_mora} días de mora |")
+        lines.append(f"| → IGV Moratorio | {igv_mor:,.2f} | `Interés Mora × 18%` | `{interes_mor:,.2f} × 18% = {igv_mor:,.2f}` |")
     
-    # Deltas
-    delta_int = resultado.get('delta_intereses', 0)
-    delta_igv_int = resultado.get('delta_igv_intereses', 0)
+    # Capital
     delta_cap = resultado.get('delta_capital', 0)
+    delta_cap_signo = "+" if delta_cap >= 0 else ""
     
     lines.append(f"| | | | |")
-    lines.append(f"| **DELTAS (Diferencias vs. Valores Originales)** | | | |")
-    lines.append(f"| Delta Intereses | {delta_int:,.2f} | `Devengado - Original` | Diferencia entre interés devengado y el cobrado originalmente |")
-    lines.append(f"| Delta IGV Intereses | {delta_igv_int:,.2f} | `IGV Devengado - IGV Original` | Diferencia en IGV de intereses |")
-    lines.append(f"| Delta Capital | {delta_cap:,.2f} | `Capital Operación - Monto Pagado` | `{capital_op:,.2f} - {monto_pagado:,.2f} = {delta_cap:,.2f}` |")
+    lines.append(f"| **CAPITAL** | | | |")
+    lines.append(f"| → Capital Operación | {capital_op:,.2f} | `Dato original` | Capital a recuperar |")
+    lines.append(f"| → Monto Pagado | {monto_pagado:,.2f} | `Dato de entrada` | Monto recibido |")
+    lines.append(f"| → **Diferencia (Delta)** | **{delta_cap_signo}{delta_cap:,.2f}** | `Capital - Pagado` | `{capital_op:,.2f} - {monto_pagado:,.2f} = {delta_cap:,.2f}` |")
     
     # Saldo global
     saldo_original = resultado.get('saldo_original', 0)
@@ -145,7 +167,7 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     
     lines.append(f"| | | | |")
     lines.append(f"| **SALDO GLOBAL** | | | |")
-    lines.append(f"| Saldo antes de Backdoor | {saldo_original:,.2f} | `Suma de todos los deltas` | Delta Int + Delta IGV + Int Mora + IGV Mora + Delta Capital |")
+    lines.append(f"| Saldo antes de Backdoor | {saldo_original:,.2f} | `Suma de todos los deltas` | Delta Int + Delta IGV + Int Mora + IGV Mora + Delta Cap |")
     
     # Backdoor
     backdoor_aplicado = resultado.get('back_door_aplicado', False)
@@ -154,19 +176,17 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
         reducciones = resultado.get('reducciones_aplicadas', [])
         
         lines.append(f"| | | | |")
-        lines.append(f"| **APLICACIÓN DE BACKDOOR** | | | |")
-        lines.append(f"| Monto Mínimo Configurado | {monto_min:,.2f} | `Parámetro del sistema` | Saldo menor a este monto activa el backdoor |")
-        lines.append(f"| Backdoor Aplicado | Sí | `Saldo < Mínimo` | Se aplicaron reducciones secuenciales |")
+        lines.append(f"| **BACKDOOR** | | | |")
+        lines.append(f"| Condición | Saldo < {monto_min:,.2f} | `Saldo < Mínimo` | Backdoor activado |")
         
         if reducciones:
             lines.append(f"| | | | |")
-            lines.append(f"| **Reducciones Secuenciales:** | | | |")
             for i, red in enumerate(reducciones, 1):
                 concepto = red.get('concepto', 'N/A')
                 valor_antes = red.get('valor_antes', 0)
                 valor_despues = red.get('valor_despues', 0)
                 saldo_resultante = red.get('saldo_resultante', 0)
-                lines.append(f"| {i}. {concepto} | {valor_antes:,.2f} → {valor_despues:,.2f} | `Reducción aplicada` | Saldo después: {saldo_resultante:,.2f} |")
+                lines.append(f"| {i}. {concepto} | {valor_antes:,.2f} → {valor_despues:,.2f} | `Reducción` | Saldo: {saldo_resultante:,.2f} |")
     
     # Resultado final
     estado = resultado.get('estado_operacion', 'N/A')
@@ -174,9 +194,9 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     
     lines.append(f"| | | | |")
     lines.append(f"| **RESULTADO FINAL** | | | |")
-    lines.append(f"| **Saldo Global Final** | **{saldo_global:,.2f}** | `Después de backdoor` | Saldo final de la operación |")
-    lines.append(f"| Estado de Operación | {estado} | `Clasificación` | Estado final de la liquidación |")
-    lines.append(f"| Acción Recomendada | {accion} | `Recomendación` | Siguiente paso sugerido |")
+    lines.append(f"| **Saldo Global Final** | **{saldo_global:,.2f}** | `Después de backdoor` | Saldo final |")
+    lines.append(f"| Estado | {estado} | `Clasificación` | - |")
+    lines.append(f"| Acción | {accion} | `Recomendación` | - |")
     
     return "\n".join(lines)
 
