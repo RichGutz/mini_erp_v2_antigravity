@@ -28,9 +28,36 @@ def init_session_state():
         'global_backdoor_min_amount_universal': 100.0,
         'vouchers_universales': {}, # <--- AÑADIDO: Para guardar los vouchers
     }
-    for key, value in states.items():
+    for key, default_value in states.items():
         if key not in st.session_state:
-            st.session_state[key] = value
+            st.session_state[key] = default_value
+
+# --- Helper Functions ---
+def parse_date_flexible(date_str):
+    """
+    Parsea una fecha que puede venir en formato DD-MM-YYYY o YYYY-MM-DD (ISO).
+    Retorna un objeto datetime.date.
+    """
+    if not date_str:
+        return None
+    
+    # Intentar formato DD-MM-YYYY primero
+    try:
+        return datetime.datetime.strptime(date_str, '%d-%m-%Y').date()
+    except ValueError:
+        pass
+    
+    # Intentar formato ISO YYYY-MM-DD
+    try:
+        return datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        pass
+    
+    # Si ninguno funciona, intentar parsear como ISO con fromisoformat
+    try:
+        return datetime.date.fromisoformat(date_str)
+    except (ValueError, AttributeError):
+        raise ValueError(f"No se pudo parsear la fecha: {date_str}")
 
 init_session_state()
 
@@ -144,8 +171,8 @@ def mostrar_liquidacion_universal():
                         "interes_compensatorio": float(safe_decimal(desglose.get('interes', {}).get('monto'))),
                         "igv_interes": float(safe_decimal(desglose.get('interes', {}).get('igv'))),
                         "tasa_interes_mensual": float(safe_decimal(factura.get('interes_mensual')) / 100),
-                        "fecha_desembolso": datetime.datetime.strptime(fecha_desembolso_str, '%d-%m-%Y').date(),
-                        "fecha_vencimiento": datetime.datetime.strptime(fecha_vencimiento_str, '%d-%m-%Y').date(),
+                        "fecha_desembolso": parse_date_flexible(fecha_desembolso_str),
+                        "fecha_vencimiento": parse_date_flexible(fecha_vencimiento_str),
                     }
 
                     resultado = sistema.liquidar_operacion_con_back_door(
