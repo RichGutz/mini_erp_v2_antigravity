@@ -53,3 +53,40 @@ ESTADO: ✅ COMPLETADO
 PROBADO: ⏳ PENDIENTE (Usuario debe probar la funcionalidad)
 
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-04 17:20:15
+SESIÓN: Corrección de actualización visual de widgets en Liquidaciones Universales
+================================================================================
+
+PROBLEMA REPORTADO:
+-------------------
+A pesar de la corrección anterior, los widgets de fecha individual no se 
+actualizaban visualmente al cambiar la fecha global o presionar el botón, 
+aunque el estado interno sí cambiaba.
+
+CAUSA RAÍZ:
+-----------
+Streamlit mantiene el estado de los widgets vinculado a sus 'keys'. Actualizar 
+solo el diccionario auxiliar 'fechas_pago_individuales' no era suficiente para 
+forzar la actualización visual de los widgets date_input, ya que sus claves 
+(f"fecha_{proposal_id}") no estaban siendo modificadas directamente en 
+st.session_state.
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+1. Modificada la lógica de sincronización (automática y manual) para iterar 
+   sobre las facturas y actualizar explícitamente las claves de los widgets:
+   
+   st.session_state[f"fecha_{proposal_id}"] = fecha_global_actual
+
+   Esto asegura que Streamlit renderice el widget con el nuevo valor en el 
+   siguiente ciclo.
+
+ARCHIVOS MODIFICADOS:
+---------------------
+- c:\Users\rguti\mini_erp_v2_antigravity\pages\03_Liquidaciones_U.py
+  * Líneas 288-305: Actualización explícita de st.session_state[key]
+
+ESTADO: ✅ COMPLETADO
+================================================================================

@@ -288,8 +288,12 @@ def mostrar_liquidacion_universal():
             st.session_state.previous_global_date = fecha_global_actual
         elif fecha_global_actual != st.session_state.previous_global_date:
             # La fecha global cambió: sincronizar todas las fechas individuales
-            for proposal_id in st.session_state.fechas_pago_individuales.keys():
+            for i, factura in enumerate(st.session_state.lote_encontrado_universal):
+                proposal_id = factura.get('proposal_id', f'factura_{i}')
                 st.session_state.fechas_pago_individuales[proposal_id] = fecha_global_actual
+                # CRÍTICO: Actualizar también la key del widget para que se refleje visualmente
+                st.session_state[f"fecha_{proposal_id}"] = fecha_global_actual
+            
             st.session_state.previous_global_date = fecha_global_actual
         
         # Actualizar la fecha global en session_state
@@ -298,8 +302,11 @@ def mostrar_liquidacion_universal():
         # Botón opcional para sincronización manual (por homogeneidad de interfaz)
         if st.form_submit_button("🔄 Aplicar Fecha Global a Todas las Facturas", type="secondary"):
             # Sincronizar manualmente todas las fechas
-            for proposal_id in st.session_state.fechas_pago_individuales.keys():
+            for i, factura in enumerate(st.session_state.lote_encontrado_universal):
+                proposal_id = factura.get('proposal_id', f'factura_{i}')
                 st.session_state.fechas_pago_individuales[proposal_id] = fecha_global_actual
+                # CRÍTICO: Actualizar también la key del widget para que se refleje visualmente
+                st.session_state[f"fecha_{proposal_id}"] = fecha_global_actual
             st.rerun()
         
         st.markdown("---")
