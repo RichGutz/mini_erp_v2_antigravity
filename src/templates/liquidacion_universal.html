@@ -340,9 +340,12 @@
                     <td>Monto recibido</td>
                 </tr>
                 <tr class="highlight-row">
-                    <td>→ <strong>Delta</strong></td>
-                    <td class="{{ 'positive' if (liq.resultado.delta_capital or 0) >= 0 else 'negative' }}">
-                        <strong>{{ "{:+,.2f}".format(liq.resultado.delta_capital or 0) }}</strong>
+                    <td>→ <strong>Delta{% if liq.resultado.back_door_aplicado %} (antes de backdoor){% endif %}</strong>
+                    </td>
+                    <td
+                        class="{{ 'positive' if (liq.resultado.delta_capital_original if liq.resultado.back_door_aplicado else liq.resultado.delta_capital or 0) >= 0 else 'negative' }}">
+                        <strong>{{ "{:+,.2f}".format(liq.resultado.delta_capital_original if
+                            liq.resultado.back_door_aplicado else liq.resultado.delta_capital or 0) }}</strong>
                     </td>
                     <td>Capital - Pagado</td>
                     <td>{{ "{:,.2f}".format(liq.resultado.capital_operacion or 0) }} - {{

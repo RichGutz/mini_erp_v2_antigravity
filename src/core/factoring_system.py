@@ -310,48 +310,64 @@ class SistemaFactoringCompleto:
         """
         Secuencia de reducción BACK DOOR: Moratorios → Compensatorios → Capital
         """
+        # Guardar valores originales ANTES del backdoor
+        liquidacion['delta_capital_original'] = liquidacion.get('delta_capital', 0)
+        liquidacion['delta_intereses_original'] = liquidacion.get('delta_intereses', 0)
+        liquidacion['delta_igv_intereses_original'] = liquidacion.get('delta_igv_intereses', 0)
+        liquidacion['interes_moratorio_original'] = liquidacion.get('interes_moratorio', 0)
+        liquidacion['igv_moratorio_original'] = liquidacion.get('igv_moratorio', 0)
+        
         reducciones_aplicadas = []
         saldo_restante = saldo_original
         
         # 1. REDUCIR MORATORIOS (Primera prioridad)
         if liquidacion.get('interes_moratorio', 0) > 0:
             reduccion_moratorios = min(saldo_restante, liquidacion['interes_moratorio'])
+            valor_antes = liquidacion['interes_moratorio']
             
             if reduccion_moratorios > 0:
                 liquidacion['interes_moratorio'] -= reduccion_moratorios
                 liquidacion['igv_moratorio'] = liquidacion['interes_moratorio'] * self.igv_pct
                 saldo_restante -= reduccion_moratorios
                 reducciones_aplicadas.append({
-                    'tipo': 'moratorios',
-                    'monto': round(reduccion_moratorios, 2),
-                    'nuevo_saldo': round(liquidacion['interes_moratorio'], 2)
+                    'concepto': 'Interés Moratorio',
+                    'valor_antes': round(valor_antes, 2),
+                    'valor_despues': round(liquidacion['interes_moratorio'], 2),
+                    'reduccion': round(reduccion_moratorios, 2),
+                    'saldo_resultante': round(saldo_restante, 2)
                 })
         
         # 2. REDUCIR COMPENSATORIOS (Segunda prioridad)
         if saldo_restante > 0 and liquidacion.get('delta_intereses', 0) > 0:
             reduccion_compensatorios = min(saldo_restante, liquidacion['delta_intereses'])
+            valor_antes = liquidacion['delta_intereses']
             
             if reduccion_compensatorios > 0:
                 liquidacion['delta_intereses'] -= reduccion_compensatorios
                 liquidacion['delta_igv_intereses'] = liquidacion['delta_intereses'] * self.igv_pct
                 saldo_restante -= reduccion_compensatorios
                 reducciones_aplicadas.append({
-                    'tipo': 'compensatorios', 
-                    'monto': round(reduccion_compensatorios, 2),
-                    'nuevo_saldo': round(liquidacion['delta_intereses'], 2)
+                    'concepto': 'Delta Intereses Compensatorios',
+                    'valor_antes': round(valor_antes, 2),
+                    'valor_despues': round(liquidacion['delta_intereses'], 2),
+                    'reduccion': round(reduccion_compensatorios, 2),
+                    'saldo_resultante': round(saldo_restante, 2)
                 })
         
         # 3. REDUCIR CAPITAL (Último recurso)
         if saldo_restante > 0 and liquidacion.get('delta_capital', 0) > 0:
             reduccion_capital = min(saldo_restante, liquidacion['delta_capital'])
+            valor_antes = liquidacion['delta_capital']
             
             if reduccion_capital > 0:
                 liquidacion['delta_capital'] -= reduccion_capital
                 saldo_restante -= reduccion_capital
                 reducciones_aplicadas.append({
-                    'tipo': 'capital',
-                    'monto': round(reduccion_capital, 2),
-                    'nuevo_saldo': round(liquidacion['delta_capital'], 2)
+                    'concepto': 'Delta Capital',
+                    'valor_antes': round(valor_antes, 2),
+                    'valor_despues': round(liquidacion['delta_capital'], 2),
+                    'reduccion': round(reduccion_capital, 2),
+                    'saldo_resultante': round(saldo_restante, 2)
                 })
         
         # Actualizar saldo global
