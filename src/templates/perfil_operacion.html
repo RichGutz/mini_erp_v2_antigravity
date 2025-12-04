@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Perfil de Operaciones</title>
@@ -7,38 +8,75 @@
         @page {
             size: landscape;
             margin: 1in;
+
             @top-right {
                 content: element(header-logo);
             }
         }
-        body { font-family: Helvetica, Arial, sans-serif; }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+        }
+
         #header-logo {
             position: running(header-logo);
-            width: 150px; /* Adjust as needed */
+            width: 150px;
+            /* Adjust as needed */
             height: auto;
             text-align: right;
         }
+
         #header-logo img {
             max-width: 150px;
             height: auto;
         }
+
         .invoice-page {
             page-break-after: always;
         }
+
         .invoice-page:last-child {
             page-break-after: auto;
         }
-        .header { margin-top: 0; }
-        .summary { margin-bottom: 20px; font-size: 11px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid black; padding: 8px; text-align: left; font-size: 10px; }
-        th { background-color: #f2f2f2; }
-        .footer { margin-top: 20px; font-size: 8px; text-align: center; }
+
+        .header {
+            margin-top: 0;
+        }
+
+        .summary {
+            margin-bottom: 20px;
+            font-size: 11px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+            font-size: 10px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 8px;
+            text-align: center;
+        }
     </style>
 </head>
+
 <body>
     <div id="header-logo">
-                <img src="static/logo_inandes.png" alt="Logo">
+        <img src="static/logo_inandes.png" alt="Logo">
     </div>
     {% for invoice in invoices %}
     <div class="invoice-page">
@@ -56,7 +94,8 @@
                 <b>Monto Total:</b> {{ invoice.moneda_factura }} {{ "{:,.2f}".format(invoice.monto_total_factura) }} |
                 <b>Monto Neto:</b> {{ invoice.moneda_factura }} {{ "{:,.2f}".format(invoice.monto_neto_factura) }} |
                 <b>Int. Compensatorio:</b> {{ "{:,.2f}".format(invoice.interes_mensual) }}% |
-                <b>Int. Moratorio:</b> {{ "{:,.2f}".format(invoice.interes_moratorio) }}%
+                <b>Int. Moratorio:</b> {{ "{:,.2f}".format(invoice.interes_moratorio) }}%{% if invoice.proposal_id %} |
+                <b>ID Propuesta:</b> {{ invoice.proposal_id }}{% endif %}
             </p>
         </div>
 
@@ -83,7 +122,9 @@
                     <td>{{ "{:,.2f}".format(invoice.detraccion_monto) }}</td>
                     <td>{{ "%.2f"|format(invoice.detraccion_porcentaje) }}%</td>
                     <td><code>Monto Total - Monto Neto</code></td>
-                    <td>{{ "{:,.2f}".format(invoice.monto_total_factura) }} - {{ "{:,.2f}".format(invoice.monto_neto_factura) }} = {{ "{:,.2f}".format(invoice.detraccion_monto) }}</td>
+                    <td>{{ "{:,.2f}".format(invoice.monto_total_factura) }} - {{
+                        "{:,.2f}".format(invoice.monto_neto_factura) }} = {{ "{:,.2f}".format(invoice.detraccion_monto)
+                        }}</td>
                 </tr>
                 <tr>
                     <td>Monto Neto de Factura</td>
@@ -94,73 +135,118 @@
                 </tr>
                 <tr>
                     <td>Margen de Seguridad</td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.margen_seguridad.monto) }}</td>
-                    <td>{{ "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.margen_seguridad.porcentaje) }}%</td>
+                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.margen_seguridad.monto)
+                        }}</td>
+                    <td>{{
+                        "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.margen_seguridad.porcentaje)
+                        }}%</td>
                     <td><code>Monto Neto - Capital</code></td>
-                    <td>{{ "{:,.2f}".format(invoice.monto_neto_factura) }} - {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital) }} = {{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.margen_seguridad.monto) }}</td>
+                    <td>{{ "{:,.2f}".format(invoice.monto_neto_factura) }} - {{
+                        "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital) }} = {{
+                        "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.margen_seguridad.monto) }}
+                    </td>
                 </tr>
                 <tr>
                     <td>Tasa de Avance Aplicada</td>
                     <td>N/A</td>
-                    <td>{{ "%.2f"|format(invoice.recalculate_result.resultado_busqueda.tasa_avance_encontrada * 100) }}%</td>
+                    <td>{{ "%.2f"|format(invoice.recalculate_result.resultado_busqueda.tasa_avance_encontrada * 100) }}%
+                    </td>
                     <td><code>Tasa final de la operación</code></td>
                     <td>N/A</td>
                 </tr>
                 <tr>
                     <td>Capital</td>
                     <td>{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital) }}</td>
-                    <td>{{ "%.2f"|format((invoice.recalculate_result.calculo_con_tasa_encontrada.capital / invoice.monto_neto_factura) * 100 if invoice.monto_neto_factura else 0) }}%</td>
+                    <td>{{ "%.2f"|format((invoice.recalculate_result.calculo_con_tasa_encontrada.capital /
+                        invoice.monto_neto_factura) * 100 if invoice.monto_neto_factura else 0) }}%</td>
                     <td><code>Monto Neto * (Tasa de Avance / 100)</code></td>
-                    <td>{{ "{:,.2f}".format(invoice.monto_neto_factura) }} * ({{ "%.2f"|format(invoice.recalculate_result.resultado_busqueda.tasa_avance_encontrada * 100) }} / 100) = {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital) }}</td>
+                    <td>{{ "{:,.2f}".format(invoice.monto_neto_factura) }} * ({{
+                        "%.2f"|format(invoice.recalculate_result.resultado_busqueda.tasa_avance_encontrada * 100) }} /
+                        100) = {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital) }}
+                    </td>
                 </tr>
                 <tr>
                     <td>Intereses</td>
                     <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.interes.monto) }}</td>
-                    <td>{{ "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.interes.porcentaje) }}%</td>
+                    <td>{{ "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.interes.porcentaje) }}%
+                    </td>
                     <td><code>Capital * ((1 + Tasa Diaria)^Plazo - 1)</code></td>
-                    <td>Tasa Diaria: {{ "%.2f"|format(invoice.interes_mensual) }}% / 30 = {{ "%.4f"|format(invoice.interes_mensual / 30) }}%, Plazo: {{ invoice.recalculate_result.calculo_con_tasa_encontrada.plazo_operacion }} días.</td>
+                    <td>Tasa Diaria: {{ "%.2f"|format(invoice.interes_mensual) }}% / 30 = {{
+                        "%.4f"|format(invoice.interes_mensual / 30) }}%, Plazo: {{
+                        invoice.recalculate_result.calculo_con_tasa_encontrada.plazo_operacion }} días.</td>
                 </tr>
                 <tr>
                     <td>IGV sobre Intereses</td>
                     <td>{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_interes) }}</td>
-                    <td>{{ "%.2f"|format((invoice.recalculate_result.calculo_con_tasa_encontrada.igv_interes / invoice.monto_neto_factura) * 100 if invoice.monto_neto_factura else 0) }}%</td>
+                    <td>{{ "%.2f"|format((invoice.recalculate_result.calculo_con_tasa_encontrada.igv_interes /
+                        invoice.monto_neto_factura) * 100 if invoice.monto_neto_factura else 0) }}%</td>
                     <td><code>Intereses * 18%</code></td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.interes.monto) }} * 18% = {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_interes) }}</td>
+                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.interes.monto) }} * 18%
+                        = {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_interes) }}
+                    </td>
                 </tr>
                 <tr>
                     <td>Comisión de Estructuración</td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto) }}</td>
-                    <td>{{ "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.porcentaje) }}%</td>
+                    <td>{{
+                        "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto)
+                        }}</td>
+                    <td>{{
+                        "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.porcentaje)
+                        }}%</td>
                     <td><code>MAX(Capital * %Comisión, Mínima Prorrateada)</code></td>
-                    <td>Base: {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital * (invoice.comision_de_estructuracion_global / 100)) }}, Mín Prorrateado: {{ "{:,.2f}".format(invoice.comision_minima_calculada if invoice.comision_minima_calculada is defined else 0) }}. Resultado: {{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto) }}</td>
+                    <td>Base: {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital *
+                        (invoice.comision_de_estructuracion_global / 100)) }}, Mín Prorrateado: {{
+                        "{:,.2f}".format(invoice.comision_minima_calculada if invoice.comision_minima_calculada is
+                        defined else 0) }}. Resultado: {{
+                        "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto)
+                        }}</td>
                 </tr>
                 <tr>
                     <td>IGV sobre Com. de Estruct.</td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_comision_estructuracion) }}</td>
-                    <td>{{ "%.2f"|format((invoice.recalculate_result.calculo_con_tasa_encontrada.igv_comision_estructuracion / invoice.monto_neto_factura) * 100 if invoice.monto_neto_factura else 0) }}%</td>
+                    <td>{{
+                        "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_comision_estructuracion)
+                        }}</td>
+                    <td>{{
+                        "%.2f"|format((invoice.recalculate_result.calculo_con_tasa_encontrada.igv_comision_estructuracion
+                        / invoice.monto_neto_factura) * 100 if invoice.monto_neto_factura else 0) }}%</td>
                     <td><code>Comisión * 18%</code></td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto) }} * 18% = {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_comision_estructuracion) }}</td>
+                    <td>{{
+                        "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto)
+                        }} * 18% = {{
+                        "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_comision_estructuracion)
+                        }}</td>
                 </tr>
                 {% if invoice.recalculate_result.desglose_final_detallado.comision_afiliacion.monto > 0 %}
                 <tr>
                     <td>Comisión de Afiliación</td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_afiliacion.monto) }}</td>
-                    <td>{{ "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.comision_afiliacion.porcentaje) }}%</td>
+                    <td>{{
+                        "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_afiliacion.monto)
+                        }}</td>
+                    <td>{{
+                        "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.comision_afiliacion.porcentaje)
+                        }}%</td>
                     <td><code>Valor Fijo (si aplica)</code></td>
                     <td>Monto fijo para la moneda {{ invoice.moneda_factura }}.</td>
                 </tr>
                 <tr>
                     <td>IGV sobre Com. de Afiliación</td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_afiliacion) }}</td>
-                    <td>{{ "%.2f"|format((invoice.recalculate_result.calculo_con_tasa_encontrada.igv_afiliacion / invoice.monto_neto_factura) * 100 if invoice.monto_neto_factura else 0) }}%</td>
+                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_afiliacion) }}
+                    </td>
+                    <td>{{ "%.2f"|format((invoice.recalculate_result.calculo_con_tasa_encontrada.igv_afiliacion /
+                        invoice.monto_neto_factura) * 100 if invoice.monto_neto_factura else 0) }}%</td>
                     <td><code>Comisión * 18%</code></td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_afiliacion.monto) }} * 18% = {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_afiliacion) }}</td>
+                    <td>{{
+                        "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_afiliacion.monto)
+                        }} * 18% = {{
+                        "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_afiliacion) }}</td>
                 </tr>
                 {% endif %}
                 <tr style="background-color: #f2f2f2;">
                     <td><b>Monto a Desembolsar</b></td>
-                    <td><b>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.abono.monto) }}</b></td>
-                    <td><b>{{ "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.abono.porcentaje) }}%</b></td>
+                    <td><b>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.abono.monto) }}</b>
+                    </td>
+                    <td><b>{{ "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.abono.porcentaje)
+                            }}%</b></td>
                     <td><code>Capital - Costos Totales</code></td>
                     <td></td>
                 </tr>
@@ -174,16 +260,13 @@
             </tbody>
         </table>
         <div class="footer">
-            {% if invoice.proposal_id %}
-                <br><span style="color: red;">ID Propuesta: {{ invoice.proposal_id }}</span>
-            {% endif %}
         </div>
     </div>
     {% endfor %}
     <div class="invoice-page">
         <h2>Resumen Consolidado</h2>
         {% if invoices[0] and invoices[0].identificador_lote %}
-            <h3 style="color: red;">Identificador de Lote: {{ invoices[0].identificador_lote }}</h3>
+        <h3 style="color: red;">Identificador de Lote: {{ invoices[0].identificador_lote }}</h3>
         {% endif %}
         <table>
             <thead>
@@ -213,17 +296,26 @@
                     <td>{{ "{:,.2f}".format(invoice.monto_total_factura) }}</td>
                     <td>{{ "{:,.2f}".format(invoice.detraccion_monto) }}</td>
                     <td>{{ "{:,.2f}".format(invoice.monto_neto_factura) }}</td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.margen_seguridad.monto) }}</td>
+                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.margen_seguridad.monto)
+                        }}</td>
                     <td>{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital) }}</td>
                     <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.interes.monto) }}</td>
                     <td>{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_interes) }}</td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto) }}</td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_comision_estructuracion) }}</td>
+                    <td>{{
+                        "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto)
+                        }}</td>
+                    <td>{{
+                        "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_comision_estructuracion)
+                        }}</td>
                     {% if show_afiliacion %}
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_afiliacion.monto) }}</td>
-                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_afiliacion) }}</td>
+                    <td>{{
+                        "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_afiliacion.monto)
+                        }}</td>
+                    <td>{{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.igv_afiliacion) }}
+                    </td>
                     {% endif %}
-                    <td><b>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.abono.monto) }}</b></td>
+                    <td><b>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.abono.monto) }}</b>
+                    </td>
                 </tr>
                 {% endfor %}
                 <tr style="background-color: #f2f2f2;">
@@ -247,4 +339,5 @@
         </table>
     </div>
 </body>
+
 </html>
