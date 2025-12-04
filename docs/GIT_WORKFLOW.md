@@ -60,9 +60,133 @@ git commit -m "Descripción del cambio"
 git push origin main
 ```
 
-## Verificación Pre-Push
+## Procedimiento de Push (A Prueba de Errores)
 
-Antes de cada push, verificar:
-1. ¿Estoy en `main`? → `git branch` (debe mostrar `* main`)
-2. ¿Mis cambios están commiteados? → `git status`
-3. ¿Voy a pushear a `main`? → `git push origin main`
+### Paso 1: Verificar Branch Actual
+```bash
+git branch
+```
+**Resultado esperado:** Debe mostrar `* main`
+- ✅ Si estás en `main`, continúa al Paso 2
+- ❌ Si estás en otro branch, ejecuta: `git checkout main`
+
+### Paso 2: Limpiar Locks de Git (Prevención)
+```bash
+# PowerShell
+Get-ChildItem -Path .git -Filter "*.lock" -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
+```
+**Propósito:** Eliminar archivos `.lock` que causan errores frecuentes
+
+### Paso 3: Verificar Estado del Repositorio
+```bash
+git status
+```
+**Revisar:**
+- ¿Hay archivos modificados? → Deben estar en "Changes to be committed" (verde)
+- ¿Hay archivos sin trackear que quieres incluir? → Usa `git add <archivo>`
+
+### Paso 4: Agregar Archivos al Staging
+```bash
+git add <archivo1> <archivo2>
+# O para agregar todos los cambios:
+git add .
+```
+**Importante:** NO agregar archivos sensibles (secrets, PDFs de prueba, etc.)
+
+### Paso 5: Hacer Commit
+```bash
+git commit -m "Descripción clara del cambio"
+```
+**Formato del mensaje:**
+- `feat:` para nuevas funcionalidades
+- `fix:` para correcciones de bugs
+- `docs:` para documentación
+- `refactor:` para refactorización sin cambios funcionales
+
+### Paso 6: Sincronizar con Remoto (Crítico)
+```bash
+git fetch origin
+git status
+```
+**Revisar el output:**
+- Si dice "Your branch is up to date" → Continúa al Paso 7
+- Si dice "Your branch is behind" → Ejecuta: `git pull origin main --no-edit`
+- Si dice "Your branch is ahead" → Continúa al Paso 7
+
+### Paso 7: Push a Main
+```bash
+git push origin main
+```
+**Resultado esperado:** Debe mostrar "Writing objects" y terminar con "Exit code: 0"
+
+### Paso 8: Verificar Despliegue
+1. Espera 2-3 minutos
+2. Abre Streamlit Cloud en incógnito
+3. Verifica que los cambios estén desplegados
+
+## Solución de Problemas Comunes
+
+### Error: "index.lock exists"
+```bash
+Remove-Item -Force .git\index.lock
+```
+
+### Error: "Updates were rejected"
+```bash
+# Opción 1: Pull y merge
+git pull origin main --no-edit
+git push origin main
+
+# Opción 2: Si estás seguro de tus cambios locales
+git push origin main --force-with-lease  # ⚠️ Usar con precaución
+```
+
+### Error: "Merge conflict"
+```bash
+# 1. Ver archivos en conflicto
+git status
+
+# 2. Editar manualmente los archivos para resolver conflictos
+# 3. Marcar como resueltos
+git add <archivo-resuelto>
+
+# 4. Completar el merge
+git commit -m "Merge: Resolver conflictos"
+
+# 5. Push
+git push origin main
+```
+
+### Error: "Failed to push some refs"
+```bash
+# Verificar que estés en main
+git branch
+
+# Limpiar y reintentar
+git fetch origin
+git pull origin main --no-edit
+git push origin main
+```
+
+## Checklist Rápido (Copiar y Pegar)
+
+```bash
+# 1. Verificar branch
+git branch
+
+# 2. Limpiar locks
+Get-ChildItem -Path .git -Filter "*.lock" -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
+
+# 3. Agregar cambios
+git add <archivos>
+
+# 4. Commit
+git commit -m "tipo: descripción"
+
+# 5. Sincronizar
+git fetch origin
+git pull origin main --no-edit
+
+# 6. Push
+git push origin main
+```
