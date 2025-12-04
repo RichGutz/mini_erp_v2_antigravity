@@ -43,7 +43,7 @@
     {% for invoice in invoices %}
     <div class="invoice-page">
         <div class="header">
-            <h2>Perfil de la Operación</h2>
+            <h2>Perfil de la Operación: {{ print_date }}</h2>
         </div>
 
         <div class="summary">
@@ -174,7 +174,6 @@
             </tbody>
         </table>
         <div class="footer">
-            Fecha de Impresión: {{ print_date }}
             {% if invoice.proposal_id %}
                 <br><span style="color: red;">ID Propuesta: {{ invoice.proposal_id }}</span>
             {% endif %}
