@@ -67,6 +67,7 @@ def update_date_calculations(invoice, changed_field=None):
             fecha_desembolso_dt = datetime.datetime.strptime(invoice['fecha_desembolso_factoring'], "%d-%m-%Y")
             if fecha_pago_dt >= fecha_desembolso_dt:
                 invoice['plazo_operacion_calculado'] = (fecha_pago_dt - fecha_desembolso_dt).days
+                invoice['fecha_error'] = False  # Fechas válidas
             else:
                 invoice['plazo_operacion_calculado'] = 0
                 # Marcar que hay un error de fechas para mostrar warning en UI
