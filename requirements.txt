@@ -11,4 +11,5 @@ python-dotenv
 fastapi
 uvicorn
 pydantic
+plotly
 # Forzar-Reconstruccion-Completa-V20250901
