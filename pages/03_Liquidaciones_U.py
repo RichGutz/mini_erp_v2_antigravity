@@ -361,10 +361,6 @@ def mostrar_liquidacion_universal():
                 # Generar y mostrar tabla markdown
                 tabla_md = generar_tabla_calculo_liquidacion(resultado, factura_original)
                 st.markdown(tabla_md, unsafe_allow_html=True)
-
-                # Expander con JSON completo para debugging
-                with st.expander("Ver datos completos (JSON)"):
-                    st.json(resultado)
         
         if st.button("Guardar Liquidaciones en Supabase", type="primary"):
             # Lógica de guardado (sin cambios, pero ahora se podría incluir el voucher)
