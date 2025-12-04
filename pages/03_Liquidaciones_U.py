@@ -27,6 +27,8 @@ def init_session_state():
         'global_liquidation_date_universal': datetime.date.today(),
         'global_backdoor_min_amount_universal': 100.0,
         'vouchers_universales': {}, # <--- AÑADIDO: Para guardar los vouchers
+        'fechas_pago_individuales': {}, # <--- NUEVO: Para almacenar fechas individuales por factura
+        'previous_global_date': None, # <--- NUEVO: Para detectar cambios en la fecha global
     }
     for key, default_value in states.items():
         if key not in st.session_state:
@@ -262,18 +264,48 @@ def mostrar_liquidacion_universal():
         st.session_state.lote_encontrado_universal = []
         st.session_state.resultados_liquidacion_universal = None
         st.session_state.vouchers_universales = {} # Limpiar vouchers al volver
+        st.session_state.fechas_pago_individuales = {} # Limpiar fechas individuales
+        st.session_state.previous_global_date = None # Resetear fecha previa
         st.rerun()
+
+    # Inicializar fechas individuales si no existen (primera vez que se carga el lote)
+    for factura in st.session_state.lote_encontrado_universal:
+        proposal_id = factura.get('proposal_id')
+        if proposal_id not in st.session_state.fechas_pago_individuales:
+            st.session_state.fechas_pago_individuales[proposal_id] = st.session_state.global_liquidation_date_universal
 
     with st.form(key="universal_liquidation_form"):
         st.subheader("Configuración Global de Liquidación")
         cols = st.columns(2)
-        st.session_state.global_liquidation_date_universal = cols[0].date_input("Fecha de Pago Global", value=st.session_state.global_liquidation_date_universal)
+        
+        # Capturar la fecha global actual
+        fecha_global_actual = cols[0].date_input("Fecha de Pago Global", value=st.session_state.global_liquidation_date_universal)
         st.session_state.global_backdoor_min_amount_universal = cols[1].number_input("Monto Máximo para Backdoor (S/)", value=st.session_state.global_backdoor_min_amount_universal, format="%.2f", help="El backdoor se activa cuando el saldo es menor a este monto")
+        
+        # Detectar si la fecha global cambió y sincronizar automáticamente
+        if st.session_state.previous_global_date is None:
+            # Primera vez: establecer la fecha previa
+            st.session_state.previous_global_date = fecha_global_actual
+        elif fecha_global_actual != st.session_state.previous_global_date:
+            # La fecha global cambió: sincronizar todas las fechas individuales
+            for proposal_id in st.session_state.fechas_pago_individuales.keys():
+                st.session_state.fechas_pago_individuales[proposal_id] = fecha_global_actual
+            st.session_state.previous_global_date = fecha_global_actual
+        
+        # Actualizar la fecha global en session_state
+        st.session_state.global_liquidation_date_universal = fecha_global_actual
+        
+        # Botón opcional para sincronización manual (por homogeneidad de interfaz)
+        if st.form_submit_button("🔄 Aplicar Fecha Global a Todas las Facturas", type="secondary"):
+            # Sincronizar manualmente todas las fechas
+            for proposal_id in st.session_state.fechas_pago_individuales.keys():
+                st.session_state.fechas_pago_individuales[proposal_id] = fecha_global_actual
+            st.rerun()
         
         st.markdown("---")
         
         facturas_inputs = {}
-        fechas_pago_inputs = {}  # Nuevo: almacenar fechas de pago por factura
+        fechas_pago_inputs = {}  # Almacenar fechas de pago por factura
         
         for i, factura in enumerate(st.session_state.lote_encontrado_universal):
             proposal_id = factura.get('proposal_id', f'factura_{i}')
@@ -281,7 +313,7 @@ def mostrar_liquidacion_universal():
                 monto_neto = safe_decimal(factura.get('monto_neto_factura'))
                 st.markdown(f"**Factura:** {parse_invoice_number(proposal_id)} | **Emisor:** {factura.get('emisor_nombre', 'N/A')} | **Monto Neto:** S/ {monto_neto:,.2f}")
                 
-                col1, col2, col3 = st.columns(3)  # Cambiado a 3 columnas
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     facturas_inputs[proposal_id] = st.number_input(
                         "Monto Recibido", 
@@ -290,12 +322,15 @@ def mostrar_liquidacion_universal():
                         format="%.2f"
                     )
                 with col2:
-                    # Nuevo: Fecha de pago individual (por defecto = fecha global)
+                    # Fecha de pago individual sincronizada con la fecha global
+                    fecha_individual = st.session_state.fechas_pago_individuales.get(proposal_id, fecha_global_actual)
                     fechas_pago_inputs[proposal_id] = st.date_input(
                         "Fecha de Pago",
-                        value=st.session_state.global_liquidation_date_universal,
+                        value=fecha_individual,
                         key=f"fecha_{proposal_id}"
                     )
+                    # Actualizar el estado con el valor del widget
+                    st.session_state.fechas_pago_individuales[proposal_id] = fechas_pago_inputs[proposal_id]
                 with col3:
                     st.session_state.vouchers_universales[proposal_id] = st.file_uploader(
                         "Voucher de Depósito",

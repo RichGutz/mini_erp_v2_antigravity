@@ -1,0 +1,55 @@
+================================================================================
+FECHA: 2025-12-04 17:13:00
+SESIÓN: Corrección de sincronización de fechas en Liquidaciones Universales
+================================================================================
+
+PROBLEMA REPORTADO:
+-------------------
+En el módulo de Liquidaciones Universales (03_Liquidaciones_U.py), cuando el 
+usuario cambiaba la fecha en el campo "Fecha de Pago Global", este cambio no 
+se propagaba automáticamente a los campos individuales de "Fecha de Pago" de 
+cada factura. Era un problema de gestión de estado en Streamlit.
+
+CAUSA RAÍZ:
+-----------
+Los widgets date_input individuales usaban value=st.session_state.global_liquidation_date_universal,
+pero este valor solo se leía una vez al renderizar el formulario. Los cambios 
+posteriores en la fecha global no actualizaban los widgets individuales porque 
+Streamlit no re-evalúa el value de los widgets dentro de un formulario hasta 
+que se vuelve a renderizar completamente.
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+1. Agregado nuevo estado de sesión:
+   - 'fechas_pago_individuales': {} → Diccionario para almacenar fecha de cada factura
+   - 'previous_global_date': None → Para detectar cambios en la fecha global
+
+2. Implementada lógica de sincronización automática en mostrar_liquidacion_universal():
+   - Inicialización: Al cargar un lote, todas las fechas individuales se inicializan 
+     con la fecha global
+   - Detección de cambios: Compara fecha_global_actual con previous_global_date
+   - Propagación automática: Si detecta cambio, actualiza todas las fechas individuales
+   - Botón manual: Se mantiene el botón "🔄 Aplicar Fecha Global" por homogeneidad
+
+3. Widgets sincronizados:
+   - Cada date_input individual usa el valor de fechas_pago_individuales
+   - Cuando el usuario cambia una fecha individual, se actualiza en el estado
+   - El estado se actualiza después de cada interacción con el widget
+
+COMPORTAMIENTO FINAL:
+---------------------
+✓ Cambiar fecha global → Todas las fechas individuales se actualizan automáticamente
+✓ Presionar botón de sincronización → Fuerza sincronización manual
+✓ Cambiar fecha individual → Solo esa fecha cambia, las demás mantienen su valor
+✓ Volver a cambiar fecha global → Todas se sincronizan de nuevo
+
+ARCHIVOS MODIFICADOS:
+---------------------
+- c:\Users\rguti\mini_erp_v2_antigravity\pages\03_Liquidaciones_U.py
+  * Líneas 29-30: Agregados nuevos estados de sesión
+  * Líneas 258-340: Modificada función mostrar_liquidacion_universal()
+
+ESTADO: ✅ COMPLETADO
+PROBADO: ⏳ PENDIENTE (Usuario debe probar la funcionalidad)
+
+================================================================================
