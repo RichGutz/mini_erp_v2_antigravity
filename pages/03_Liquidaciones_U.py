@@ -121,8 +121,13 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
         try:
             recalc_json = json.loads(factura_original.get('recalculate_result_json', '{}'))
             desglose = recalc_json.get('desglose_final_detallado', {})
+            calculos = recalc_json.get('calculo_con_tasa_encontrada', {})
+            
+            # Interés original está en desglose
             interes_original = float(desglose.get('interes', {}).get('monto', 0))
-            igv_original = float(desglose.get('interes', {}).get('igv', 0))
+            
+            # IGV está en calculos, no en desglose
+            igv_original = float(calculos.get('igv_interes', 0))
         except (json.JSONDecodeError, KeyError, ValueError, TypeError):
             pass
     
