@@ -453,13 +453,11 @@
                 </tr>
             </thead>
             <tbody>
-                {% set total_capital = 0 %}
-                {% set total_pagado = 0 %}
-                {% set total_saldo = 0 %}
+                {% set ns = namespace(total_capital=0, total_pagado=0, total_saldo=0) %}
                 {% for liq in liquidaciones %}
-                {% set total_capital = total_capital + (liq.resultado.capital_operacion or 0) %}
-                {% set total_pagado = total_pagado + (liq.resultado.monto_pagado or 0) %}
-                {% set total_saldo = total_saldo + (liq.resultado.saldo_global or 0) %}
+                {% set ns.total_capital = ns.total_capital + (liq.resultado.capital_operacion or 0) %}
+                {% set ns.total_pagado = ns.total_pagado + (liq.resultado.monto_pagado or 0) %}
+                {% set ns.total_saldo = ns.total_saldo + (liq.resultado.saldo_global or 0) %}
                 <tr>
                     <td>{{ liq.factura.numero_factura or 'N/A' }}</td>
                     <td>{{ liq.factura.emisor_nombre or 'N/A' }}</td>
@@ -475,9 +473,9 @@
                 {% endfor %}
                 <tr class="resumen-total">
                     <td colspan="2"><strong>TOTALES</strong></td>
-                    <td><strong>{{ "{:,.2f}".format(total_capital) }}</strong></td>
-                    <td><strong>{{ "{:,.2f}".format(total_pagado) }}</strong></td>
-                    <td><strong>{{ "{:,.2f}".format(total_saldo) }}</strong></td>
+                    <td><strong>{{ "{:,.2f}".format(ns.total_capital) }}</strong></td>
+                    <td><strong>{{ "{:,.2f}".format(ns.total_pagado) }}</strong></td>
+                    <td><strong>{{ "{:,.2f}".format(ns.total_saldo) }}</strong></td>
                     <td colspan="3"></td>
                 </tr>
             </tbody>
