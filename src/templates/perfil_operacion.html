@@ -132,7 +132,7 @@
                     <td>{{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto) }}</td>
                     <td>{{ "%.2f"|format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.porcentaje) }}%</td>
                     <td><code>MAX(Capital * %Comisión, Mínima Prorrateada)</code></td>
-                    <td>Base: {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital * (invoice.comision_de_estructuracion_global / 100)) }}, Mín Prorrateado: {{ "{:,.2f}".format(invoice.comision_minima_pen_global / invoice.num_invoices if invoice.moneda_factura == 'PEN' else invoice.comision_minima_usd_global / invoice.num_invoices) }}. Resultado: {{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto) }}</td>
+                    <td>Base: {{ "{:,.2f}".format(invoice.recalculate_result.calculo_con_tasa_encontrada.capital * (invoice.comision_de_estructuracion_global / 100)) }}, Mín Prorrateado: {{ "{:,.2f}".format(invoice.comision_minima_calculada if invoice.comision_minima_calculada is defined else 0) }}. Resultado: {{ "{:,.2f}".format(invoice.recalculate_result.desglose_final_detallado.comision_estructuracion.monto) }}</td>
                 </tr>
                 <tr>
                     <td>IGV sobre Com. de Estruct.</td>

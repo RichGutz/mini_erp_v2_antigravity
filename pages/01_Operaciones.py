@@ -1,13 +1,3 @@
-import streamlit as st
-import requests
-import os
-import datetime
-import json
-import tempfile
-import sys
-
-# --- Path Setup ---
-# The main script (00_Home.py) handles adding 'src' to the path.
 # This page only needs to know the project root for static assets.
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -666,12 +656,33 @@ if st.session_state.invoices_data:
                 lote_desembolso_payload = []
                 num_invoices = len(st.session_state.invoices_data)
                 
+                # Calcular totales de CAPITAL para prorrateo proporcional
+                total_capital_pen = sum(inv['monto_neto_factura'] * (inv['tasa_de_avance'] / 100) for inv in st.session_state.invoices_data if inv['moneda_factura'] == 'PEN')
+                total_capital_usd = sum(inv['monto_neto_factura'] * (inv['tasa_de_avance'] / 100) for inv in st.session_state.invoices_data if inv['moneda_factura'] == 'USD')
+                
                 for invoice_btn in st.session_state.invoices_data:
+                    # Prorrateo de Comisión de Afiliación (se mantiene equitativo)
                     comision_pen_apportioned = st.session_state.get('comision_afiliacion_pen_global', 0.0) / num_invoices if num_invoices > 0 else 0
                     comision_usd_apportioned = st.session_state.get('comision_afiliacion_usd_global', 0.0) / num_invoices if num_invoices > 0 else 0
+                    
                     comision_estructuracion_pct = st.session_state.comision_estructuracion_pct_global
-                    comision_min_pen_apportioned_struct = st.session_state.comision_estructuracion_min_pen_global / num_invoices if num_invoices > 0 else 0
-                    comision_min_usd_apportioned_struct = st.session_state.comision_estructuracion_min_usd_global / num_invoices if num_invoices > 0 else 0
+                    
+                    # Lógica de Prorrateo Proporcional para Comisión de Estructuración BASADO EN CAPITAL
+                    monto_neto = invoice_btn['monto_neto_factura']
+                    tasa_avance = invoice_btn['tasa_de_avance']
+                    capital = monto_neto * (tasa_avance / 100)
+                    moneda = invoice_btn['moneda_factura']
+                    
+                    if moneda == 'PEN':
+                        participacion = capital / total_capital_pen if total_capital_pen > 0 else 0
+                        comision_min_pen_apportioned_struct = st.session_state.comision_estructuracion_min_pen_global * participacion
+                        # Para USD en factura PEN es 0
+                        comision_min_usd_apportioned_struct = 0
+                    else:
+                        participacion = capital / total_capital_usd if total_capital_usd > 0 else 0
+                        comision_min_usd_apportioned_struct = st.session_state.comision_estructuracion_min_usd_global * participacion
+                        # Para PEN en factura USD es 0
+                        comision_min_pen_apportioned_struct = 0
 
                     if invoice_btn['moneda_factura'] == 'USD':
                         comision_minima_aplicable = comision_min_usd_apportioned_struct
@@ -679,6 +690,14 @@ if st.session_state.invoices_data:
                     else:
                         comision_minima_aplicable = comision_min_pen_apportioned_struct
                         comision_afiliacion_aplicable = comision_pen_apportioned
+                    
+                    # Guardar valor calculado para referencia en PDF y Debugging
+                    invoice_btn['comision_minima_calculada'] = comision_minima_aplicable
+                    
+                    # DEBUG LOG
+                    with open("debug_commission.txt", "a") as f:
+                        f.write(f"Inv {invoice_btn.get('numero_factura')}: Capital={capital:.2f}, Share={participacion:.4f}, CommMin={comision_minima_aplicable:.4f}\n")
+
 
                     plazo_real = invoice_btn.get('plazo_operacion_calculado', 0)
                     plazo_para_api = plazo_real
