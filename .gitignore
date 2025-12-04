@@ -54,3 +54,15 @@ htmlcov/
 
 # Documentation with secrets
 prompts/PROMPTS_APROBADOS.md
+
+# Generated PDFs and test files
+*.pdf
+*.xlsm
+~$*.xlsm
+
+# Test directories
+pruebas/
+testing/
+
+# Secrets
+secrets oauth/
