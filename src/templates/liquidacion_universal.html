@@ -360,7 +360,8 @@
 
                 <!-- SALDO GLOBAL -->
                 <tr class="section-header">
-                    <td colspan="4">SALDO GLOBAL</td>
+                    <td colspan="4">SALDO GLOBAL{% if liq.resultado.back_door_aplicado %} (después de backdoor){% endif
+                        %}</td>
                 </tr>
                 <tr>
                     <td>→ Delta Intereses</td>
