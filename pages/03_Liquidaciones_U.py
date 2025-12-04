@@ -460,10 +460,15 @@ def mostrar_liquidacion_universal():
                             factura_preparada = factura.copy()
                             factura_preparada['recalculate_result'] = recalc_result
                             
-                            # Asegurar que todos los campos numéricos tengan valores por defecto
-                            factura_preparada['monto_total_factura'] = factura.get('monto_total_factura') or 0
-                            factura_preparada['monto_neto_factura'] = factura.get('monto_neto_factura') or 0
+                            # Asegurar que TODOS los campos numéricos tengan valores por defecto
+                            factura_preparada['monto_total_factura'] = float(factura.get('monto_total_factura') or 0)
+                            factura_preparada['monto_neto_factura'] = float(factura.get('monto_neto_factura') or 0)
                             factura_preparada['detraccion_monto'] = factura_preparada['monto_total_factura'] - factura_preparada['monto_neto_factura']
+                            factura_preparada['detraccion_porcentaje'] = float(factura.get('detraccion_porcentaje') or 0)
+                            factura_preparada['interes_mensual'] = float(factura.get('interes_mensual') or 0)
+                            factura_preparada['interes_moratorio'] = float(factura.get('interes_moratorio') or 0)
+                            factura_preparada['comision_de_estructuracion_global'] = 0.0
+                            factura_preparada['comision_minima_calculada'] = 0.0
                             
                             invoices_to_print.append(factura_preparada)
                         
