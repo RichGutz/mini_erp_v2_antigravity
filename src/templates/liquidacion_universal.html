@@ -269,9 +269,12 @@
                     <td>Interés real devengado</td>
                 </tr>
                 <tr class="highlight-row">
-                    <td>→ <strong>Delta</strong></td>
-                    <td class="{{ 'positive' if (liq.resultado.delta_intereses or 0) >= 0 else 'negative' }}">
-                        <strong>{{ "{:+,.2f}".format(liq.resultado.delta_intereses or 0) }}</strong>
+                    <td>→ <strong>Delta{% if liq.resultado.back_door_aplicado %} (antes de backdoor){% endif %}</strong>
+                    </td>
+                    <td
+                        class="{{ 'positive' if (liq.resultado.delta_intereses_original if liq.resultado.back_door_aplicado else liq.resultado.delta_intereses or 0) >= 0 else 'negative' }}">
+                        <strong>{{ "{:+,.2f}".format(liq.resultado.delta_intereses_original if
+                            liq.resultado.back_door_aplicado else liq.resultado.delta_intereses or 0) }}</strong>
                     </td>
                     <td>Devengado - Facturado</td>
                     <td>{{ "{:,.2f}".format(liq.resultado.interes_devengado or 0) }} - {{
@@ -295,9 +298,12 @@
                     <td>{{ "{:,.2f}".format(liq.resultado.interes_devengado or 0) }} × 18%</td>
                 </tr>
                 <tr class="highlight-row">
-                    <td>→ <strong>Delta</strong></td>
-                    <td class="{{ 'positive' if (liq.resultado.delta_igv_intereses or 0) >= 0 else 'negative' }}">
-                        <strong>{{ "{:+,.2f}".format(liq.resultado.delta_igv_intereses or 0) }}</strong>
+                    <td>→ <strong>Delta{% if liq.resultado.back_door_aplicado %} (antes de backdoor){% endif %}</strong>
+                    </td>
+                    <td
+                        class="{{ 'positive' if (liq.resultado.delta_igv_intereses_original if liq.resultado.back_door_aplicado else liq.resultado.delta_igv_intereses or 0) >= 0 else 'negative' }}">
+                        <strong>{{ "{:+,.2f}".format(liq.resultado.delta_igv_intereses_original if
+                            liq.resultado.back_door_aplicado else liq.resultado.delta_igv_intereses or 0) }}</strong>
                     </td>
                     <td>Devengado - Facturado</td>
                     <td>{{ "{:,.2f}".format(liq.resultado.igv_interes_devengado or 0) }} - {{
