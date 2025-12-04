@@ -40,7 +40,7 @@ st.set_page_config(
 )
 
 # --- Funciones de Ayuda y Callbacks ---
-def update_date_calculations(invoice, changed_field=None):
+def update_date_calculations(invoice, changed_field=None, idx=None):
     try:
         fecha_emision_str = invoice.get('fecha_emision_factura')
         if not fecha_emision_str:
@@ -75,6 +75,13 @@ def update_date_calculations(invoice, changed_field=None):
         else:
             invoice['plazo_operacion_calculado'] = 0
             invoice['fecha_error'] = False
+
+
+        if idx is not None:
+            if f"plazo_operacion_calculado_{idx}" in st.session_state:
+                st.session_state[f"plazo_operacion_calculado_{idx}"] = str(invoice.get('plazo_operacion_calculado', 0))
+            if f"plazo_credito_dias_{idx}" in st.session_state:
+                st.session_state[f"plazo_credito_dias_{idx}"] = str(invoice.get('plazo_credito_dias', 0))
 
     except (ValueError, TypeError, AttributeError):
         invoice['fecha_pago_calculada'] = ""
@@ -155,7 +162,7 @@ def handle_global_payment_date_change():
         for idx, invoice in enumerate(st.session_state.invoices_data):
             invoice['fecha_pago_calculada'] = global_due_date_str
             st.session_state[f"fecha_pago_calculada_{idx}"] = global_due_date_obj
-            update_date_calculations(invoice, changed_field='fecha')
+            update_date_calculations(invoice, changed_field='fecha', idx=idx)
         st.toast("Fecha de pago global aplicada a todas las facturas.")
 
 def handle_global_disbursement_date_change():
@@ -165,7 +172,7 @@ def handle_global_disbursement_date_change():
         for idx, invoice in enumerate(st.session_state.invoices_data):
             invoice['fecha_desembolso_factoring'] = global_disbursement_date_str
             st.session_state[f"fecha_desembolso_factoring_{idx}"] = global_disbursement_date_obj
-            update_date_calculations(invoice)
+            update_date_calculations(invoice, idx=idx)
         st.toast("Fecha de desembolso global aplicada a todas las facturas.")
 
 def handle_global_tasa_avance_change():
@@ -489,7 +496,7 @@ if st.session_state.invoices_data:
                     st.session_state.invoices_data[idx]['fecha_pago_calculada'] = new_date_obj.strftime('%d-%m-%Y')
                 else:
                     st.session_state.invoices_data[idx]['fecha_pago_calculada'] = ''
-                update_date_calculations(st.session_state.invoices_data[idx], changed_field='fecha')
+                update_date_calculations(st.session_state.invoices_data[idx], changed_field='fecha', idx=idx)
 
             def fecha_desembolso_changed(idx):
                 new_date_obj = st.session_state.get(f"fecha_desembolso_factoring_{idx}")
@@ -497,7 +504,7 @@ if st.session_state.invoices_data:
                     st.session_state.invoices_data[idx]['fecha_desembolso_factoring'] = new_date_obj.strftime('%d-%m-%Y')
                 else:
                     st.session_state.invoices_data[idx]['fecha_desembolso_factoring'] = ''
-                update_date_calculations(st.session_state.invoices_data[idx])
+                update_date_calculations(st.session_state.invoices_data[idx], idx=idx)
 
             with col_fecha_desembolso:
                 fecha_desembolso_obj = to_date_obj(invoice.get('fecha_desembolso_factoring'))
