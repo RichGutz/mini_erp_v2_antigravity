@@ -235,20 +235,20 @@
                 <td class="value">{{ totals.monto_neto | format_currency('S/') }}</td>
             </tr>
             <tr>
-                <td class="label">Menos: Margen de Seguridad</td>
-                <td class="value">{{ totals.margen_seguridad | format_currency('S/') }}</td>
+                <td class="label">Margen de Seguridad</td>
+                <td class="value">({{ totals.margen_seguridad | format_currency('S/') }})</td>
             </tr>
             <tr>
-                <td class="label">Menos: Intereses</td>
-                <td class="value">{{ totals.intereses | format_currency('S/') }}</td>
+                <td class="label">Intereses</td>
+                <td class="value">({{ totals.intereses | format_currency('S/') }})</td>
             </tr>
             <tr>
-                <td class="label">Menos: Comisiones</td>
-                <td class="value">{{ totals.comisiones | format_currency('S/') }}</td>
+                <td class="label">Comisiones</td>
+                <td class="value">({{ totals.comisiones | format_currency('S/') }})</td>
             </tr>
             <tr>
-                <td class="label">Menos: IGV</td>
-                <td class="value">{{ totals.igv | format_currency('S/') }}</td>
+                <td class="label">IGV</td>
+                <td class="value">({{ totals.igv | format_currency('S/') }})</td>
             </tr>
             <tr>
                 <td class="label">Neto a Desembolsar</td>
