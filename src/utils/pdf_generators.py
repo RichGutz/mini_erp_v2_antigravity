@@ -206,3 +206,29 @@ def generar_anexo_liquidacion_pdf(invoices_data: List[Dict[str, Any]]) -> bytes 
     }
     
     return _generate_pdf_in_memory("anexo_liquidacion.html", template_data)
+
+def generate_liquidacion_universal_pdf(resultados_liquidacion: List[Dict[str, Any]], facturas_originales: List[Dict[str, Any]]) -> bytes | None:
+    """
+    Generates the 'Liquidación Universal' PDF showing liquidation results and returns it as bytes.
+    """
+    if not resultados_liquidacion:
+        return None
+    
+    # Combinar resultados con facturas originales
+    liquidaciones_completas = []
+    for resultado in resultados_liquidacion:
+        proposal_id = resultado.get('id_operacion')
+        factura_original = next((f for f in facturas_originales if f.get('proposal_id') == proposal_id), {})
+        
+        liquidacion = {
+            'resultado': resultado,
+            'factura': factura_original
+        }
+        liquidaciones_completas.append(liquidacion)
+    
+    template_data = {
+        'liquidaciones': liquidaciones_completas,
+        'print_date': datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S'),
+    }
+    
+    return _generate_pdf_in_memory("liquidacion_universal.html", template_data)

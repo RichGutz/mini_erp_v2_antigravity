@@ -9,7 +9,7 @@ from decimal import Decimal, InvalidOperation
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 from src.data import supabase_repository as db
 from src.core.factoring_system import SistemaFactoringCompleto
-from src.utils.pdf_generators import generate_perfil_operacion_pdf
+from src.utils.pdf_generators import generate_liquidacion_universal_pdf
 
 # --- Page Config ---
 st.set_page_config(
@@ -440,43 +440,16 @@ def mostrar_liquidacion_universal():
         
         with col_pdf:
             if st.button("📄 Bajar Perfil de Liquidación", type="secondary", use_container_width=True):
-                with st.spinner("Generando PDF del perfil de operación..."):
+                with st.spinner("Generando PDF de liquidación..."):
                     try:
-                        # Preparar datos para el generador de PDF
-                        invoices_to_print = []
-                        
-                        for factura in st.session_state.lote_encontrado_universal:
-                            # Parsear recalculate_result_json si es string
-                            recalc_result = factura.get('recalculate_result_json')
-                            if isinstance(recalc_result, str):
-                                try:
-                                    recalc_result = json.loads(recalc_result)
-                                except json.JSONDecodeError:
-                                    recalc_result = {}
-                            elif recalc_result is None:
-                                recalc_result = {}
-                            
-                            # Preparar factura con formato esperado por el generador
-                            factura_preparada = factura.copy()
-                            factura_preparada['recalculate_result'] = recalc_result
-                            
-                            # Asegurar que TODOS los campos numéricos tengan valores por defecto
-                            factura_preparada['monto_total_factura'] = float(factura.get('monto_total_factura') or 0)
-                            factura_preparada['monto_neto_factura'] = float(factura.get('monto_neto_factura') or 0)
-                            factura_preparada['detraccion_monto'] = factura_preparada['monto_total_factura'] - factura_preparada['monto_neto_factura']
-                            factura_preparada['detraccion_porcentaje'] = float(factura.get('detraccion_porcentaje') or 0)
-                            factura_preparada['interes_mensual'] = float(factura.get('interes_mensual') or 0)
-                            factura_preparada['interes_moratorio'] = float(factura.get('interes_moratorio') or 0)
-                            factura_preparada['comision_de_estructuracion_global'] = 0.0
-                            factura_preparada['comision_minima_calculada'] = 0.0
-                            
-                            invoices_to_print.append(factura_preparada)
-                        
-                        if invoices_to_print:
-                            # Generar PDF
-                            pdf_bytes = generate_perfil_operacion_pdf(invoices_to_print)
+                        if st.session_state.resultados_liquidacion_universal:
+                            # Generar PDF con los resultados de liquidación
+                            pdf_bytes = generate_liquidacion_universal_pdf(
+                                st.session_state.resultados_liquidacion_universal,
+                                st.session_state.lote_encontrado_universal
+                            )
                             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                            output_filename = f"perfil_liquidacion_{timestamp}.pdf"
+                            output_filename = f"liquidacion_universal_{timestamp}.pdf"
                             
                             st.download_button(
                                 label=f"⬇️ Descargar {output_filename}",
@@ -486,7 +459,7 @@ def mostrar_liquidacion_universal():
                                 use_container_width=True
                             )
                         else:
-                            st.warning("No hay facturas para generar el perfil.")
+                            st.warning("No hay resultados de liquidación para generar el PDF.")
                     except Exception as e:
                         st.error(f"Error al generar el PDF: {e}")
         
