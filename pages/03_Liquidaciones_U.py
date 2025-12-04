@@ -113,9 +113,18 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     igv_int_dev = resultado.get('igv_interes_devengado', 0)
     tasa_mensual = factura_original.get('interes_mensual', 0) if factura_original else 0
     
-    # Obtener valores originales de la factura
-    interes_original = factura_original.get('interes_compensatorio', 0) if factura_original else 0
-    igv_original = factura_original.get('igv_interes', 0) if factura_original else 0
+    # Obtener valores originales del recalculate_result_json
+    interes_original = 0
+    igv_original = 0
+    
+    if factura_original:
+        try:
+            recalc_json = json.loads(factura_original.get('recalculate_result_json', '{}'))
+            desglose = recalc_json.get('desglose_final_detallado', {})
+            interes_original = float(desglose.get('interes', {}).get('monto', 0))
+            igv_original = float(desglose.get('interes', {}).get('igv', 0))
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+            pass
     
     lines.append(f"| | | | |")
     lines.append(f"| **COMPARACIÓN: DEVENGADO VS FACTURADO** | | | |")
