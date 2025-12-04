@@ -459,7 +459,11 @@ def mostrar_liquidacion_universal():
                             # Preparar factura con formato esperado por el generador
                             factura_preparada = factura.copy()
                             factura_preparada['recalculate_result'] = recalc_result
-                            factura_preparada['detraccion_monto'] = factura.get('monto_total_factura', 0) - factura.get('monto_neto_factura', 0)
+                            
+                            # Asegurar que todos los campos numéricos tengan valores por defecto
+                            factura_preparada['monto_total_factura'] = factura.get('monto_total_factura') or 0
+                            factura_preparada['monto_neto_factura'] = factura.get('monto_neto_factura') or 0
+                            factura_preparada['detraccion_monto'] = factura_preparada['monto_total_factura'] - factura_preparada['monto_neto_factura']
                             
                             invoices_to_print.append(factura_preparada)
                         
