@@ -140,7 +140,8 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     lines.append(f"| → Facturado (Original) | {interes_original:,.2f} | `Valor en operación original` | Interés cobrado al desembolsar |")
     lines.append(f"| → Devengado (Calculado) | {interes_dev:,.2f} | `Capital × Tasa × (Días/30)` | `{capital_op:,.2f} × {tasa_mensual:.2f}% × ({dias_trans}/30) = {interes_dev:,.2f}` |")
     
-    delta_int = resultado.get('delta_intereses', 0)
+    # Calcular delta manualmente para asegurar consistencia
+    delta_int = interes_dev - interes_original
     delta_signo = "+" if delta_int >= 0 else ""
     lines.append(f"| → **Diferencia (Delta)** | **{delta_signo}{delta_int:,.2f}** | `Devengado - Facturado` | `{interes_dev:,.2f} - {interes_original:,.2f} = {delta_int:,.2f}` |")
     
@@ -151,7 +152,8 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     lines.append(f"| → Facturado (Original) | {igv_original:,.2f} | `Valor en operación original` | IGV cobrado al desembolsar |")
     lines.append(f"| → Devengado (Calculado) | {igv_int_dev:,.2f} | `Interés Devengado × 18%` | `{interes_dev:,.2f} × 18% = {igv_int_dev:,.2f}` |")
     
-    delta_igv_int = resultado.get('delta_igv_intereses', 0)
+    # Calcular delta manualmente para asegurar consistencia
+    delta_igv_int = igv_int_dev - igv_original
     delta_igv_signo = "+" if delta_igv_int >= 0 else ""
     lines.append(f"| → **Diferencia (Delta)** | **{delta_igv_signo}{delta_igv_int:,.2f}** | `Devengado - Facturado` | `{igv_int_dev:,.2f} - {igv_original:,.2f} = {delta_igv_int:,.2f}` |")
     
