@@ -168,7 +168,8 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
         lines.append(f"| → IGV Moratorio | {igv_mor:,.2f} | `Interés Mora × 18%` | `{interes_mor:,.2f} × 18% = {igv_mor:,.2f}` |")
     
     # Capital
-    delta_cap = resultado.get('delta_capital', 0)
+    # Calcular delta manualmente para asegurar consistencia
+    delta_cap = capital_op - monto_pagado
     delta_cap_signo = "+" if delta_cap >= 0 else ""
     
     lines.append(f"| | | | |")
