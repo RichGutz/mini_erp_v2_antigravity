@@ -323,7 +323,7 @@ def mostrar_liquidacion_universal():
                         "capital_operacion": float(safe_decimal(calculo_tasa.get('capital'))),
                         "monto_desembolsado": float(safe_decimal(desglose.get('abono', {}).get('monto'))),
                         "interes_compensatorio": float(safe_decimal(desglose.get('interes', {}).get('monto'))),
-                        "igv_interes": float(safe_decimal(desglose.get('interes', {}).get('igv'))),
+                        "igv_interes": float(safe_decimal(calculo_tasa.get('igv_interes'))),  # ← CORREGIDO: IGV está en calculos, no en desglose
                         "tasa_interes_mensual": float(safe_decimal(factura.get('interes_mensual')) / 100),
                         "fecha_desembolso": parse_date_flexible(fecha_desembolso_str),
                         "fecha_vencimiento": parse_date_flexible(fecha_vencimiento_str),
