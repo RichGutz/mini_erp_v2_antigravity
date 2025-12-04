@@ -330,14 +330,20 @@ def mostrar_liquidacion_universal():
                     )
                 with col2:
                     # Fecha de pago individual sincronizada con la fecha global
-                    fecha_individual = st.session_state.fechas_pago_individuales.get(proposal_id, fecha_global_actual)
+                    # CORRECCIÓN WARNING: Inicializar la key en session_state si no existe
+                    key_fecha = f"fecha_{proposal_id}"
+                    if key_fecha not in st.session_state:
+                        st.session_state[key_fecha] = st.session_state.fechas_pago_individuales.get(proposal_id, fecha_global_actual)
+                    
+                    # Renderizar widget SIN pasar 'value' para evitar warning de conflicto
+                    # Streamlit usará automáticamente el valor de session_state[key_fecha]
                     fechas_pago_inputs[proposal_id] = st.date_input(
                         "Fecha de Pago",
-                        value=fecha_individual,
-                        key=f"fecha_{proposal_id}"
+                        key=key_fecha
                     )
-                    # Actualizar el estado con el valor del widget
-                    st.session_state.fechas_pago_individuales[proposal_id] = fechas_pago_inputs[proposal_id]
+                    
+                    # Actualizar el diccionario interno con el valor actual del widget (por si el usuario lo cambió manualmente)
+                    st.session_state.fechas_pago_individuales[proposal_id] = st.session_state[key_fecha]
                 with col3:
                     st.session_state.vouchers_universales[proposal_id] = st.file_uploader(
                         "Voucher de Depósito",

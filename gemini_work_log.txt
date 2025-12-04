@@ -90,3 +90,36 @@ ARCHIVOS MODIFICADOS:
 
 ESTADO: ✅ COMPLETADO
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-04 17:23:02
+SESIÓN: Eliminación de warning de Streamlit en widgets de fecha
+================================================================================
+
+PROBLEMA REPORTADO:
+-------------------
+Al sincronizar las fechas, aparecía un warning de Streamlit: "The widget with 
+key '...' was created with a default value but also had its value set via the 
+Session State API".
+
+CAUSA RAÍZ:
+-----------
+Se estaba pasando el argumento 'value' al crear el widget st.date_input Y 
+simultáneamente se estaba actualizando su 'key' en session_state. Esto crea 
+un conflicto en Streamlit.
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+1. Eliminado el argumento 'value' de st.date_input.
+2. Asegurada la inicialización de la 'key' en session_state antes de crear 
+   el widget.
+3. Streamlit ahora usa automáticamente el valor almacenado en session_state 
+   sin generar conflictos ni advertencias.
+
+ARCHIVOS MODIFICADOS:
+---------------------
+- c:\Users\rguti\mini_erp_v2_antigravity\pages\03_Liquidaciones_U.py
+  * Líneas 300-315: Modificación de st.date_input para usar solo 'key'
+
+ESTADO: ✅ COMPLETADO
+================================================================================
