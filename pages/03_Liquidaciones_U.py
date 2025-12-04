@@ -9,6 +9,7 @@ from decimal import Decimal, InvalidOperation
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 from src.data import supabase_repository as db
 from src.core.factoring_system import SistemaFactoringCompleto
+from src.utils.pdf_generators import generate_perfil_operacion_pdf
 
 # --- Page Config ---
 st.set_page_config(
@@ -433,39 +434,87 @@ def mostrar_liquidacion_universal():
                 tabla_md = generar_tabla_calculo_liquidacion(resultado, factura_original)
                 st.markdown(tabla_md, unsafe_allow_html=True)
         
-        if st.button("Guardar Liquidaciones en Supabase", type="primary"):
-            # Lógica de guardado (sin cambios, pero ahora se podría incluir el voucher)
-            # Por ahora, solo se añade el uploader al front.
-            with st.spinner("Guardando liquidaciones en Supabase..."):
-                try:
-                    for i, resultado in enumerate(st.session_state.resultados_liquidacion_universal):
-                        if resultado.get("error"):
-                            continue
+        
+        # Botones de acción en columnas
+        col_pdf, col_save = st.columns(2)
+        
+        with col_pdf:
+            if st.button("📄 Bajar Perfil de Liquidación", type="secondary", use_container_width=True):
+                with st.spinner("Generando PDF del perfil de operación..."):
+                    try:
+                        # Preparar datos para el generador de PDF
+                        invoices_to_print = []
                         
-                        proposal_id = resultado['id_operacion']
-                        factura_original = next((f for f in st.session_state.lote_encontrado_universal if f.get('proposal_id') == proposal_id), None)
-                        if not factura_original:
-                            st.warning(f"No se encontró la factura original para {proposal_id}. Saltando guardado.")
-                            continue
+                        for factura in st.session_state.lote_encontrado_universal:
+                            # Parsear recalculate_result_json si es string
+                            recalc_result = factura.get('recalculate_result_json')
+                            if isinstance(recalc_result, str):
+                                try:
+                                    recalc_result = json.loads(recalc_result)
+                                except json.JSONDecodeError:
+                                    recalc_result = {}
+                            elif recalc_result is None:
+                                recalc_result = {}
+                            
+                            # Preparar factura con formato esperado por el generador
+                            factura_preparada = factura.copy()
+                            factura_preparada['recalculate_result'] = recalc_result
+                            factura_preparada['detraccion_monto'] = factura.get('monto_total_factura', 0) - factura.get('monto_neto_factura', 0)
+                            
+                            invoices_to_print.append(factura_preparada)
+                        
+                        if invoices_to_print:
+                            # Generar PDF
+                            pdf_bytes = generate_perfil_operacion_pdf(invoices_to_print)
+                            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                            output_filename = f"perfil_liquidacion_{timestamp}.pdf"
+                            
+                            st.download_button(
+                                label=f"⬇️ Descargar {output_filename}",
+                                data=pdf_bytes,
+                                file_name=output_filename,
+                                mime="application/pdf",
+                                use_container_width=True
+                            )
+                        else:
+                            st.warning("No hay facturas para generar el perfil.")
+                    except Exception as e:
+                        st.error(f"Error al generar el PDF: {e}")
+        
+        with col_save:
+            if st.button("💾 Guardar Liquidaciones en Supabase", type="primary", use_container_width=True):
+                # Lógica de guardado (sin cambios, pero ahora se podría incluir el voucher)
+                # Por ahora, solo se añade el uploader al front.
+                with st.spinner("Guardando liquidaciones en Supabase..."):
+                    try:
+                        for i, resultado in enumerate(st.session_state.resultados_liquidacion_universal):
+                            if resultado.get("error"):
+                                continue
+                            
+                            proposal_id = resultado['id_operacion']
+                            factura_original = next((f for f in st.session_state.lote_encontrado_universal if f.get('proposal_id') == proposal_id), None)
+                            if not factura_original:
+                                st.warning(f"No se encontró la factura original para {proposal_id}. Saltando guardado.")
+                                continue
 
-                        resumen_id = db.get_or_create_liquidacion_resumen(proposal_id, factura_original)
+                            resumen_id = db.get_or_create_liquidacion_resumen(proposal_id, factura_original)
 
-                        db.add_liquidacion_evento(
-                            liquidacion_resumen_id=resumen_id,
-                            tipo_evento="Liquidación Universal",
-                            fecha_evento=st.session_state.global_liquidation_date_universal,
-                            monto_recibido=resultado['monto_pagado'],
-                            dias_diferencia=resultado['dias_mora'],
-                            resultado_json=resultado
-                        )
+                            db.add_liquidacion_evento(
+                                liquidacion_resumen_id=resumen_id,
+                                tipo_evento="Liquidación Universal",
+                                fecha_evento=st.session_state.global_liquidation_date_universal,
+                                monto_recibido=resultado['monto_pagado'],
+                                dias_diferencia=resultado['dias_mora'],
+                                resultado_json=resultado
+                            )
 
-                        db.update_liquidacion_resumen_saldo(resumen_id, resultado['saldo_global'])
-                        db.update_proposal_status(proposal_id, resultado['estado_operacion'])
+                            db.update_liquidacion_resumen_saldo(resumen_id, resultado['saldo_global'])
+                            db.update_proposal_status(proposal_id, resultado['estado_operacion'])
 
-                    st.success("¡Liquidaciones guardadas exitosamente en Supabase!")
-                    st.balloons()
-                except Exception as e:
-                    st.error(f"Ocurrió un error al guardar en la base de datos: {e}")
+                        st.success("¡Liquidaciones guardadas exitosamente en Supabase!")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"Ocurrió un error al guardar en la base de datos: {e}")
 
 # --- Main App Logic ---
 st.title("🌍 Módulo de Liquidación Universal")

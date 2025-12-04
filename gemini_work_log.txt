@@ -123,3 +123,47 @@ ARCHIVOS MODIFICADOS:
 
 ESTADO: ✅ COMPLETADO
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-04 17:47:00
+SESIÓN: Implementación de botón para descargar perfil de liquidación en PDF
+================================================================================
+
+REQUERIMIENTO:
+--------------
+Añadir un botón 'Bajar perfil de liquidación' en el módulo de Liquidaciones 
+Universales, ubicado a la izquierda del botón de guardar en Supabase. Este 
+botón debe generar un PDF con el mismo formato que el 'Perfil de Operación' 
+del módulo de Operaciones, mostrando los detalles originales del desembolso 
+de las facturas que se están liquidando.
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+1. Importada la función generate_perfil_operacion_pdf desde src.utils.pdf_generators
+
+2. Reorganizada la sección de botones:
+   - Creadas dos columnas (col_pdf, col_save) para los botones
+   - Botón izquierdo: ' Bajar Perfil de Liquidación' (secundario)
+   - Botón derecho: ' Guardar Liquidaciones en Supabase' (primario)
+
+3. Lógica de generación del PDF:
+   - Itera sobre st.session_state.lote_encontrado_universal
+   - Parsea recalculate_result_json (de string JSON a dict)
+   - Calcula detraccion_monto (monto_total - monto_neto)
+   - Prepara cada factura con el formato esperado por el generador
+   - Genera PDF usando generate_perfil_operacion_pdf()
+   - Ofrece descarga con nombre perfil_liquidacion_YYYYMMDD_HHMMSS.pdf
+
+4. Corrección de indentación:
+   - Ajustada la indentación del bloque del botón de guardar para 
+     mantener la estructura correcta del código
+
+ARCHIVOS MODIFICADOS:
+---------------------
+- c:\Users\rguti\mini_erp_v2_antigravity\pages\03_Liquidaciones_U.py
+  * Línea 12: Añadido import de generate_perfil_operacion_pdf
+  * Líneas 437-517: Reemplazado botón simple por dos columnas con dos botones
+  * Añadida lógica completa de preparación de datos y generación de PDF
+
+ESTADO:  COMPLETADO
+================================================================================
