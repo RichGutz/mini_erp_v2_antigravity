@@ -483,17 +483,7 @@
             </tbody>
         </table>
 
-        <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
-            <h3 style="margin-top: 0;">Estadísticas del Lote</h3>
-            <p><strong>Facturas Liquidadas:</strong> {{ liquidaciones|selectattr('resultado.estado_operacion',
-                'equalto', 'Liquidado')|list|length }}</p>
-            <p><strong>Facturas en Proceso:</strong> {{ liquidaciones|selectattr('resultado.estado_operacion',
-                'equalto', 'En Proceso')|list|length }}</p>
-            <p><strong>Facturas con Mora:</strong> {{ liquidaciones|selectattr('resultado.dias_mora', 'gt',
-                0)|list|length }}</p>
-            <p><strong>Backdoors Aplicados:</strong> {{ liquidaciones|selectattr('resultado.back_door_aplicado',
-                'equalto', true)|list|length }}</p>
-        </div>
+
 
         <div class="footer">
             Generado automáticamente por el Sistema de Liquidación Universal INANDES
