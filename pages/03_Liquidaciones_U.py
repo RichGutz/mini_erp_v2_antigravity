@@ -181,9 +181,22 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     saldo_original = resultado.get('saldo_original', 0)
     saldo_global = resultado.get('saldo_global', 0)
     
+    # Obtener deltas del resultado para mostrar el cálculo exacto
+    delta_int_resultado = resultado.get('delta_intereses', 0)
+    delta_igv_resultado = resultado.get('delta_igv_intereses', 0)
+    interes_mora_resultado = resultado.get('interes_moratorio', 0)
+    igv_mora_resultado = resultado.get('igv_moratorio', 0)
+    delta_cap_resultado = resultado.get('delta_capital', 0)
+    
     lines.append(f"| | | | |")
     lines.append(f"| **SALDO GLOBAL** | | | |")
-    lines.append(f"| Saldo antes de Backdoor | {saldo_original:,.2f} | `Suma de todos los deltas` | Delta Int + Delta IGV + Int Mora + IGV Mora + Delta Cap |")
+    lines.append(f"| Componentes del Saldo: | | | |")
+    lines.append(f"| → Delta Intereses | {delta_int_resultado:,.2f} | `Del cálculo` | - |")
+    lines.append(f"| → Delta IGV Intereses | {delta_igv_resultado:,.2f} | `Del cálculo` | - |")
+    lines.append(f"| → Interés Moratorio | {interes_mora_resultado:,.2f} | `Del cálculo` | - |")
+    lines.append(f"| → IGV Moratorio | {igv_mora_resultado:,.2f} | `Del cálculo` | - |")
+    lines.append(f"| → Delta Capital | {delta_cap_resultado:,.2f} | `Del cálculo` | - |")
+    lines.append(f"| **Saldo antes de Backdoor** | **{saldo_original:,.2f}** | `Suma de componentes` | `{delta_int_resultado:,.2f} + {delta_igv_resultado:,.2f} + {interes_mora_resultado:,.2f} + {igv_mora_resultado:,.2f} + {delta_cap_resultado:,.2f} = {saldo_original:,.2f}` |")
     
     # Backdoor
     backdoor_aplicado = resultado.get('back_door_aplicado', False)
