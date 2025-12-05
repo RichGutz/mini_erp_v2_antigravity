@@ -126,8 +126,8 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
             desglose = recalc_json.get('desglose_final_detallado', {})
             calculos = recalc_json.get('calculo_con_tasa_encontrada', {})
             
-            # Interés original está en desglose
-            interes_original = float(desglose.get('interes', {}).get('monto', 0))
+            # Interés original está en calculos, no en desglose
+            interes_original = float(calculos.get('interes', 0))
             
             # IGV está en calculos, no en desglose
             igv_original = float(calculos.get('igv_interes', 0))
