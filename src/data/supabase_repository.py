@@ -377,7 +377,7 @@ def add_module(name: str, description: Optional[str] = None) -> Optional[Dict[st
 
 def create_emisor_deudor(data: Dict[str, Any]) -> tuple[bool, str]:
     """
-    Crea un nuevo emisor o deudor en la tabla EMISORES.DEUDORES.
+    Crea un nuevo emisor o deudor en la tabla EMISORES.ACEPTANTEES.
     
     Args:
         data: Diccionario con los campos del emisor/deudor
@@ -399,20 +399,20 @@ def create_emisor_deudor(data: Dict[str, Any]) -> tuple[bool, str]:
             return False, "RUC debe tener 11 dígitos numéricos"
         
         # Validar tipo
-        if tipo_value not in ['EMISOR', 'DEUDOR']:
-            return False, "TIPO debe ser 'EMISOR' o 'DEUDOR'"
+        if tipo_value not in ['EMISOR', 'ACEPTANTE']:
+            return False, "TIPO debe ser 'EMISOR' o 'ACEPTANTE'"
         
         # Asegurar que se use TIPO (nombre correcto)
         if 'tipo' in data and 'TIPO' not in data:
             data['TIPO'] = data.pop('tipo')
         
         # Verificar si ya existe
-        existing = supabase.table('EMISORES.DEUDORES').select('RUC').eq('RUC', data['RUC']).execute()
+        existing = supabase.table('EMISORES.ACEPTANTEES').select('RUC').eq('RUC', data['RUC']).execute()
         if existing.data:
             return False, f"Ya existe un registro con RUC {data['RUC']}"
         
         # Insertar
-        response = supabase.table('EMISORES.DEUDORES').insert(data).execute()
+        response = supabase.table('EMISORES.ACEPTANTEES').insert(data).execute()
         return True, f"Registro creado exitosamente: {data['Razon Social']}"
     except Exception as e:
         print(f"[ERROR en create_emisor_deudor]: {e}")
@@ -433,14 +433,14 @@ def update_emisor_deudor(ruc: str, data: Dict[str, Any]) -> tuple[bool, str]:
     supabase = get_supabase_client()
     try:
         # Verificar que existe
-        existing = supabase.table('EMISORES.DEUDORES').select('*').eq('RUC', ruc).execute()
+        existing = supabase.table('EMISORES.ACEPTANTEES').select('*').eq('RUC', ruc).execute()
         if not existing.data:
             return False, f"No se encontró registro con RUC {ruc}"
         
         # Validar tipo si se está actualizando (aceptar TIPO o tipo)
         tipo_value = data.get('TIPO') or data.get('tipo')
-        if tipo_value and tipo_value not in ['EMISOR', 'DEUDOR']:
-            return False, "TIPO debe ser 'EMISOR' o 'DEUDOR'"
+        if tipo_value and tipo_value not in ['EMISOR', 'ACEPTANTE']:
+            return False, "TIPO debe ser 'EMISOR' o 'ACEPTANTE'"
         
         # Asegurar que se use TIPO (nombre correcto)
         if 'tipo' in data and 'TIPO' not in data:
@@ -448,7 +448,7 @@ def update_emisor_deudor(ruc: str, data: Dict[str, Any]) -> tuple[bool, str]:
         
         # Actualizar (no permitir cambiar RUC)
         data_to_update = {k: v for k, v in data.items() if k != 'RUC'}
-        response = supabase.table('EMISORES.DEUDORES').update(data_to_update).eq('RUC', ruc).execute()
+        response = supabase.table('EMISORES.ACEPTANTEES').update(data_to_update).eq('RUC', ruc).execute()
         return True, "Registro actualizado exitosamente"
     except Exception as e:
         print(f"[ERROR en update_emisor_deudor]: {e}")
@@ -460,14 +460,14 @@ def get_all_emisores_deudores(tipo: Optional[str] = None) -> List[Dict[str, Any]
     Obtiene todos los emisores/deudores, opcionalmente filtrados por tipo.
     
     Args:
-        tipo: Opcional - 'EMISOR' o 'DEUDOR' para filtrar
+        tipo: Opcional - 'EMISOR' o 'ACEPTANTE' para filtrar
     
     Returns:
         Lista de diccionarios con los registros
     """
     supabase = get_supabase_client()
     try:
-        query = supabase.table('EMISORES.DEUDORES').select('*')
+        query = supabase.table('EMISORES.ACEPTANTEES').select('*')
         if tipo:
             query = query.eq('tipo', tipo)
         response = query.execute()
@@ -490,7 +490,7 @@ def search_emisores_deudores(search_term: str) -> List[Dict[str, Any]]:
     supabase = get_supabase_client()
     try:
         # Buscar por RUC o Razón Social (case insensitive)
-        response = supabase.table('EMISORES.DEUDORES').select('*').or_(
+        response = supabase.table('EMISORES.ACEPTANTEES').select('*').or_(
             f'RUC.ilike.%{search_term}%,"Razon Social".ilike.%{search_term}%'
         ).execute()
         return response.data if response.data else []

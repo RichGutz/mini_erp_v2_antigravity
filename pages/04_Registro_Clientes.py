@@ -73,7 +73,7 @@ def mostrar_busqueda():
             try:
                 from src.data.supabase_repository import get_supabase_client
                 supabase = get_supabase_client()
-                response = supabase.table('EMISORES.DEUDORES').select('*').eq('RUC', ruc_buscar).execute()
+                response = supabase.table('EMISORES.ACEPTANTEES').select('*').eq('RUC', ruc_buscar).execute()
                 registros = response.data if response.data else []
             except Exception as e:
                 st.error(f"Error al buscar: {str(e)}")
@@ -114,7 +114,7 @@ def mostrar_formulario_crear():
         with col1:
             ruc = st.text_input("RUC *", value=ruc_precargado, max_chars=11, help="11 dígitos numéricos")
         with col2:
-            tipo = st.selectbox("Tipo *", ["EMISOR", "DEUDOR"])
+            tipo = st.selectbox("Tipo *", ["EMISOR", "ACEPTANTE"])
         
         razon_social = st.text_input("Razón Social *")
         st.markdown('</div>', unsafe_allow_html=True)
@@ -207,7 +207,7 @@ def mostrar_formulario_editar():
         st.markdown('<div class="campo-obligatorio">', unsafe_allow_html=True)
         
         razon_social = st.text_input("Razón Social *", value=registro.get('Razon Social', ''))
-        tipo = st.selectbox("Tipo *", ["EMISOR", "DEUDOR"], 
+        tipo = st.selectbox("Tipo *", ["EMISOR", "ACEPTANTE"], 
                            index=0 if registro.get('TIPO') == 'EMISOR' else 1)
         
         st.markdown('</div>', unsafe_allow_html=True)
