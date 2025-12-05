@@ -167,3 +167,54 @@ ARCHIVOS MODIFICADOS:
 
 ESTADO:  COMPLETADO
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-05 15:08:00
+SESIÓN: Implementación de ordenamiento de facturas por número correlativo
+================================================================================
+
+REQUERIMIENTO:
+--------------
+Al cargar un lote para liquidar, las facturas deben mostrarse ordenadas de 
+forma ascendente según el número correlativo que aparece después del código 
+de serie (E001, F001, etc.) en el proposal_id.
+
+Ejemplo: En TRANS_STAR_HERMANOS_SAC-E001-1104-20251205164005, el número 
+relevante es 1104.
+
+ANÁLISIS:
+---------
+- Las facturas se cargan en líneas 272-277 de 03_Liquidaciones_U.py
+- Formato de proposal_id: EMISOR-SERIE-NUMERO-TIMESTAMP
+- El número correlativo está en la tercera posición al dividir por '-'
+- No existía ningún ordenamiento previo, las facturas aparecían en el orden 
+  que venían de la base de datos
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+1. Creada función helper extraer_numero_correlativo(proposal_id: str) -&gt; int:
+   - Parsea el proposal_id dividiendo por '-'
+   - Extrae el tercer segmento (índice 2) y lo convierte a entero
+   - Retorna 0 si el formato no es válido (manejo robusto de errores)
+   - Ubicación: líneas 81-94
+
+2. Modificada función mostrar_busqueda_universal():
+   - Después de obtener detalles_completos de la BD
+   - Se filtran los detalles válidos (detalles_filtrados)
+   - Se ordenan usando sorted() con key=lambda que llama a extraer_numero_correlativo()
+   - Se asignan los detalles ordenados a session_state
+   - Ubicación: líneas 276-282
+
+ARCHIVOS MODIFICADOS:
+---------------------
+- c:\Users\rguti\mini_erp_v2_antigravity\pages\03_Liquidaciones_U.py
+  * Líneas 81-94: Nueva función extraer_numero_correlativo()
+  * Líneas 276-282: Implementado ordenamiento ascendente
+
+ARCHIVOS DE BACKUP:
+-------------------
+- c:\Users\rguti\mini_erp_v2_antigravity\pages\03_Liquidaciones_U_backup.py
+
+ESTADO:  COMPLETADO
+PROBADO:  PENDIENTE (Usuario debe probar con un lote real)
+================================================================================

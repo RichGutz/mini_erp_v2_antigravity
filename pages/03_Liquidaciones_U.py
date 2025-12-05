@@ -78,6 +78,21 @@ def safe_decimal(value, default=Decimal('0.0')) -> Decimal:
     except (ValueError, TypeError, InvalidOperation):
         return default
 
+def extraer_numero_correlativo(proposal_id: str) -> int:
+    """
+    Extrae el número correlativo del proposal_id.
+    Formato esperado: EMISOR-SERIE-NUMERO-TIMESTAMP
+    Ejemplo: TRANS_STAR_HERMANOS_SAC-E001-1104-20251205164005
+    Retorna: 1104
+    """
+    try:
+        parts = proposal_id.split('-')
+        if len(parts) >= 3:
+            return int(parts[2])
+        return 0
+    except (IndexError, ValueError, AttributeError):
+        return 0
+
 def serialize_resultado_for_json(resultado: dict) -> dict:
     """
     Convierte objetos date/datetime a strings para que sean serializables a JSON.
@@ -274,7 +289,10 @@ def mostrar_busqueda_universal():
                     st.success(f"Se encontraron {len(resultados)} facturas desembolsadas.")
                     with st.spinner("Cargando detalles completos..."):
                         detalles_completos = [db.get_proposal_details_by_id(res.get('proposal_id')) for res in resultados]
-                        st.session_state.lote_encontrado_universal = [d for d in detalles_completos if d]
+                        detalles_filtrados = [d for d in detalles_completos if d]
+                        # Ordenar por número correlativo ascendente
+                        detalles_ordenados = sorted(detalles_filtrados, key=lambda x: extraer_numero_correlativo(x.get('proposal_id', '')))
+                        st.session_state.lote_encontrado_universal = detalles_ordenados
                         st.session_state.vista_actual_universal = 'liquidacion'
                         st.rerun()
                 else:
