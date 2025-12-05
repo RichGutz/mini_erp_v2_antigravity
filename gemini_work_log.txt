@@ -298,3 +298,130 @@ IMPACTO:
 ESTADO:  COMPLETADO
 PROBADO:  PENDIENTE (Usuario debe probar con operación real \u003c 15 días)
 ================================================================================
+
+
+================================================================================
+FECHA: 2025-12-05 18:30:00
+SESIÓN: Implementación del Módulo de Registro de Clientes
+================================================================================
+
+REQUERIMIENTO:
+--------------
+Crear un módulo completo para gestionar la tabla EMISORES.DEUDORES en Supabase,
+permitiendo al usuario:
+- Crear nuevos emisores/deudores
+- Consultar registros existentes
+- Modificar registros existentes
+
+Campos obligatorios: RUC (11 dígitos), tipo (EMISOR/DEUDOR), Razón Social
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+
+1. BACKEND - Funciones CRUD (supabase_repository.py)
+   ========================================================
+   
+   Agregadas 4 funciones nuevas:
+   
+   a) create_emisor_deudor(data: Dict) -> tuple[bool, str]
+      - Valida campos obligatorios (RUC, Razon Social, tipo)
+      - Valida formato de RUC (11 dígitos numéricos)
+      - Valida tipo (solo EMISOR o DEUDOR)
+      - Verifica que no exista duplicado
+      - Inserta registro en tabla EMISORES.DEUDORES
+   
+   b) update_emisor_deudor(ruc: str, data: Dict) -> tuple[bool, str]
+      - Verifica que el registro existe
+      - Valida tipo si se está actualizando
+      - NO permite cambiar el RUC
+      - Actualiza campos en tabla EMISORES.DEUDORES
+   
+   c) get_all_emisores_deudores(tipo: Optional[str]) -> List[Dict]
+      - Obtiene todos los registros
+      - Opcionalmente filtra por tipo (EMISOR/DEUDOR)
+      - Retorna lista de diccionarios
+   
+   d) search_emisores_deudores(search_term: str) -> List[Dict]
+      - Busca por RUC o Razón Social (case insensitive)
+      - Usa operador OR de Supabase
+      - Retorna lista de diccionarios
+
+2. FRONTEND - Módulo Streamlit (04_Registro_Clientes.py)
+   ========================================================
+   
+   Estructura de 3 vistas:
+   
+   a) Vista LISTA (principal)
+      - Barra de búsqueda (RUC o Razón Social)
+      - Filtro por tipo (Todos/EMISOR/DEUDOR)
+      - Botón 'Nuevo Registro' -> Vista CREAR
+      - Lista de registros con botón 'Editar' -> Vista EDITAR
+      - Indicador visual:  EMISOR,  DEUDOR
+   
+   b) Vista CREAR
+      - Formulario con campos obligatorios:
+        * RUC (11 dígitos, validado)
+        * Razón Social
+        * Tipo (dropdown: EMISOR/DEUDOR)
+      - Validaciones:
+        * Campos no vacíos
+        * RUC con formato correcto (11 dígitos numéricos)
+      - Botón 'Crear Registro'
+      - Botón 'Volver' -> Vista LISTA
+      - Animación de globos al crear exitosamente
+   
+   c) Vista EDITAR
+      - Muestra RUC (no editable)
+      - Formulario con campos editables:
+        * Razón Social
+        * Tipo
+      - Botón 'Guardar Cambios'
+      - Botón 'Volver' -> Vista LISTA
+
+3. INTEGRACIÓN CON HOME (00_Home.py)
+   ====================================
+   
+   Actualizado diccionario MODULES:
+   - Módulo 'Registro' cambiado de ' Planeado' a ' En Producción'
+   - Descripción actualizada: 'Gestión de emisores y deudores...'
+   - Page: '04_Registro_Clientes'
+
+ARCHIVOS MODIFICADOS:
+---------------------
+1. src/data/supabase_repository.py
+   - Líneas 377-490: 4 funciones CRUD nuevas
+
+2. pages/04_Registro_Clientes.py (NUEVO)
+   - 200 líneas aprox.
+   - 3 vistas: lista, crear, editar
+   - Validaciones completas
+
+3. 00_Home.py
+   - Línea 158: Módulo Registro actualizado a 'En Producción'
+
+VALIDACIONES IMPLEMENTADAS:
+---------------------------
+- RUC: Exactamente 11 dígitos numéricos
+- Razón Social: No puede estar vacía
+- Tipo: Solo 'EMISOR' o 'DEUDOR' (dropdown, no texto libre)
+- Duplicados: No permite crear RUC duplicado
+- RUC inmutable: No se puede cambiar al editar
+
+FLUJO DE USUARIO:
+-----------------
+1. Usuario accede desde Home -> Módulo Registro
+2. Ve lista de todos los emisores/deudores
+3. Puede buscar por RUC o Razón Social
+4. Puede filtrar por tipo
+5. Clic en 'Nuevo Registro' -> Formulario de creación
+6. Ingresa datos obligatorios -> Clic 'Crear'
+7. Sistema valida y crea registro
+8. Vuelve a lista con mensaje de éxito
+9. Clic en 'Editar' -> Formulario de edición
+10. Modifica campos -> Clic 'Guardar Cambios'
+11. Sistema actualiza registro
+12. Vuelve a lista con mensaje de éxito
+
+ESTADO:  COMPLETADO
+PENDIENTE: Testing manual por parte del usuario
+================================================================================

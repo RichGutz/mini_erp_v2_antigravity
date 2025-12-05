@@ -155,7 +155,7 @@ else:
 
     # --- DATA & ORDER ---
     MODULES = {
-        "Registro": {"status": "📝 Planeado", "help": "Manejo de nuevos clientes, incluyendo la creación de perfiles, generación de contratos y gestión de firmas electrónicas.", "page": None},
+        "Registro": {"status": "✅ En Producción", "help": "Gestión de emisores y deudores. Permite crear, consultar y modificar registros de clientes.", "page": "04_Registro_Clientes"},
         "Originación": {"status": "✅ En Producción", "help": "Gestión de operaciones para clientes existentes. Permite crear anexos, procesar facturas y generar los perfiles de la operación.", "page": "01_Operaciones"},
         "Desembolso": {"status": "✅ En Producción", "help": "Automatiza la solicitud de Letras Electrónicas, contrasta datos y gestiona la aprobación del desembolso.", "page": "02_Desembolsos"},
         "Liquidación": {"status": "✅ En Producción", "help": "Procesa los pagos recibidos, determina si fueron a tiempo, anticipados o tardíos, y calcula los ajustes finales.", "page": "03_Liquidaciones"},
