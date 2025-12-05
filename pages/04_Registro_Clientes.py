@@ -69,11 +69,18 @@ def mostrar_busqueda():
         if not re.match(r'^\d{11}$', ruc_buscar):
             st.warning("⚠️ El RUC debe tener exactamente 11 dígitos numéricos")
         else:
-            # Buscar en base de datos
-            registros = db.search_emisores_deudores(ruc_buscar)
+            # Buscar en base de datos (búsqueda EXACTA por RUC)
+            try:
+                from src.data.supabase_repository import get_supabase_client
+                supabase = get_supabase_client()
+                response = supabase.table('EMISORES.DEUDORES').select('*').eq('RUC', ruc_buscar).execute()
+                registros = response.data if response.data else []
+            except Exception as e:
+                st.error(f"Error al buscar: {str(e)}")
+                registros = []
             
             if registros:
-                st.success(f"✅ Se encontró {len(registros)} registro(s) con RUC: {ruc_buscar}")
+                st.success(f"✅ Se encontró registro con RUC: {ruc_buscar}")
                 st.session_state.registro_encontrado = registros[0]
                 st.session_state.vista_registro = 'editar'
                 st.rerun()
