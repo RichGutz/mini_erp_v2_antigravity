@@ -42,6 +42,14 @@ with col3:
     with logo_col:
         st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
 
+# Botón de debug para limpiar caché (temporal)
+if st.button("🔄 Limpiar Caché (si hay errores)", help="Usa esto si ves errores de AttributeError"):
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    st.success("Caché limpiado. Recargando...")
+    st.rerun()
+
+
 # Vistas
 def mostrar_lista():
     """Vista principal: lista de emisores/deudores"""
