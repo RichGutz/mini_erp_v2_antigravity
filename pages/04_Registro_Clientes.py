@@ -59,11 +59,20 @@ def mostrar_lista():
             st.rerun()
     
     # Obtener datos
-    if search:
-        registros = db.search_emisores_deudores(search)
-    else:
-        tipo_filtro = None if filtro_tipo == "Todos" else filtro_tipo
-        registros = db.get_all_emisores_deudores(tipo_filtro)
+    try:
+        if search:
+            registros = db.search_emisores_deudores(search)
+        else:
+            tipo_filtro = None if filtro_tipo == "Todos" else filtro_tipo
+            registros = db.get_all_emisores_deudores(tipo_filtro)
+    except AttributeError as e:
+        st.error(f"⚠️ Error: Las funciones CRUD no están disponibles. Por favor, reinicia la aplicación.")
+        st.info("💡 **Solución temporal:** Streamlit Cloud necesita reiniciar completamente. Espera 1-2 minutos y recarga la página.")
+        st.code(f"Error técnico: {str(e)}")
+        st.stop()
+    except Exception as e:
+        st.error(f"Error al obtener registros: {str(e)}")
+        st.stop()
     
     # Mostrar tabla
     if registros:
