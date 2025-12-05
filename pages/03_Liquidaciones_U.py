@@ -78,6 +78,28 @@ def safe_decimal(value, default=Decimal('0.0')) -> Decimal:
     except (ValueError, TypeError, InvalidOperation):
         return default
 
+def serialize_resultado_for_json(resultado: dict) -> dict:
+    """
+    Convierte objetos date/datetime a strings para que sean serializables a JSON.
+    """
+    import datetime
+    serialized = {}
+    for key, value in resultado.items():
+        if isinstance(value, (datetime.date, datetime.datetime)):
+            serialized[key] = value.isoformat()
+        elif isinstance(value, list):
+            # Serializar listas recursivamente
+            serialized[key] = [
+                serialize_resultado_for_json(item) if isinstance(item, dict) else item
+                for item in value
+            ]
+        elif isinstance(value, dict):
+            # Serializar diccionarios recursivamente
+            serialized[key] = serialize_resultado_for_json(value)
+        else:
+            serialized[key] = value
+    return serialized
+
 def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -> str:
     """
     Genera tabla markdown con desglose detallado de cálculos de liquidación.
@@ -481,13 +503,16 @@ def mostrar_liquidacion_universal():
 
                             resumen_id = db.get_or_create_liquidacion_resumen(proposal_id, factura_original)
 
+                            # Serializar resultado para JSON (convertir fechas a strings)
+                            resultado_serializado = serialize_resultado_for_json(resultado)
+
                             db.add_liquidacion_evento(
                                 liquidacion_resumen_id=resumen_id,
                                 tipo_evento="Liquidación Universal",
                                 fecha_evento=st.session_state.global_liquidation_date_universal,
                                 monto_recibido=resultado['monto_pagado'],
                                 dias_diferencia=resultado['dias_mora'],
-                                resultado_json=resultado
+                                resultado_json=resultado_serializado
                             )
 
                             db.update_liquidacion_resumen_saldo(resumen_id, resultado['saldo_global'])
