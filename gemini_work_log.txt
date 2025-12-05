@@ -218,3 +218,83 @@ ARCHIVOS DE BACKUP:
 ESTADO:  COMPLETADO
 PROBADO:  PENDIENTE (Usuario debe probar con un lote real)
 ================================================================================
+
+
+================================================================================
+FECHA: 2025-12-05 15:30:00
+SESIÓN: Implementación de regla de 15 días mínimos en Liquidación Universal
+================================================================================
+
+PROBLEMA REPORTADO:
+-------------------
+Al liquidar una operación de menos de 15 días (ej: 8 días), el algoritmo de
+Liquidación Universal calculaba el interés devengado solo por los días reales,
+cuando debería aplicar la regla de negocio de 15 días mínimos que SÍ se aplica
+en el módulo de Operaciones.
+
+Evidencia: PDF liquidacion_universal_20251205_164723.pdf mostraba devengue de
+8 días cuando debería ser 15 días.
+
+ANÁLISIS:
+---------
+- En Operaciones (líneas 716-718): Se aplica plazo_para_api = max(plazo_real, dias_minimos)
+- En Liquidación (factoring_system.py línea 202): Se usaba directamente dias_transcurridos
+- Resultado: Inconsistencia entre módulos y cálculo incorrecto de interés devengado
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+1. Modificado factoring_system.py:
+   - Agregado parámetro dias_minimos_interes (default=15) a:
+     * liquidar_operacion() (línea 155)
+     * liquidar_operacion_con_back_door() (línea 162)
+     * _liquidar_operacion_normal() (línea 177)
+   
+   - Aplicada regla de días mínimos (después de línea 193):
+     dias_para_interes = max(dias_transcurridos, dias_minimos_interes)
+   
+   - Usado dias_para_interes en lugar de dias_transcurridos para calcular
+     interés devengado (línea 202)
+   
+   - Agregados campos al resultado:
+     * dias_para_calculo_interes
+     * dias_minimos_aplicados
+
+2. Modificado 03_Liquidaciones_U.py:
+   - Agregada lectura de dias_minimos desde BD (línea 431):
+     dias_minimos = factura.get('dias_minimos_interes_individual', 15)
+   
+   - Pasado parámetro a liquidar_operacion_con_back_door() (línea 438)
+   
+   - Actualizada tabla de resultados (líneas 142-153):
+     * Agregado campo 'Días para Cálculo de Interés'
+     * Destacado en negrita cuando se aplica regla de mínimos
+     * Actualizada fórmula de interés devengado para usar dias_para_interes
+
+ARCHIVOS MODIFICADOS:
+---------------------
+- c:\Users\rguti\mini_erp_v2_antigravity\src\core\factoring_system.py
+  * Líneas 155-160: Agregado parámetro a liquidar_operacion()
+  * Líneas 162-175: Agregado parámetro a liquidar_operacion_con_back_door()
+  * Líneas 177-203: Modificada _liquidar_operacion_normal() con regla de mínimos
+  * Líneas 231-237: Agregados campos al resultado
+
+- c:\Users\rguti\mini_erp_v2_antigravity\pages\03_Liquidaciones_U.py
+  * Líneas 431-432: Lectura de dias_minimos desde BD
+  * Línea 438: Pasado parámetro a función de liquidación
+  * Líneas 142-153: Actualizada tabla de resultados
+  * Línea 179: Actualizada fórmula de interés devengado
+
+ARCHIVOS DE BACKUP:
+-------------------
+- c:\Users\rguti\mini_erp_v2_antigravity\src\core\factoring_system_backup.py
+- c:\Users\rguti\mini_erp_v2_antigravity\pages\03_Liquidaciones_U_backup_v2.py
+
+IMPACTO:
+--------
+- Operaciones \u003c 15 días: Interés devengado AUMENTARÁ (se calculará por 15 días)
+- Operaciones  15 días: Sin cambios
+- Alineación con módulo de Operaciones: Ambos aplican la misma regla
+
+ESTADO:  COMPLETADO
+PROBADO:  PENDIENTE (Usuario debe probar con operación real \u003c 15 días)
+================================================================================

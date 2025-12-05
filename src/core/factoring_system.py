@@ -153,19 +153,21 @@ class SistemaFactoringCompleto:
     # =========================================================================
     
     def liquidar_operacion(self, operacion: Dict, fecha_pago: datetime.datetime, 
-                          monto_pagado: float, monto_minimo: Optional[float] = None) -> Dict:
+                          monto_pagado: float, monto_minimo: Optional[float] = None,
+                          dias_minimos_interes: int = 15) -> Dict:
         """
         Liquidación normal (sin BACK DOOR) - Para uso interno
         """
-        return self._liquidar_operacion_normal(operacion, fecha_pago, monto_pagado)
+        return self._liquidar_operacion_normal(operacion, fecha_pago, monto_pagado, dias_minimos_interes)
     
     def liquidar_operacion_con_back_door(self, operacion: Dict, fecha_pago: datetime.datetime, 
-                                        monto_pagado: float, monto_minimo: Optional[float] = None) -> Dict:
+                                        monto_pagado: float, monto_minimo: Optional[float] = None,
+                                        dias_minimos_interes: int = 15) -> Dict:
         """
         Liquidación con BACK DOOR para montos mínimos
         """
         # 1. Liquidación normal
-        liquidacion = self._liquidar_operacion_normal(operacion, fecha_pago, monto_pagado)
+        liquidacion = self._liquidar_operacion_normal(operacion, fecha_pago, monto_pagado, dias_minimos_interes)
         
         # 2. Aplicar BACK DOOR si está activado y corresponde
         if self.configuracion_back_door['aplicar_back_door']:
@@ -175,7 +177,7 @@ class SistemaFactoringCompleto:
         return liquidacion
     
     def _liquidar_operacion_normal(self, operacion: Dict, fecha_pago: datetime.datetime, 
-                                  monto_pagado: float) -> Dict:
+                                  monto_pagado: float, dias_minimos_interes: int = 15) -> Dict:
         """Liquidación normal sin BACK DOOR"""
         # Validaciones iniciales
         if not operacion or not fecha_pago:
@@ -195,11 +197,14 @@ class SistemaFactoringCompleto:
         if dias_transcurridos < 0:
             return {"error": "Fecha de pago anterior al desembolso"}
         
+        # Aplicar regla de días mínimos para intereses
+        dias_para_interes = max(dias_transcurridos, dias_minimos_interes)
+        
         # Intereses compensatorios devengados
         interes_devengado = self._calcular_intereses_compensatorios(
             operacion["capital_operacion"], 
             operacion["tasa_interes_mensual"], 
-            dias_transcurridos
+            dias_para_interes
         )
         igv_interes_devengado = interes_devengado * self.igv_pct
         
@@ -232,6 +237,8 @@ class SistemaFactoringCompleto:
             # Datos básicos
             "fecha_liquidacion": fecha_pago_date,
             "dias_transcurridos": dias_transcurridos,
+            "dias_para_calculo_interes": dias_para_interes,
+            "dias_minimos_aplicados": dias_minimos_interes,
             "dias_mora": dias_mora,
             
             # Intereses devengados

@@ -139,6 +139,8 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     
     # Cálculo de días
     dias_trans = resultado.get('dias_transcurridos', 0)
+    dias_para_interes = resultado.get('dias_para_calculo_interes', dias_trans)
+    dias_minimos = resultado.get('dias_minimos_aplicados', 0)
     dias_mora = resultado.get('dias_mora', 0)
     fecha_liq = resultado.get('fecha_liquidacion', 'N/A')
     
@@ -146,6 +148,13 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     lines.append(f"| **PERÍODOS** | | | |")
     lines.append(f"| Fecha de Liquidación | - | `Dato de entrada` | {fecha_liq} |")
     lines.append(f"| Días Transcurridos | {dias_trans} | `Fecha Liq - Fecha Desemb` | Días desde desembolso |")
+    
+    # Mostrar si se aplicó la regla de días mínimos
+    if dias_para_interes > dias_trans:
+        lines.append(f"| **Días para Cálculo de Interés** | **{dias_para_interes}** | `max(Días Trans, Mínimo)` | **Se aplicó regla de {dias_minimos} días mínimos** |")
+    else:
+        lines.append(f"| Días para Cálculo de Interés | {dias_para_interes} | `Días transcurridos` | No se aplicó regla de mínimos |")
+    
     lines.append(f"| Días de Mora | {dias_mora} | `Fecha Liq - Fecha Venc` | Días de atraso |")
     
     # COMPARACIÓN: DEVENGADO VS FACTURADO
@@ -178,7 +187,7 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     # Intereses Compensatorios
     lines.append(f"| **Interés Compensatorio** | | | |")
     lines.append(f"| → Facturado (Original) | {interes_original:,.2f} | `Valor en operación original` | Interés cobrado al desembolsar |")
-    lines.append(f"| → Devengado (Calculado) | {interes_dev:,.2f} | `Capital × Tasa × (Días/30)` | `{capital_op:,.2f} × {tasa_mensual:.2f}% × ({dias_trans}/30) = {interes_dev:,.2f}` |")
+    lines.append(f"| → Devengado (Calculado) | {interes_dev:,.2f} | `Capital × Tasa × (Días/30)` | `{capital_op:,.2f} × {tasa_mensual:.2f}% × ({dias_para_interes}/30) = {interes_dev:,.2f}` |")
     
     # Calcular delta manualmente para asegurar consistencia
     delta_int = interes_dev - interes_original
@@ -428,11 +437,15 @@ def mostrar_liquidacion_universal():
                         "fecha_vencimiento": parse_date_flexible(fecha_vencimiento_str),
                     }
 
+                    # Obtener días mínimos de la factura (con fallback a 15)
+                    dias_minimos = factura.get('dias_minimos_interes_individual', 15)
+
                     resultado = sistema.liquidar_operacion_con_back_door(
                         operacion=operacion,
                         fecha_pago=fecha_pago_factura,  # Cambiado: usar fecha individual en lugar de global
                         monto_pagado=monto_pagado,
-                        monto_minimo=st.session_state.global_backdoor_min_amount_universal
+                        monto_minimo=st.session_state.global_backdoor_min_amount_universal,
+                        dias_minimos_interes=dias_minimos
                     )
                     resultados_finales.append(resultado)
 
