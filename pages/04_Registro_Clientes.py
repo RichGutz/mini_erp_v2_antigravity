@@ -86,7 +86,7 @@ def mostrar_lista():
     if registros:
         st.write(f"**Total de registros:** {len(registros)}")
         
-        for registro in registros:
+        for idx, registro in enumerate(registros):
             with st.container(border=True):
                 col1, col2, col3, col4 = st.columns([2, 3, 1, 1])
                 with col1:
@@ -98,7 +98,7 @@ def mostrar_lista():
                     color = "🟢" if tipo == "EMISOR" else "🔵"
                     st.write(f"{color} **{tipo}**")
                 with col4:
-                    if st.button("✏️ Editar", key=f"edit_{registro['RUC']}", use_container_width=True):
+                    if st.button("✏️ Editar", key=f"edit_{idx}_{registro.get('RUC', 'NA')}", use_container_width=True):
                         st.session_state.registro_seleccionado = registro
                         st.session_state.vista_registro = 'editar'
                         st.rerun()
