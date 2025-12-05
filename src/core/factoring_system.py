@@ -240,6 +240,10 @@ class SistemaFactoringCompleto:
             "interes_moratorio": round(interes_moratorio, 6),
             "igv_moratorio": round(igv_moratorio, 6),
             
+            # Valores originales de la operación
+            "interes_original": operacion.get("interes_compensatorio", 0),
+            "igv_original": operacion.get("igv_interes", 0),
+            
             # Deltas vs valores originales
             "delta_intereses": round(delta_intereses, 6),
             "delta_igv_intereses": round(delta_igv_intereses, 6),
