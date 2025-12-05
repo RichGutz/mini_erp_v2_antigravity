@@ -389,17 +389,22 @@ def create_emisor_deudor(data: Dict[str, Any]) -> tuple[bool, str]:
     import re
     supabase = get_supabase_client()
     try:
-        # Validar campos obligatorios
-        if not data.get('RUC') or not data.get('Razon Social') or not data.get('tipo'):
-            return False, "Faltan campos obligatorios: RUC, Razon Social, tipo"
+        # Validar campos obligatorios (TIPO es el nombre correcto en la BD)
+        tipo_value = data.get('TIPO') or data.get('tipo')  # Aceptar ambos por compatibilidad
+        if not data.get('RUC') or not data.get('Razon Social') or not tipo_value:
+            return False, "Faltan campos obligatorios: RUC, Razon Social, TIPO"
         
         # Validar RUC (11 dígitos)
         if not re.match(r'^\d{11}$', str(data.get('RUC', ''))):
             return False, "RUC debe tener 11 dígitos numéricos"
         
         # Validar tipo
-        if data.get('tipo') not in ['EMISOR', 'DEUDOR']:
-            return False, "Tipo debe ser 'EMISOR' o 'DEUDOR'"
+        if tipo_value not in ['EMISOR', 'DEUDOR']:
+            return False, "TIPO debe ser 'EMISOR' o 'DEUDOR'"
+        
+        # Asegurar que se use TIPO (nombre correcto)
+        if 'tipo' in data and 'TIPO' not in data:
+            data['TIPO'] = data.pop('tipo')
         
         # Verificar si ya existe
         existing = supabase.table('EMISORES.DEUDORES').select('RUC').eq('RUC', data['RUC']).execute()
@@ -432,9 +437,14 @@ def update_emisor_deudor(ruc: str, data: Dict[str, Any]) -> tuple[bool, str]:
         if not existing.data:
             return False, f"No se encontró registro con RUC {ruc}"
         
-        # Validar tipo si se está actualizando
-        if 'tipo' in data and data['tipo'] not in ['EMISOR', 'DEUDOR']:
-            return False, "Tipo debe ser 'EMISOR' o 'DEUDOR'"
+        # Validar tipo si se está actualizando (aceptar TIPO o tipo)
+        tipo_value = data.get('TIPO') or data.get('tipo')
+        if tipo_value and tipo_value not in ['EMISOR', 'DEUDOR']:
+            return False, "TIPO debe ser 'EMISOR' o 'DEUDOR'"
+        
+        # Asegurar que se use TIPO (nombre correcto)
+        if 'tipo' in data and 'TIPO' not in data:
+            data['TIPO'] = data.pop('tipo')
         
         # Actualizar (no permitir cambiar RUC)
         data_to_update = {k: v for k, v in data.items() if k != 'RUC'}

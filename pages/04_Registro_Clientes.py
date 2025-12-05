@@ -20,14 +20,20 @@ st.set_page_config(
 
 # Session state
 if 'vista_registro' not in st.session_state:
-    st.session_state.vista_registro = 'lista'  # 'lista', 'crear', 'editar'
-if 'registro_seleccionado' not in st.session_state:
-    st.session_state.registro_seleccionado = None
+    st.session_state.vista_registro = 'busqueda'  # 'busqueda', 'crear', 'editar'
+if 'registro_encontrado' not in st.session_state:
+    st.session_state.registro_encontrado = None
 
-# CSS
+# CSS para campos obligatorios
 st.markdown('''<style>
 [data-testid="stHorizontalBlock"] { 
     align-items: center; 
+}
+.campo-obligatorio {
+    background-color: #fff3cd;
+    padding: 10px;
+    border-radius: 5px;
+    border-left: 4px solid #ffc107;
 }
 </style>''', unsafe_allow_html=True)
 
@@ -42,162 +48,228 @@ with col3:
     with logo_col:
         st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
 
-# Botón de debug para limpiar caché (temporal)
-if st.button("🔄 Limpiar Caché (si hay errores)", help="Usa esto si ves errores de AttributeError"):
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    st.success("Caché limpiado. Recargando...")
-    st.rerun()
-
 
 # Vistas
-def mostrar_lista():
-    """Vista principal: lista de emisores/deudores"""
-    st.header("Gestión de Emisores y Deudores")
+def mostrar_busqueda():
+    """Vista principal: búsqueda por RUC"""
+    st.header("Búsqueda de Emisor/Deudor")
     
-    # Filtros
-    col1, col2, col3 = st.columns([2, 1, 1])
+    col1, col2 = st.columns([3, 1])
     with col1:
-        search = st.text_input("🔍 Buscar por RUC o Razón Social", key="search_input")
+        ruc_buscar = st.text_input("🔍 Buscar por RUC", max_chars=11, help="Ingresa el RUC de 11 dígitos")
     with col2:
-        filtro_tipo = st.selectbox("Filtrar por Tipo", ["Todos", "EMISOR", "DEUDOR"])
-    with col3:
+        st.write("")  # Espaciador
+        st.write("")  # Espaciador
         if st.button("➕ Nuevo Registro", type="primary", use_container_width=True):
             st.session_state.vista_registro = 'crear'
+            st.session_state.registro_encontrado = None
             st.rerun()
     
-    # Obtener datos
-    try:
-        if search:
-            registros = db.search_emisores_deudores(search)
+    if ruc_buscar:
+        if not re.match(r'^\d{11}$', ruc_buscar):
+            st.warning("⚠️ El RUC debe tener exactamente 11 dígitos numéricos")
         else:
-            tipo_filtro = None if filtro_tipo == "Todos" else filtro_tipo
-            registros = db.get_all_emisores_deudores(tipo_filtro)
-    except AttributeError as e:
-        st.error(f"⚠️ Error: Las funciones CRUD no están disponibles. Por favor, reinicia la aplicación.")
-        st.info("💡 **Solución temporal:** Streamlit Cloud necesita reiniciar completamente. Espera 1-2 minutos y recarga la página.")
-        st.code(f"Error técnico: {str(e)}")
-        st.stop()
-    except Exception as e:
-        st.error(f"Error al obtener registros: {str(e)}")
-        st.stop()
-    
-    # Mostrar tabla
-    if registros:
-        st.write(f"**Total de registros:** {len(registros)}")
-        
-        for idx, registro in enumerate(registros):
-            with st.container(border=True):
-                col1, col2, col3, col4 = st.columns([2, 3, 1, 1])
-                with col1:
-                    st.write(f"**RUC:** {registro.get('RUC', 'N/A')}")
-                with col2:
-                    st.write(f"**Razón Social:** {registro.get('Razon Social', 'N/A')}")
-                with col3:
-                    tipo = registro.get('tipo', 'N/A')
-                    color = "🟢" if tipo == "EMISOR" else "🔵"
-                    st.write(f"{color} **{tipo}**")
-                with col4:
-                    if st.button("✏️ Editar", key=f"edit_{idx}_{registro.get('RUC', 'NA')}", use_container_width=True):
-                        st.session_state.registro_seleccionado = registro
-                        st.session_state.vista_registro = 'editar'
-                        st.rerun()
+            # Buscar en base de datos
+            registros = db.search_emisores_deudores(ruc_buscar)
+            
+            if registros:
+                st.success(f"✅ Se encontró {len(registros)} registro(s) con RUC: {ruc_buscar}")
+                st.session_state.registro_encontrado = registros[0]
+                st.session_state.vista_registro = 'editar'
+                st.rerun()
+            else:
+                st.info(f"ℹ️ No se encontró ningún registro con RUC: {ruc_buscar}")
+                if st.button("Crear nuevo registro con este RUC"):
+                    st.session_state.registro_encontrado = {'RUC': ruc_buscar}
+                    st.session_state.vista_registro = 'crear'
+                    st.rerun()
     else:
-        st.info("No se encontraron registros")
+        st.info("💡 Ingresa un RUC para buscar o crea un nuevo registro")
 
 
 def mostrar_formulario_crear():
-    """Vista de creación de nuevo registro"""
+    """Vista de creación de nuevo registro con TODOS los campos"""
     st.header("Crear Nuevo Emisor/Deudor")
     
-    if st.button("← Volver a la lista"):
-        st.session_state.vista_registro = 'lista'
+    if st.button("← Volver a la búsqueda"):
+        st.session_state.vista_registro = 'busqueda'
+        st.session_state.registro_encontrado = None
         st.rerun()
     
+    # Obtener RUC pre-cargado si viene de búsqueda
+    ruc_precargado = st.session_state.registro_encontrado.get('RUC', '') if st.session_state.registro_encontrado else ''
+    
     with st.form("form_crear"):
-        st.subheader("Campos Obligatorios")
+        st.markdown("### 📋 Campos Obligatorios")
+        st.markdown('<div class="campo-obligatorio">', unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         with col1:
-            ruc = st.text_input("RUC *", max_chars=11, help="11 dígitos numéricos")
+            ruc = st.text_input("RUC *", value=ruc_precargado, max_chars=11, help="11 dígitos numéricos")
         with col2:
             tipo = st.selectbox("Tipo *", ["EMISOR", "DEUDOR"])
         
         razon_social = st.text_input("Razón Social *")
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        st.info("💡 **Nota:** Puedes agregar más campos según la estructura de tu tabla en Supabase")
+        st.markdown("### 📝 Campos Opcionales")
+        st.markdown("---")
+        
+        # Depositarios
+        st.subheader("Depositarios")
+        col1, col2 = st.columns(2)
+        with col1:
+            depositario_1 = st.text_input("Depositario 1")
+        with col2:
+            dni_depositario_1 = st.text_input("DNI Depositario 1", max_chars=8)
+        
+        # Garantes/Fiadores
+        st.subheader("Garantes/Fiadores Solidarios")
+        col1, col2 = st.columns(2)
+        with col1:
+            garante_1 = st.text_input("Garante/Fiador solidario 1")
+            garante_2 = st.text_input("Garante/Fiador solidario 2")
+        with col2:
+            dni_garante_1 = st.text_input("DNI Garante/Fiador solidario 1", max_chars=8)
+            dni_garante_2 = st.text_input("DNI Garante/Fiador solidario 2", max_chars=8)
+        
+        # Datos bancarios
+        st.subheader("Datos Bancarios")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            institucion_financiera = st.text_input("Institución Financiera")
+        with col2:
+            numero_cuenta = st.text_input("Número de Cuenta")
+        with col3:
+            cci = st.text_input("CCI", max_chars=20)
         
         submitted = st.form_submit_button("Crear Registro", type="primary")
         
         if submitted:
-            # Validar
+            # Validar campos obligatorios
             if not ruc or not razon_social or not tipo:
-                st.error("Por favor completa todos los campos obligatorios")
+                st.error("❌ Por favor completa todos los campos obligatorios (RUC, Razón Social, Tipo)")
             elif not re.match(r'^\d{11}$', ruc):
-                st.error("El RUC debe tener exactamente 11 dígitos numéricos")
+                st.error("❌ El RUC debe tener exactamente 11 dígitos numéricos")
             else:
-                # Crear registro
+                # Crear registro con TODOS los campos
                 data = {
                     'RUC': ruc,
                     'Razon Social': razon_social,
-                    'tipo': tipo
+                    'TIPO': tipo,
+                    'Depositario 1': depositario_1 or None,
+                    'DNI Depositario 1': dni_depositario_1 or None,
+                    'Garante/Fiador solidario 1': garante_1 or None,
+                    'DNI Garante/Fiador solidario 1': dni_garante_1 or None,
+                    'Garante/Fiador solidario 2': garante_2 or None,
+                    'DNI Garante/Fiador solidario 2': dni_garante_2 or None,
+                    'Institucion Financiera': institucion_financiera or None,
+                    'Numero de Cuenta': numero_cuenta or None,
+                    'CCI': cci or None
                 }
                 
                 success, message = db.create_emisor_deudor(data)
                 if success:
-                    st.success(message)
+                    st.success(f"✅ {message}")
                     st.balloons()
-                    st.session_state.vista_registro = 'lista'
+                    st.session_state.vista_registro = 'busqueda'
+                    st.session_state.registro_encontrado = None
                     st.rerun()
                 else:
-                    st.error(message)
+                    st.error(f"❌ {message}")
 
 
 def mostrar_formulario_editar():
-    """Vista de edición de registro existente"""
+    """Vista de edición mostrando TODOS los campos"""
     st.header("Editar Emisor/Deudor")
     
-    if st.button("← Volver a la lista"):
-        st.session_state.vista_registro = 'lista'
-        st.session_state.registro_seleccionado = None
+    if st.button("← Volver a la búsqueda"):
+        st.session_state.vista_registro = 'busqueda'
+        st.session_state.registro_encontrado = None
         st.rerun()
     
-    registro = st.session_state.registro_seleccionado
+    registro = st.session_state.registro_encontrado
     if not registro:
-        st.error("No hay registro seleccionado")
+        st.error("❌ No hay registro seleccionado")
         return
     
-    st.info(f"**RUC:** {registro['RUC']} (no se puede modificar)")
+    st.info(f"**RUC:** {registro.get('RUC', 'N/A')} (no se puede modificar)")
     
     with st.form("form_editar"):
+        st.markdown("### 📋 Campos Obligatorios")
+        st.markdown('<div class="campo-obligatorio">', unsafe_allow_html=True)
+        
         razon_social = st.text_input("Razón Social *", value=registro.get('Razon Social', ''))
         tipo = st.selectbox("Tipo *", ["EMISOR", "DEUDOR"], 
-                           index=0 if registro.get('tipo') == 'EMISOR' else 1)
+                           index=0 if registro.get('TIPO') == 'EMISOR' else 1)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown("### 📝 Campos Opcionales")
+        st.markdown("---")
+        
+        # Depositarios
+        st.subheader("Depositarios")
+        col1, col2 = st.columns(2)
+        with col1:
+            depositario_1 = st.text_input("Depositario 1", value=registro.get('Depositario 1', '') or '')
+        with col2:
+            dni_depositario_1 = st.text_input("DNI Depositario 1", value=registro.get('DNI Depositario 1', '') or '', max_chars=8)
+        
+        # Garantes/Fiadores
+        st.subheader("Garantes/Fiadores Solidarios")
+        col1, col2 = st.columns(2)
+        with col1:
+            garante_1 = st.text_input("Garante/Fiador solidario 1", value=registro.get('Garante/Fiador solidario 1', '') or '')
+            garante_2 = st.text_input("Garante/Fiador solidario 2", value=registro.get('Garante/Fiador solidario 2', '') or '')
+        with col2:
+            dni_garante_1 = st.text_input("DNI Garante/Fiador solidario 1", value=registro.get('DNI Garante/Fiador solidario 1', '') or '', max_chars=8)
+            dni_garante_2 = st.text_input("DNI Garante/Fiador solidario 2", value=registro.get('DNI Garante/Fiador solidario 2', '') or '', max_chars=8)
+        
+        # Datos bancarios
+        st.subheader("Datos Bancarios")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            institucion_financiera = st.text_input("Institución Financiera", value=registro.get('Institucion Financiera', '') or '')
+        with col2:
+            numero_cuenta = st.text_input("Número de Cuenta", value=registro.get('Numero de Cuenta', '') or '')
+        with col3:
+            cci = st.text_input("CCI", value=registro.get('CCI', '') or '', max_chars=20)
         
         submitted = st.form_submit_button("Guardar Cambios", type="primary")
         
         if submitted:
             if not razon_social:
-                st.error("La Razón Social es obligatoria")
+                st.error("❌ La Razón Social es obligatoria")
             else:
+                # Actualizar con TODOS los campos
                 data = {
                     'Razon Social': razon_social,
-                    'tipo': tipo
+                    'TIPO': tipo,
+                    'Depositario 1': depositario_1 or None,
+                    'DNI Depositario 1': dni_depositario_1 or None,
+                    'Garante/Fiador solidario 1': garante_1 or None,
+                    'DNI Garante/Fiador solidario 1': dni_garante_1 or None,
+                    'Garante/Fiador solidario 2': garante_2 or None,
+                    'DNI Garante/Fiador solidario 2': dni_garante_2 or None,
+                    'Institucion Financiera': institucion_financiera or None,
+                    'Numero de Cuenta': numero_cuenta or None,
+                    'CCI': cci or None
                 }
                 
                 success, message = db.update_emisor_deudor(registro['RUC'], data)
                 if success:
-                    st.success(message)
-                    st.session_state.vista_registro = 'lista'
-                    st.session_state.registro_seleccionado = None
+                    st.success(f"✅ {message}")
+                    st.session_state.vista_registro = 'busqueda'
+                    st.session_state.registro_encontrado = None
                     st.rerun()
                 else:
-                    st.error(message)
+                    st.error(f"❌ {message}")
 
 
 # Router
-if st.session_state.vista_registro == 'lista':
-    mostrar_lista()
+if st.session_state.vista_registro == 'busqueda':
+    mostrar_busqueda()
 elif st.session_state.vista_registro == 'crear':
     mostrar_formulario_crear()
 elif st.session_state.vista_registro == 'editar':
