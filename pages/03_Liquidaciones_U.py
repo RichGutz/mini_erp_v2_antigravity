@@ -27,7 +27,9 @@ def init_session_state():
         'resultados_liquidacion_universal': None,
         'global_liquidation_date_universal': datetime.date.today(),
         'global_backdoor_min_amount_universal': 100.0,
-        'vouchers_universales': {}, # <--- AÑADIDO: Para guardar los vouchers
+        'vouchers_universales': {}, # <--- AÑADIDO: Para guardar los vouchers individuales
+        'voucher_global_liquidacion': None, # <--- NUEVO: Para voucher consolidado
+        'usar_voucher_unico_liquidacion': False, # <--- NUEVO: Checkbox de control
         'fechas_pago_individuales': {}, # <--- NUEVO: Para almacenar fechas individuales por factura
         'previous_global_date': None, # <--- NUEVO: Para detectar cambios en la fecha global
     }
@@ -313,7 +315,9 @@ def mostrar_liquidacion_universal():
         st.session_state.vista_actual_universal = 'busqueda'
         st.session_state.lote_encontrado_universal = []
         st.session_state.resultados_liquidacion_universal = None
-        st.session_state.vouchers_universales = {} # Limpiar vouchers al volver
+        st.session_state.vouchers_universales = {} # Limpiar vouchers individuales
+        st.session_state.voucher_global_liquidacion = None # Limpiar voucher global
+        st.session_state.usar_voucher_unico_liquidacion = False # Resetear checkbox
         st.session_state.fechas_pago_individuales = {} # Limpiar fechas individuales
         st.session_state.previous_global_date = None # Resetear fecha previa
         st.rerun()
@@ -324,6 +328,13 @@ def mostrar_liquidacion_universal():
         if proposal_id not in st.session_state.fechas_pago_individuales:
             st.session_state.fechas_pago_individuales[proposal_id] = st.session_state.global_liquidation_date_universal
 
+    # Checkbox para controlar tipo de voucher (FUERA del form)
+    st.checkbox(
+        "APLICAR VOUCHER DE PAGO ÚNICO PARA TODO EL LOTE", 
+        key="usar_voucher_unico_liquidacion",
+        help="Si se marca, se subirá un solo voucher para todas las facturas. Si no, se subirá un voucher por factura."
+    )
+
     with st.form(key="universal_liquidation_form"):
         st.subheader("Configuración Global de Liquidación")
         cols = st.columns(2)
@@ -331,6 +342,15 @@ def mostrar_liquidacion_universal():
         # Capturar la fecha global actual
         fecha_global_actual = cols[0].date_input("Fecha de Pago Global", value=st.session_state.global_liquidation_date_universal)
         st.session_state.global_backdoor_min_amount_universal = cols[1].number_input("Monto Máximo para Backdoor (S/)", value=st.session_state.global_backdoor_min_amount_universal, format="%.2f", help="El backdoor se activa cuando el saldo es menor a este monto")
+        
+        # Uploader global (habilitado solo si checkbox está marcado)
+        st.session_state.voucher_global_liquidacion = st.file_uploader(
+            "Subir Voucher de Pago Consolidado (PDF/Imagen)",
+            type=["pdf", "png", "jpg", "jpeg"],
+            key="voucher_global_uploader",
+            disabled=not st.session_state.usar_voucher_unico_liquidacion,
+            help="Voucher único que aplica a todas las facturas del lote"
+        )
         
         # Detectar si la fecha global cambió y sincronizar automáticamente
         if st.session_state.previous_global_date is None:
@@ -396,9 +416,11 @@ def mostrar_liquidacion_universal():
                     st.session_state.fechas_pago_individuales[proposal_id] = st.session_state[key_fecha]
                 with col3:
                     st.session_state.vouchers_universales[proposal_id] = st.file_uploader(
-                        "Voucher de Depósito",
+                        f"Voucher para Factura {parse_invoice_number(proposal_id)}",
                         type=["pdf", "png", "jpg", "jpeg"],
-                        key=f"uploader_{proposal_id}"
+                        key=f"uploader_{proposal_id}",
+                        disabled=st.session_state.usar_voucher_unico_liquidacion,
+                        help="Voucher individual para esta factura (deshabilitado si se usa voucher único)"
                     )
 
         submit_button = st.form_submit_button("Calcular Liquidación Universal", type="primary")
