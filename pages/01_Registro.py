@@ -14,7 +14,7 @@ from src.data import supabase_repository as db
 st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
-    page_title="Módulo de Registro de Clientes",
+    page_title="Módulo de Registro",
     page_icon="📋"
 )
 
@@ -42,7 +42,7 @@ col1, col2, col3 = st.columns([0.25, 0.5, 0.25])
 with col1:
     st.image(os.path.join(project_root, "static", "logo_geek.png"), width=200)
 with col2:
-    st.markdown("<h2 style='text-align: center;'>Módulo de Registro de Clientes</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; font-size: 2.4em;'>Módulo de Registro</h2>", unsafe_allow_html=True)
 with col3:
     empty_col, logo_col = st.columns([2, 1])
     with logo_col:
