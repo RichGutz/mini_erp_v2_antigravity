@@ -12,4 +12,8 @@ fastapi
 uvicorn
 pydantic
 plotly
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
 # Forzar-Reconstruccion-Completa-V20250901
