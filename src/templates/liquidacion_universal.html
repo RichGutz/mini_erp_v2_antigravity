@@ -231,10 +231,22 @@
 
                 <!-- PERÍODOS -->
                 <tr class="section-header">
-                    <td colspan="4">PERÍODOS</td>
+                    <td colspan="4">PERÍODOS Y FECHAS</td>
                 </tr>
                 <tr>
-                    <td>Fecha de Liquidación</td>
+                    <td>Fecha de Desembolso</td>
+                    <td>-</td>
+                    <td>Dato original</td>
+                    <td>{{ liq.factura.fecha_desembolso or 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <td>Fecha de Vencimiento</td>
+                    <td>-</td>
+                    <td>Dato original</td>
+                    <td>{{ liq.factura.fecha_pago_calculada or 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <td>Fecha de Liquidación (Pago Real)</td>
                     <td>-</td>
                     <td>Dato de entrada</td>
                     <td>{{ liq.resultado.fecha_liquidacion or 'N/A' }}</td>
@@ -243,13 +255,30 @@
                     <td>Días Transcurridos</td>
                     <td>{{ liq.resultado.dias_transcurridos or 0 }}</td>
                     <td>Fecha Liq - Fecha Desemb</td>
-                    <td>Días desde desembolso</td>
+                    <td>Días desde desembolso hasta pago</td>
                 </tr>
                 <tr>
                     <td>Días de Mora</td>
                     <td>{{ liq.resultado.dias_mora or 0 }}</td>
                     <td>Fecha Liq - Fecha Venc</td>
-                    <td>Días de atraso</td>
+                    <td>Días de atraso (si aplica)</td>
+                </tr>
+
+                <!-- TASAS APLICADAS -->
+                <tr class="section-header">
+                    <td colspan="4">TASAS APLICADAS</td>
+                </tr>
+                <tr>
+                    <td>Tasa Interés Compensatorio</td>
+                    <td>{{ "{:.2f}".format((liq.factura.interes_mensual or 0) * 100) }}%</td>
+                    <td>Mensual</td>
+                    <td>Tasa aplicada a la operación</td>
+                </tr>
+                <tr>
+                    <td>Tasa Interés Moratorio</td>
+                    <td>{{ "{:.2f}".format((liq.factura.interes_moratorio or 0) * 100) }}%</td>
+                    <td>Mensual</td>
+                    <td>Tasa aplicada en caso de mora</td>
                 </tr>
 
                 <!-- INTERÉS COMPENSATORIO -->
