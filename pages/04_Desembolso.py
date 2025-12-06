@@ -40,6 +40,16 @@ if 'reload_data' not in st.session_state:
     st.session_state.reload_data = True
 if 'resultados_desembolso' not in st.session_state:
     st.session_state.resultados_desembolso = None
+if 'global_desembolso_vars' not in st.session_state:
+    st.session_state.global_desembolso_vars = {
+        'fecha_desembolso': datetime.date.today(),
+    }
+if 'sustento_unico' not in st.session_state:
+    st.session_state.sustento_unico = False
+if 'consolidated_proof_file' not in st.session_state:
+    st.session_state.consolidated_proof_file = None
+if 'individual_proof_files' not in st.session_state:
+    st.session_state.individual_proof_files = {}
 
 # --- Funciones de Ayuda ---
 def parse_invoice_number(proposal_id: str) -> str:
@@ -65,6 +75,24 @@ def get_monto_a_desembolsar(factura: dict) -> float:
         return recalc_data.get('desglose_final_detallado', {}).get('abono', {}).get('monto', 0.0)
     except (json.JSONDecodeError, AttributeError, TypeError):
         return 0.0
+
+def _display_operation_profile_batch(data):
+    """Muestra el perfil de operación original"""
+    st.subheader("Perfil de la Operación Original")
+    recalc_result_json = data.get('recalculate_result_json')
+    if not recalc_result_json:
+        st.warning("No se encontraron datos de cálculo en la propuesta original.")
+        return
+
+    try:
+        recalc_result = json.loads(recalc_result_json)
+    except json.JSONDecodeError:
+        st.error("Error al leer los datos del perfil de operación original.")
+        return
+
+    desglose = recalc_result.get('desglose_final_detallado', {})
+    abono = desglose.get('abono', {})
+    st.metric("Monto a Desembolsar (Perfil)", f"{data.get('moneda_factura', 'PEN')} {abono.get('monto', 0):,.2f}")
 
 # --- UI: CSS ---
 st.markdown('''<style>
@@ -109,158 +137,205 @@ else:
     
     st.markdown("---")
     
-    # Tabla de facturas
-    with st.form(key="disbursement_form"):
-        # Header de la tabla
+    # Tabla de facturas con checkboxes
+    st.markdown("#### Paso 1: Seleccionar Facturas para Desembolso")
+    
+    # Header de la tabla
+    col_check, col_factura, col_emisor, col_aceptante, col_monto, col_fecha_emision, col_fecha_desembolso = st.columns([0.5, 1.5, 2, 2, 1.5, 1.5, 1.5])
+    
+    with col_check:
+        st.markdown("**Seleccionar**")
+    with col_factura:
+        st.markdown("**Factura**")
+    with col_emisor:
+        st.markdown("**Emisor**")
+    with col_aceptante:
+        st.markdown("**Aceptante**")
+    with col_monto:
+        st.markdown("**Monto a Desembolsar**")
+    with col_fecha_emision:
+        st.markdown("**F. Emisión**")
+    with col_fecha_desembolso:
+        st.markdown("**F. Desembolso**")
+    
+    st.markdown("---")
+    
+    # Filas de facturas con checkboxes
+    for idx, factura in enumerate(st.session_state.facturas_aprobadas):
         col_check, col_factura, col_emisor, col_aceptante, col_monto, col_fecha_emision, col_fecha_desembolso = st.columns([0.5, 1.5, 2, 2, 1.5, 1.5, 1.5])
         
         with col_check:
-            st.markdown("**Desembolsar**")
-        with col_factura:
-            st.markdown("**Factura**")
-        with col_emisor:
-            st.markdown("**Emisor**")
-        with col_aceptante:
-            st.markdown("**Aceptante**")
-        with col_monto:
-            st.markdown("**Monto a Desembolsar**")
-        with col_fecha_emision:
-            st.markdown("**F. Emisión**")
-        with col_fecha_desembolso:
-            st.markdown("**F. Desembolso**")
-        
-        st.markdown("---")
-        
-        # Filas de facturas
-        for idx, factura in enumerate(st.session_state.facturas_aprobadas):
-            col_check, col_factura, col_emisor, col_aceptante, col_monto, col_fecha_emision, col_fecha_desembolso = st.columns([0.5, 1.5, 2, 2, 1.5, 1.5, 1.5])
-            
-            with col_check:
-                st.session_state.facturas_seleccionadas_desembolso[factura['proposal_id']] = st.checkbox(
-                    "",
-                    value=st.session_state.facturas_seleccionadas_desembolso.get(factura['proposal_id'], False),
-                    key=f"check_desembolso_{idx}",
-                    label_visibility="collapsed"
-                )
-            
-            with col_factura:
-                st.markdown(f"`{parse_invoice_number(factura['proposal_id'])}`")
-            
-            with col_emisor:
-                st.markdown(factura.get('emisor_nombre', 'N/A'))
-            
-            with col_aceptante:
-                st.markdown(factura.get('aceptante_nombre', 'N/A'))
-            
-            with col_monto:
-                monto = get_monto_a_desembolsar(factura)
-                moneda = factura.get('moneda_factura', 'PEN')
-                st.markdown(f"{moneda} {monto:,.2f}")
-            
-            with col_fecha_emision:
-                st.markdown(factura.get('fecha_emision_factura', 'N/A'))
-            
-            with col_fecha_desembolso:
-                st.markdown(factura.get('fecha_desembolso_factoring', 'N/A'))
-        
-        st.markdown("---")
-        
-        # Botón de desembolsar
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            submit_button = st.form_submit_button(
-                "💵 Desembolsar Facturas Seleccionadas",
-                type="primary",
-                use_container_width=True
+            st.session_state.facturas_seleccionadas_desembolso[factura['proposal_id']] = st.checkbox(
+                "",
+                value=st.session_state.facturas_seleccionadas_desembolso.get(factura['proposal_id'], False),
+                key=f"check_desembolso_{idx}",
+                label_visibility="collapsed"
             )
-    
-    # Procesar desembolsos
-    if submit_button:
-        # Obtener IDs seleccionados
-        ids_seleccionados = [
-            pid for pid, selected in st.session_state.facturas_seleccionadas_desembolso.items()
-            if selected
-        ]
         
-        if not ids_seleccionados:
-            st.warning("⚠️ No has seleccionado ninguna factura para desembolsar.")
-        else:
+        with col_factura:
+            st.markdown(f"`{parse_invoice_number(factura['proposal_id'])}`")
+        
+        with col_emisor:
+            st.markdown(factura.get('emisor_nombre', 'N/A'))
+        
+        with col_aceptante:
+            st.markdown(factura.get('aceptante_nombre', 'N/A'))
+        
+        with col_monto:
+            monto = get_monto_a_desembolsar(factura)
+            moneda = factura.get('moneda_factura', 'PEN')
+            st.markdown(f"{moneda} {monto:,.2f}")
+        
+        with col_fecha_emision:
+            st.markdown(factura.get('fecha_emision_factura', 'N/A'))
+        
+        with col_fecha_desembolso:
+            st.markdown(factura.get('fecha_desembolso_factoring', 'N/A'))
+    
+    st.markdown("---")
+    
+    # Obtener facturas seleccionadas
+    facturas_seleccionadas = [
+        f for f in st.session_state.facturas_aprobadas
+        if st.session_state.facturas_seleccionadas_desembolso.get(f['proposal_id'], False)
+    ]
+    
+    # Mostrar menús de configuración solo si hay facturas seleccionadas
+    if facturas_seleccionadas:
+        st.markdown("#### Paso 2: Configurar Desembolso")
+        
+        # Checkbox para sustento único
+        st.checkbox("APLICAR SUSTENTO DE PAGO ÚNICO", key="sustento_unico")
+        
+        with st.form(key="desembolso_form"):
+            st.markdown("##### Configuración Global")
+            g_vars = st.session_state.global_desembolso_vars
+            g_vars['fecha_desembolso'] = st.date_input("Fecha de Desembolso para Todos", g_vars['fecha_desembolso'])
+            
+            # Upload de evidencia consolidada
+            st.session_state.consolidated_proof_file = st.file_uploader(
+                "Subir Evidencia Consolidada (PDF/Imagen)",
+                type=["pdf", "png", "jpg", "jpeg"],
+                key="consolidated_uploader",
+                disabled=not st.session_state.sustento_unico
+            )
+            
             st.markdown("---")
-            st.subheader("Procesando Desembolsos...")
+            st.markdown("##### Facturas Seleccionadas")
             
-            # Preparar payload para la API
-            desembolsos_info = []
-            for factura in st.session_state.facturas_aprobadas:
-                if factura['proposal_id'] in ids_seleccionados:
-                    monto = get_monto_a_desembolsar(factura)
-                    fecha_desembolso = factura.get('fecha_desembolso_factoring', datetime.date.today().strftime('%Y-%m-%d'))
+            # Calcular total
+            total_monto = 0.0
+            
+            # Menús individuales para cada factura seleccionada
+            for i, factura in enumerate(facturas_seleccionadas):
+                with st.container(border=True):
+                    col1, col2 = st.columns(2)
                     
-                    # Convertir fecha de YYYY-MM-DD a DD-MM-YYYY para la API
-                    try:
-                        fecha_obj = datetime.datetime.strptime(fecha_desembolso, '%Y-%m-%d')
-                        fecha_formateada = fecha_obj.strftime('%d-%m-%Y')
-                    except:
-                        fecha_formateada = datetime.date.today().strftime('%d-%m-%Y')
+                    with col1:
+                        st.markdown(f"**Factura:** {parse_invoice_number(factura['proposal_id'])} | **Emisor:** {factura.get('emisor_nombre', 'N/A')}")
+                        _display_operation_profile_batch(factura)
+                        
+                        # Monto editable
+                        monto_inicial = get_monto_a_desembolsar(factura)
+                        monto_key = f"monto_desembolso_{factura['proposal_id']}"
+                        if monto_key not in st.session_state:
+                            st.session_state[monto_key] = monto_inicial
+                        
+                        st.session_state[monto_key] = st.number_input(
+                            "Monto a Depositar",
+                            value=st.session_state[monto_key],
+                            format="%.2f",
+                            key=f"md_{i}"
+                        )
+                        total_monto += st.session_state[monto_key]
                     
-                    info = {
-                        "proposal_id": factura['proposal_id'],
-                        "monto_desembolsado": monto,
-                        "fecha_desembolso_real": fecha_formateada,
-                    }
-                    desembolsos_info.append(info)
+                    with col2:
+                        # Upload de sustento individual
+                        st.session_state.individual_proof_files[factura['proposal_id']] = st.file_uploader(
+                            f"Sustento para Factura {parse_invoice_number(factura['proposal_id'])}",
+                            type=["pdf", "png", "jpg", "jpeg"],
+                            key=f"uploader_{i}",
+                            disabled=st.session_state.sustento_unico
+                        )
             
-            payload = {
-                "usuario_id": USUARIO_ID_TEST,
-                "desembolsos": desembolsos_info
-            }
+            st.markdown("---")
+            st.number_input("Monto Total a Desembolsar", value=total_monto, format="%.2f", disabled=True)
             
-            # Llamar a la API
-            try:
+            # Botón de desembolsar
+            if st.form_submit_button("💵 Registrar Desembolso de Facturas Vía API", type="primary"):
                 with st.spinner("Procesando desembolso a través de la API..."):
-                    response = requests.post(f"{API_BASE_URL}/desembolsar_lote", json=payload)
-                    response.raise_for_status()
-                    st.session_state.resultados_desembolso = response.json()
-            except requests.exceptions.RequestException as e:
-                st.error(f"❌ Error de conexión con la API: {e}")
-                st.session_state.resultados_desembolso = None
-            
-            # Procesar resultados
-            if st.session_state.resultados_desembolso:
-                resultados = st.session_state.resultados_desembolso.get('resultados_del_lote', [])
-                
-                success_count = 0
-                error_count = 0
-                
-                for res in resultados:
-                    status = res.get('status', 'ERROR')
-                    message = res.get('message', 'No hay mensaje.')
-                    pid = res.get('proposal_id', 'N/A')
+                    desembolsos_info = []
                     
-                    if status == 'SUCCESS':
-                        try:
-                            db.update_proposal_status(pid, 'DESEMBOLSADA')
-                            st.success(f"✅ Factura {parse_invoice_number(pid)}: {message}. Estado actualizado a DESEMBOLSADA.")
-                            success_count += 1
-                        except Exception as e:
-                            st.error(f"❌ Factura {parse_invoice_number(pid)}: Error al actualizar estado: {e}")
-                            error_count += 1
-                    else:
-                        st.error(f"❌ Factura {parse_invoice_number(pid)}: {message}")
+                    for factura in facturas_seleccionadas:
+                        monto_key = f"monto_desembolso_{factura['proposal_id']}"
+                        monto = st.session_state.get(monto_key, get_monto_a_desembolsar(factura))
+                        
+                        fecha_desembolso = st.session_state.global_desembolso_vars['fecha_desembolso']
+                        fecha_formateada = fecha_desembolso.strftime('%d-%m-%Y')
+                        
+                        info = {
+                            "proposal_id": factura['proposal_id'],
+                            "monto_desembolsado": monto,
+                            "fecha_desembolso_real": fecha_formateada,
+                        }
+                        desembolsos_info.append(info)
+                    
+                    payload = {
+                        "usuario_id": USUARIO_ID_TEST,
+                        "desembolsos": desembolsos_info
+                    }
+                    
+                    # Llamar a la API
+                    try:
+                        response = requests.post(f"{API_BASE_URL}/desembolsar_lote", json=payload)
+                        response.raise_for_status()
+                        st.session_state.resultados_desembolso = response.json()
+                    except requests.exceptions.RequestException as e:
+                        st.error(f"❌ Error de conexión con la API: {e}")
+                        st.session_state.resultados_desembolso = None
+        
+        # Procesar resultados
+        if st.session_state.resultados_desembolso:
+            st.markdown("---")
+            st.subheader("Resultados del Procesamiento")
+            
+            resultados = st.session_state.resultados_desembolso.get('resultados_del_lote', [])
+            
+            success_count = 0
+            error_count = 0
+            
+            for res in resultados:
+                status = res.get('status', 'ERROR')
+                message = res.get('message', 'No hay mensaje.')
+                pid = res.get('proposal_id', 'N/A')
+                
+                if status == 'SUCCESS':
+                    try:
+                        db.update_proposal_status(pid, 'DESEMBOLSADA')
+                        st.success(f"✅ Factura {parse_invoice_number(pid)}: {message}. Estado actualizado a DESEMBOLSADA.")
+                        success_count += 1
+                    except Exception as e:
+                        st.error(f"❌ Factura {parse_invoice_number(pid)}: Error al actualizar estado: {e}")
                         error_count += 1
-                
-                st.markdown("---")
-                
-                if success_count > 0:
-                    st.success(f"🎉 Se desembolsaron {success_count} factura(s) exitosamente.")
-                
-                if error_count > 0:
-                    st.error(f"⚠️ Hubo errores al procesar {error_count} factura(s).")
-                
-                # Recargar datos
+                else:
+                    st.error(f"❌ Factura {parse_invoice_number(pid)}: {message}")
+                    error_count += 1
+            
+            st.markdown("---")
+            
+            if success_count > 0:
+                st.success(f"🎉 Se desembolsaron {success_count} factura(s) exitosamente.")
+            
+            if error_count > 0:
+                st.error(f"⚠️ Hubo errores al procesar {error_count} factura(s).")
+            
+            # Recargar datos
+            if st.button("Continuar"):
                 st.session_state.reload_data = True
-                
-                if st.button("Continuar"):
-                    st.rerun()
+                st.session_state.resultados_desembolso = None
+                st.rerun()
+    else:
+        st.info("👆 Selecciona al menos una factura para configurar el desembolso.")
 
 # --- Información Adicional ---
 st.markdown("---")
@@ -271,12 +346,14 @@ with st.expander("ℹ️ Información del Módulo"):
     Este módulo permite procesar los desembolsos de operaciones aprobadas.
     
     **Flujo de trabajo:**
-    1. Las operaciones aprobadas en el módulo de **Aprobación** quedan en estado `APROBADO`
-    2. Este módulo muestra automáticamente todas las facturas `APROBADAS`
-    3. Selecciona las facturas que deseas desembolsar
+    1. El módulo muestra automáticamente todas las facturas `APROBADAS`
+    2. Selecciona las facturas que deseas desembolsar usando los checkboxes
+    3. Configura el monto y sustentos para cada factura seleccionada
     4. El sistema procesa el desembolso a través de la API
     5. Al completarse exitosamente, el estado cambia a `DESEMBOLSADA`
-    6. Solo las operaciones `DESEMBOLSADAS` están disponibles para **Liquidación**
     
-    **Nota:** El monto a desembolsar se calcula automáticamente del perfil de operación original.
+    **Opciones de configuración:**
+    - **Monto a depositar**: Editable para cada factura
+    - **Sustento único**: Subir un solo documento para todas las facturas
+    - **Sustentos individuales**: Subir documentos separados por factura
     """)

@@ -872,3 +872,118 @@ IMPACTO:
 
 ESTADO: ✅ COMPLETADO Y VERIFICADO
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-06 17:02:00
+SESIÓN: Restauración de Funcionalidad de Menús de Desembolso
+================================================================================
+
+REQUERIMIENTO DEL USUARIO:
+---------------------------
+Usuario solicitó restaurar los menús completos del módulo anterior de Desembolso
+que aparecían al seleccionar facturas, incluyendo:
+- Monto a desembolsar (editable)
+- Opciones para subir sustentos de pago (consolidado e individual)
+
+El usuario quería mantener la UI de tabla con checkboxes pero con los menús
+detallados que tenía el módulo anterior.
+
+ANÁLISIS:
+---------
+El módulo rediseñado anteriormente había eliminado completamente:
+- Configuración global de fecha de desembolso
+- Upload de sustento consolidado
+- Menús individuales por factura
+- Monto editable por factura
+- Upload de sustentos individuales
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+Creada versión HÍBRIDA que combina lo mejor de ambos enfoques:
+
+1. **Mantiene del rediseño nuevo:**
+   - Carga automática de facturas APROBADAS
+   - Tabla con checkboxes para selección
+   - UI consistente con módulo de Aprobación
+   - Sin búsqueda manual por lote
+
+2. **Restaura del módulo anterior:**
+   - Menús detallados que aparecen SOLO al seleccionar facturas
+   - Configuración global (fecha de desembolso, sustento consolidado)
+   - Menús individuales por factura seleccionada
+   - Monto editable para cada factura
+   - Upload de sustentos individuales
+   - Checkbox "APLICAR SUSTENTO DE PAGO ÚNICO"
+   - Cálculo de monto total
+
+FLUJO DE USUARIO:
+-----------------
+1. Usuario abre módulo → Ve tabla de facturas APROBADAS
+2. Usuario marca checkboxes de facturas a desembolsar
+3. **NUEVO**: Aparece sección "Paso 2: Configurar Desembolso"
+4. Usuario configura:
+   - Fecha de desembolso global
+   - Sustento consolidado (opcional)
+   - Para cada factura seleccionada:
+     * Monto a depositar (editable)
+     * Sustento individual (opcional)
+5. Usuario hace clic en "Registrar Desembolso"
+6. Sistema procesa vía API y actualiza estados
+
+ARCHIVOS MODIFICADOS:
+---------------------
+- pages/04_Desembolso.py (REESCRITO COMPLETAMENTE - 372 líneas)
+  * Líneas 1-54: Imports y configuración (igual que antes)
+  * Líneas 55-93: Funciones helper (agregada _display_operation_profile_batch)
+  * Líneas 95-133: Header y carga automática (igual que antes)
+  * Líneas 135-200: Tabla con checkboxes (igual que antes)
+  * Líneas 202-340: **NUEVO** - Menús de configuración condicionales
+    - Solo aparecen si hay facturas seleccionadas
+    - Configuración global con fecha y sustento consolidado
+    - Contenedores individuales por factura con:
+      * Perfil de operación
+      * Monto editable
+      * Upload de sustento individual
+    - Cálculo de monto total
+  * Líneas 342-380: Procesamiento de desembolso (adaptado)
+  * Líneas 382-400: Información del módulo
+
+CARACTERÍSTICAS IMPLEMENTADAS:
+-------------------------------
+✅ Carga automática de facturas APROBADAS
+✅ Tabla con checkboxes para selección
+✅ Menús condicionales (solo si hay selección)
+✅ Configuración global de fecha
+✅ Upload de sustento consolidado
+✅ Checkbox "APLICAR SUSTENTO DE PAGO ÚNICO"
+✅ Menús individuales por factura seleccionada
+✅ Monto editable por factura
+✅ Upload de sustentos individuales
+✅ Cálculo automático de monto total
+✅ Perfil de operación original por factura
+✅ Procesamiento vía API
+✅ Actualización de estados a DESEMBOLSADA
+
+MEJORAS SOBRE EL MÓDULO ANTERIOR:
+----------------------------------
+✨ No requiere búsqueda manual por lote
+✨ Muestra todas las facturas APROBADAS automáticamente
+✨ Menús solo aparecen cuando son necesarios (facturas seleccionadas)
+✨ UI más limpia y organizada
+✨ Consistencia visual con módulo de Aprobación
+
+IMPACTO:
+--------
+✅ Usuario tiene control total sobre montos y sustentos
+✅ Flujo más intuitivo (seleccionar → configurar → desembolsar)
+✅ Mantiene todas las capacidades del módulo anterior
+✅ Mejora la experiencia con carga automática
+
+CÓDIGO AUMENTADO:
+-----------------
+- De 272 líneas (versión simplificada) a 372 líneas (versión híbrida)
+- +100 líneas para menús de configuración detallados
+
+ESTADO: ✅ COMPLETADO
+PENDIENTE: ⏳ Testing manual por usuario
+================================================================================
