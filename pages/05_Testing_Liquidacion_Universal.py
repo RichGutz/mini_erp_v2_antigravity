@@ -269,121 +269,242 @@ if st.session_state.facturas_seleccionadas:
         visual = calcular_liquidacion_visual(propuesta, ultimo_evento)
         sistema = extraer_datos_sistema(ultimo_evento)
         
-        # Mostrar comparación
+        # Mostrar comparación con estructura similar al módulo de liquidaciones
         st.subheader(f"📄 {propuesta.get('numero_factura', 'N/A')} - {propuesta.get('emisor_nombre', 'N/A')}")
         
-        # Crear tabla comparativa
-        comparacion_data = {
-            'Concepto': [
-                'Capital Operación',
-                'Días Transcurridos',
-                'Días de Mora',
-                '',
-                'Interés Devengado',
-                'IGV Devengado',
-                'Interés Moratorio',
-                'IGV Moratorio',
-                '',
-                'Delta Compensatorios',
-                'Delta IGV',
-                'Delta Capital',
-                '',
-                'Saldo Global',
-                'Caso Detectado'
-            ],
-            'VISUAL': [
-                f"S/ {visual['capital']:,.2f}",
-                f"{visual['dias_transcurridos']} días",
-                f"{visual['dias_mora']} días",
-                '',
-                f"S/ {visual['interes_devengado']:,.2f}",
-                f"S/ {visual['igv_devengado']:,.2f}",
-                f"S/ {visual['interes_moratorio']:,.2f}",
-                f"S/ {visual['igv_moratorio']:,.2f}",
-                '',
-                f"S/ {visual['delta_compensatorios']:,.2f}",
-                f"S/ {visual['delta_igv']:,.2f}",
-                f"S/ {visual['delta_capital']:,.2f}",
-                '',
-                f"S/ {visual['saldo_global']:,.2f}",
-                f"Caso {visual['caso']}"
-            ],
-            'SISTEMA': [
-                f"S/ {sistema['capital']:,.2f}",
-                f"{sistema['dias_transcurridos']} días",
-                f"{sistema['dias_mora']} días",
-                '',
-                f"S/ {sistema['interes_devengado']:,.2f}",
-                f"S/ {sistema['igv_devengado']:,.2f}",
-                f"S/ {sistema['interes_moratorio']:,.2f}",
-                f"S/ {sistema['igv_moratorio']:,.2f}",
-                '',
-                f"S/ {sistema['delta_compensatorios']:,.2f}",
-                f"S/ {sistema['delta_igv']:,.2f}",
-                f"S/ {sistema['delta_capital']:,.2f}",
-                '',
-                f"S/ {sistema['saldo_global']:,.2f}",
-                f"Caso {sistema['caso']}"
-            ],
-            'Estado': []
-        }
+        # Crear tabla comparativa con secciones
+        st.markdown("#### 📊 Comparación: VISUAL vs SISTEMA")
         
-        # Calcular diferencias y estado
-        for i, concepto in enumerate(comparacion_data['Concepto']):
-            if concepto == '':
-                comparacion_data['Estado'].append('')
-            elif concepto == 'Caso Detectado':
-                if visual['caso'] == sistema['caso']:
-                    comparacion_data['Estado'].append('✅ Coincide')
-                else:
-                    comparacion_data['Estado'].append('❌ Diferente')
-            elif concepto == 'Días Transcurridos':
-                if visual['dias_transcurridos'] == sistema['dias_transcurridos']:
-                    comparacion_data['Estado'].append('✅')
-                else:
-                    comparacion_data['Estado'].append('❌')
-            elif concepto == 'Días de Mora':
-                if visual['dias_mora'] == sistema['dias_mora']:
-                    comparacion_data['Estado'].append('✅')
-                else:
-                    comparacion_data['Estado'].append('❌')
+        # SECCIÓN 1: DATOS DE LA OPERACIÓN
+        st.markdown("##### DATOS DE LA OPERACIÓN")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("**Concepto**")
+        with col2:
+            st.markdown("**VISUAL**")
+        with col3:
+            st.markdown("**SISTEMA**")
+        
+        st.markdown("---")
+        
+        # Capital
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("Capital Operación")
+        with col2:
+            st.markdown(f"S/ {visual['capital']:,.2f}")
+        with col3:
+            st.markdown(f"S/ {sistema['capital']:,.2f}")
+            if abs(visual['capital'] - sistema['capital']) < 0.01:
+                st.success("✅")
             else:
-                # Comparar valores numéricos
-                key_map = {
-                    'Capital Operación': 'capital',
-                    'Interés Devengado': 'interes_devengado',
-                    'IGV Devengado': 'igv_devengado',
-                    'Interés Moratorio': 'interes_moratorio',
-                    'IGV Moratorio': 'igv_moratorio',
-                    'Delta Compensatorios': 'delta_compensatorios',
-                    'Delta IGV': 'delta_igv',
-                    'Delta Capital': 'delta_capital',
-                    'Saldo Global': 'saldo_global'
-                }
-                
-                if concepto in key_map:
-                    key = key_map[concepto]
-                    diff = abs(visual[key] - sistema[key])
-                    if diff < 0.01:
-                        comparacion_data['Estado'].append('✅ Coincide')
-                    else:
-                        comparacion_data['Estado'].append(f'❌ Δ {diff:,.2f}')
+                st.error(f"❌ Δ {abs(visual['capital'] - sistema['capital']):,.2f}")
+        
+        st.markdown("")
+        
+        # SECCIÓN 2: PERÍODOS
+        st.markdown("##### PERÍODOS")
+        
+        # Días Transcurridos
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("Días Transcurridos")
+        with col2:
+            st.markdown(f"{visual['dias_transcurridos']} días")
+        with col3:
+            st.markdown(f"{sistema['dias_transcurridos']} días")
+            if visual['dias_transcurridos'] == sistema['dias_transcurridos']:
+                st.success("✅")
+            else:
+                st.error(f"❌ Δ {abs(visual['dias_transcurridos'] - sistema['dias_transcurridos'])} días")
+        
+        # Días de Mora
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("Días de Mora")
+        with col2:
+            st.markdown(f"{visual['dias_mora']} días")
+        with col3:
+            st.markdown(f"{sistema['dias_mora']} días")
+            if visual['dias_mora'] == sistema['dias_mora']:
+                st.success("✅")
+            else:
+                st.error(f"❌ Δ {abs(visual['dias_mora'] - sistema['dias_mora'])} días")
+        
+        st.markdown("")
+        
+        # SECCIÓN 3: COMPARACIÓN DEVENGADO VS FACTURADO
+        st.markdown("##### COMPARACIÓN: DEVENGADO VS FACTURADO")
+        
+        # Interés Devengado
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("**Interés Compensatorio Devengado**")
+        with col2:
+            st.markdown(f"S/ {visual['interes_devengado']:,.2f}")
+        with col3:
+            st.markdown(f"S/ {sistema['interes_devengado']:,.2f}")
+            diff = abs(visual['interes_devengado'] - sistema['interes_devengado'])
+            if diff < 0.01:
+                st.success("✅")
+            else:
+                st.error(f"❌ Δ {diff:,.2f}")
+        
+        # IGV Devengado
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("IGV Devengado")
+        with col2:
+            st.markdown(f"S/ {visual['igv_devengado']:,.2f}")
+        with col3:
+            st.markdown(f"S/ {sistema['igv_devengado']:,.2f}")
+            diff = abs(visual['igv_devengado'] - sistema['igv_devengado'])
+            if diff < 0.01:
+                st.success("✅")
+            else:
+                st.error(f"❌ Δ {diff:,.2f}")
+        
+        st.markdown("")
+        
+        # SECCIÓN 4: INTERESES MORATORIOS
+        if visual['dias_mora'] > 0 or sistema['dias_mora'] > 0:
+            st.markdown("##### INTERESES MORATORIOS")
+            
+            # Interés Moratorio
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown("Interés Moratorio")
+            with col2:
+                st.markdown(f"S/ {visual['interes_moratorio']:,.2f}")
+            with col3:
+                st.markdown(f"S/ {sistema['interes_moratorio']:,.2f}")
+                diff = abs(visual['interes_moratorio'] - sistema['interes_moratorio'])
+                if diff < 0.01:
+                    st.success("✅")
                 else:
-                    comparacion_data['Estado'].append('')
+                    st.error(f"❌ Δ {diff:,.2f}")
+            
+            # IGV Moratorio
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown("IGV Moratorio")
+            with col2:
+                st.markdown(f"S/ {visual['igv_moratorio']:,.2f}")
+            with col3:
+                st.markdown(f"S/ {sistema['igv_moratorio']:,.2f}")
+                diff = abs(visual['igv_moratorio'] - sistema['igv_moratorio'])
+                if diff < 0.01:
+                    st.success("✅")
+                else:
+                    st.error(f"❌ Δ {diff:,.2f}")
+            
+            st.markdown("")
         
-        df_comparacion = pd.DataFrame(comparacion_data)
+        # SECCIÓN 5: DELTAS
+        st.markdown("##### DELTAS")
         
-        # Mostrar tabla
-        st.dataframe(df_comparacion, use_container_width=True, hide_index=True)
+        # Delta Compensatorios
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("Delta Compensatorios")
+        with col2:
+            st.markdown(f"S/ {visual['delta_compensatorios']:,.2f}")
+        with col3:
+            st.markdown(f"S/ {sistema['delta_compensatorios']:,.2f}")
+            diff = abs(visual['delta_compensatorios'] - sistema['delta_compensatorios'])
+            if diff < 0.01:
+                st.success("✅")
+            else:
+                st.error(f"❌ Δ {diff:,.2f}")
+        
+        # Delta IGV
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("Delta IGV")
+        with col2:
+            st.markdown(f"S/ {visual['delta_igv']:,.2f}")
+        with col3:
+            st.markdown(f"S/ {sistema['delta_igv']:,.2f}")
+            diff = abs(visual['delta_igv'] - sistema['delta_igv'])
+            if diff < 0.01:
+                st.success("✅")
+            else:
+                st.error(f"❌ Δ {diff:,.2f}")
+        
+        # Delta Capital
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("Delta Capital")
+        with col2:
+            st.markdown(f"S/ {visual['delta_capital']:,.2f}")
+        with col3:
+            st.markdown(f"S/ {sistema['delta_capital']:,.2f}")
+            diff = abs(visual['delta_capital'] - sistema['delta_capital'])
+            if diff < 0.01:
+                st.success("✅")
+            else:
+                st.error(f"❌ Δ {diff:,.2f}")
+        
+        st.markdown("")
+        
+        # SECCIÓN 6: SALDO GLOBAL
+        st.markdown("##### SALDO GLOBAL")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("**Saldo Global Final**")
+        with col2:
+            st.markdown(f"**S/ {visual['saldo_global']:,.2f}**")
+        with col3:
+            st.markdown(f"**S/ {sistema['saldo_global']:,.2f}**")
+            diff = abs(visual['saldo_global'] - sistema['saldo_global'])
+            if diff < 0.01:
+                st.success("✅ Coincide")
+            else:
+                st.error(f"❌ Δ {diff:,.2f}")
+        
+        # Caso Detectado
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("**Caso Detectado**")
+        with col2:
+            st.markdown(f"**Caso {visual['caso']}**")
+        with col3:
+            st.markdown(f"**Caso {sistema['caso']}**")
+            if visual['caso'] == sistema['caso']:
+                st.success("✅ Coincide")
+            else:
+                st.error("❌ Diferente")
+        
+        st.markdown("")
         
         # Resumen de auditoría
-        total_checks = sum(1 for estado in comparacion_data['Estado'] if '✅' in estado)
-        total_errors = sum(1 for estado in comparacion_data['Estado'] if '❌' in estado)
+        total_checks = 0
+        total_errors = 0
+        
+        # Contar verificaciones
+        checks = [
+            abs(visual['capital'] - sistema['capital']) < 0.01,
+            visual['dias_transcurridos'] == sistema['dias_transcurridos'],
+            visual['dias_mora'] == sistema['dias_mora'],
+            abs(visual['interes_devengado'] - sistema['interes_devengado']) < 0.01,
+            abs(visual['igv_devengado'] - sistema['igv_devengado']) < 0.01,
+            abs(visual['interes_moratorio'] - sistema['interes_moratorio']) < 0.01,
+            abs(visual['igv_moratorio'] - sistema['igv_moratorio']) < 0.01,
+            abs(visual['delta_compensatorios'] - sistema['delta_compensatorios']) < 0.01,
+            abs(visual['delta_igv'] - sistema['delta_igv']) < 0.01,
+            abs(visual['delta_capital'] - sistema['delta_capital']) < 0.01,
+            abs(visual['saldo_global'] - sistema['saldo_global']) < 0.01,
+            visual['caso'] == sistema['caso']
+        ]
+        
+        total_checks = len(checks)
+        total_errors = sum(1 for check in checks if not check)
         
         if total_errors == 0:
             st.success(f"✅ **AUDITORÍA EXITOSA** - Todos los cálculos coinciden ({total_checks} verificaciones)")
         else:
-            st.error(f"❌ **DISCREPANCIAS DETECTADAS** - {total_errors} diferencia(s) encontrada(s)")
+            st.error(f"❌ **DISCREPANCIAS DETECTADAS** - {total_errors} diferencia(s) encontrada(s) de {total_checks} verificaciones")
         
         st.markdown("---")
 
