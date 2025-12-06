@@ -257,8 +257,10 @@ if st.session_state.facturas_seleccionadas:
         # Extraer datos de la propuesta
         recalc_data = json.loads(propuesta.get('recalculate_result_json', '{}'))
         capital = recalc_data.get('calculo_con_tasa_encontrada', {}).get('capital', 0.0)
-        tasa_comp = propuesta.get('interes_mensual', 0.02)
-        tasa_mora = propuesta.get('interes_moratorio', 0.03)
+        
+        # IMPORTANTE: Las tasas vienen en porcentaje (2.0 = 2%), convertir a decimal
+        tasa_comp = propuesta.get('interes_mensual', 2.0) / 100  # 2.0% -> 0.02
+        tasa_mora = propuesta.get('interes_moratorio', 3.0) / 100  # 3.0% -> 0.03
         
         fecha_desembolso = parse_fecha(propuesta.get('fecha_desembolso_factoring'))
         fecha_vencimiento = parse_fecha(propuesta.get('fecha_pago_calculada'))
