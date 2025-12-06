@@ -807,3 +807,68 @@ Módulo de Desembolso:
 ESTADO: ✅ COMPLETADO
 PENDIENTE: ⏳ Testing manual por usuario
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-06 16:57:00
+SESIÓN: Fix Bug - Carga de Facturas Aprobadas en Módulo de Desembolso
+================================================================================
+
+PROBLEMA REPORTADO:
+-------------------
+Usuario reportó que a pesar de tener 3 facturas en estado APROBADO en Supabase,
+el módulo de Desembolso mostraba: "No hay facturas aprobadas pendientes de 
+desembolso en este momento."
+
+DIAGNÓSTICO:
+------------
+Creado script debug_facturas_aprobadas.py para investigar el problema.
+
+Resultado del diagnóstico:
+- La función get_approved_proposals_for_disbursement() retornaba lista vacía
+- Error encontrado: "column propuestas.created_at does not exist"
+- La tabla 'propuestas' no tiene columna 'created_at'
+- Query directa sin ordenamiento funcionaba correctamente
+
+CAUSA RAÍZ:
+-----------
+En la línea 155 de supabase_repository.py, la función intentaba ordenar por
+'created_at' que no existe en la tabla:
+
+```python
+response = supabase.table('propuestas').select('*').eq('estado', 'APROBADO').order('created_at', desc=True).execute()
+```
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+Eliminado el ordenamiento por 'created_at':
+
+```python
+response = supabase.table('propuestas').select('*').eq('estado', 'APROBADO').execute()
+```
+
+VERIFICACIÓN:
+-------------
+Ejecutado script de diagnóstico después del fix:
+✅ Total de facturas encontradas: 3
+✅ Facturas APROBADAS correctamente identificadas:
+   - TRANS_STAR_HERMANOS_SAC-E001-1086-20251206213439
+   - TRANS_STAR_HERMANOS_SAC-E001-1102-20251206213440
+   - TRANS_STAR_HERMANOS_SAC-E001-1104-20251206213440
+
+ARCHIVOS MODIFICADOS:
+---------------------
+- src/data/supabase_repository.py
+  * Línea 155: Eliminado .order('created_at', desc=True)
+
+COMMITS REALIZADOS:
+-------------------
+- b2cd4ef: Fix: Eliminar ordenamiento por created_at en get_approved_proposals_for_disbursement
+
+IMPACTO:
+--------
+✅ Módulo de Desembolso ahora carga correctamente las facturas APROBADAS
+✅ Usuario puede ver y seleccionar facturas para desembolsar
+✅ Flujo de trabajo restaurado
+
+ESTADO: ✅ COMPLETADO Y VERIFICADO
+================================================================================
