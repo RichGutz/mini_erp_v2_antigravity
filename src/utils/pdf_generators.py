@@ -271,8 +271,9 @@ def generar_voucher_transferencia_pdf(
             'razon_social': datos_emisor.get('Razon Social', 'N/A'),
             'ruc': datos_emisor.get('RUC', 'N/A'),
             'banco': datos_emisor.get('Institucion Financiera', 'N/A'),
-            'numero_cuenta': datos_emisor.get('Numero de Cuenta', 'N/A'),
-            'cci': datos_emisor.get('CCI', 'N/A')
+            # Seleccionar cuenta según moneda
+            'numero_cuenta': datos_emisor.get(f'Numero de Cuenta {moneda}', 'N/A'),
+            'cci': datos_emisor.get(f'Numero de CCI {moneda}', 'N/A')
         },
         'monto_total': monto_total,
         'monto_letras': numero_a_letras(monto_total),

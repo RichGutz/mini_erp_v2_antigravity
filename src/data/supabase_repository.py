@@ -41,7 +41,7 @@ def get_razon_social_by_ruc(ruc: str) -> str:
     if not ruc:
         return ""
     try:
-        response = supabase.table('EMISORES.DEUDORES').select('"Razon Social"').eq('RUC', ruc).single().execute()
+        response = supabase.table('EMISORES.ACEPTANTES').select('"Razon Social"').eq('RUC', ruc).single().execute()
         return response.data.get('Razon Social', '') if response.data else ''
     except Exception as e:
         print(f"[ERROR in get_razon_social_by_ruc]: {e}")
@@ -105,7 +105,7 @@ def get_signatory_data_by_ruc(ruc: str) -> Optional[Dict[str, Any]]:
     if not ruc:
         return ""
     try:
-        response = supabase.table('EMISORES.DEUDORES').select('*').eq('RUC', ruc).single().execute()
+        response = supabase.table('EMISORES.ACEPTANTES').select('*').eq('RUC', ruc).single().execute()
         return response.data if response.data else None
     except Exception as e:
         print(f"[ERROR in get_signatory_data_by_ruc]: {e}")
@@ -424,7 +424,7 @@ def add_module(name: str, description: Optional[str] = None) -> Optional[Dict[st
 
 def create_emisor_deudor(data: Dict[str, Any]) -> tuple[bool, str]:
     """
-    Crea un nuevo emisor o deudor en la tabla EMISORES.DEUDORES.
+    Crea un nuevo emisor o deudor en la tabla EMISORES.ACEPTANTES.
     
     Args:
         data: Diccionario con los campos del emisor/deudor
@@ -454,12 +454,12 @@ def create_emisor_deudor(data: Dict[str, Any]) -> tuple[bool, str]:
             data['TIPO'] = data.pop('tipo')
         
         # Verificar si ya existe
-        existing = supabase.table('EMISORES.DEUDORES').select('RUC').eq('RUC', data['RUC']).execute()
+        existing = supabase.table('EMISORES.ACEPTANTES').select('RUC').eq('RUC', data['RUC']).execute()
         if existing.data:
             return False, f"Ya existe un registro con RUC {data['RUC']}"
         
         # Insertar
-        response = supabase.table('EMISORES.DEUDORES').insert(data).execute()
+        response = supabase.table('EMISORES.ACEPTANTES').insert(data).execute()
         return True, f"Registro creado exitosamente: {data['Razon Social']}"
     except Exception as e:
         print(f"[ERROR en create_emisor_deudor]: {e}")
@@ -480,7 +480,7 @@ def update_emisor_deudor(ruc: str, data: Dict[str, Any]) -> tuple[bool, str]:
     supabase = get_supabase_client()
     try:
         # Verificar que existe
-        existing = supabase.table('EMISORES.DEUDORES').select('*').eq('RUC', ruc).execute()
+        existing = supabase.table('EMISORES.ACEPTANTES').select('*').eq('RUC', ruc).execute()
         if not existing.data:
             return False, f"No se encontró registro con RUC {ruc}"
         
@@ -495,7 +495,7 @@ def update_emisor_deudor(ruc: str, data: Dict[str, Any]) -> tuple[bool, str]:
         
         # Actualizar (no permitir cambiar RUC)
         data_to_update = {k: v for k, v in data.items() if k != 'RUC'}
-        response = supabase.table('EMISORES.DEUDORES').update(data_to_update).eq('RUC', ruc).execute()
+        response = supabase.table('EMISORES.ACEPTANTES').update(data_to_update).eq('RUC', ruc).execute()
         return True, "Registro actualizado exitosamente"
     except Exception as e:
         print(f"[ERROR en update_emisor_deudor]: {e}")
@@ -514,7 +514,7 @@ def get_all_emisores_deudores(tipo: Optional[str] = None) -> List[Dict[str, Any]
     """
     supabase = get_supabase_client()
     try:
-        query = supabase.table('EMISORES.DEUDORES').select('*')
+        query = supabase.table('EMISORES.ACEPTANTES').select('*')
         if tipo:
             query = query.eq('tipo', tipo)
         response = query.execute()
@@ -537,7 +537,7 @@ def search_emisores_deudores(search_term: str) -> List[Dict[str, Any]]:
     supabase = get_supabase_client()
     try:
         # Buscar por RUC o Razón Social (case insensitive)
-        response = supabase.table('EMISORES.DEUDORES').select('*').or_(
+        response = supabase.table('EMISORES.ACEPTANTES').select('*').or_(
             f'RUC.ilike.%{search_term}%,"Razon Social".ilike.%{search_term}%'
         ).execute()
         return response.data if response.data else []

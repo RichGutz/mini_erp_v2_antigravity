@@ -239,10 +239,12 @@ else:
                 with col2:
                     st.markdown("##### 🏦 Datos Bancarios")
                     banco = datos_emisor.get('Institucion Financiera', 'N/A')
-                    cuenta = datos_emisor.get('Numero de Cuenta', 'N/A')
-                    cci = datos_emisor.get('CCI', 'N/A')
+                    # Seleccionar cuenta según moneda
+                    cuenta = datos_emisor.get(f'Numero de Cuenta {moneda}', 'N/A')
+                    cci = datos_emisor.get(f'Numero de CCI {moneda}', 'N/A')
                     
                     st.markdown(f"**Banco:** {banco}")
+                    st.markdown(f"**Moneda:** {moneda}")
                     st.markdown(f"**Número de Cuenta:** {cuenta}")
                     st.markdown(f"**CCI:** {cci}")
                 

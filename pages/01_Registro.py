@@ -73,7 +73,7 @@ def mostrar_busqueda():
             try:
                 from src.data.supabase_repository import get_supabase_client
                 supabase = get_supabase_client()
-                response = supabase.table('EMISORES.DEUDORES').select('*').eq('RUC', ruc_buscar).execute()
+                response = supabase.table('EMISORES.ACEPTANTES').select('*').eq('RUC', ruc_buscar).execute()
                 registros = response.data if response.data else []
             except Exception as e:
                 st.error(f"Error al buscar: {str(e)}")
