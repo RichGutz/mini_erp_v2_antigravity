@@ -1,6 +1,6 @@
 """
-Módulo de Testing Liquidación Universal - REFACTORIZADO
-Auditoría visual de liquidaciones: SISTEMA vs VISUAL
+Módulo de Testing Liquidación Universal - VERSIÓN FINAL
+Tabla día a día con interés compuesto y comparación VISUAL vs SISTEMA
 """
 
 import streamlit as st
@@ -32,102 +32,81 @@ st.set_page_config(
 )
 
 st.title("🧪 Testing Liquidación Universal")
-st.markdown("**Auditoría Visual: SISTEMA vs CÁLCULO INDEPENDIENTE**")
+st.markdown("**Auditoría Visual: Tabla Día a Día con Interés Compuesto**")
 st.markdown("---")
 
 # ============================================================================
-# FUNCIONES DE CÁLCULO
+# FUNCIONES DE CÁLCULO CON INTERÉS COMPUESTO
 # ============================================================================
 
-def calcular_liquidacion_visual(propuesta: dict, ultimo_evento: dict) -> dict:
+def calcular_interes_compuesto_diario(capital: float, tasa_mensual: float, dias: int) -> float:
     """
-    Calcula la liquidación de forma independiente (VISUAL)
+    Calcula interés compuesto usando la fórmula del Excel:
+    (1 + tasa_mensual/30)^dias - 1) × capital
     """
-    sistema = SistemaFactoringCompleto()
+    if dias <= 0:
+        return 0.0
+    return ((1 + tasa_mensual / 30) ** dias - 1) * capital
+
+
+def generar_tabla_devengamiento(
+    capital: float,
+    tasa_comp: float,
+    tasa_mora: float,
+    fecha_desembolso: date,
+    fecha_vencimiento: date,
+    fecha_pago_real: date
+) -> pd.DataFrame:
+    """
+    Genera tabla día a día de devengamiento con interés compuesto
+    """
+    # Determinar rango de fechas
+    fecha_inicio = fecha_desembolso
+    fecha_fin = max(fecha_pago_real, fecha_vencimiento) + timedelta(days=5)
     
-    # Parsear datos
-    recalc_data = json.loads(propuesta.get('recalculate_result_json', '{}'))
-    capital = recalc_data.get('calculo_con_tasa_encontrada', {}).get('capital', 0.0)
-    interes_original = recalc_data.get('desglose_final_detallado', {}).get('interes', {}).get('monto', 0.0)
-    igv_interes_original = recalc_data.get('calculo_con_tasa_encontrada', {}).get('igv_interes', 0.0)
+    datos = []
+    fecha_actual = fecha_inicio
+    dia_num = 0
     
-    tasa_comp = propuesta.get('interes_mensual', 0.02)
-    tasa_mora = propuesta.get('interes_moratorio', 0.03)
+    while fecha_actual <= fecha_fin:
+        dias_desde_desembolso = (fecha_actual - fecha_desembolso).days
+        
+        # Calcular intereses compensatorios acumulados
+        interes_comp_acum = calcular_interes_compuesto_diario(capital, tasa_comp, dias_desde_desembolso)
+        
+        # Calcular intereses moratorios acumulados (solo después de vencimiento)
+        if fecha_actual > fecha_vencimiento:
+            dias_mora = (fecha_actual - fecha_vencimiento).days
+            interes_mora_acum = calcular_interes_compuesto_diario(capital, tasa_mora, dias_mora)
+        else:
+            dias_mora = 0
+            interes_mora_acum = 0.0
+        
+        # Determinar zona para colores
+        if fecha_actual < fecha_vencimiento:
+            zona = "Normal"
+        elif fecha_actual == fecha_vencimiento:
+            zona = "Vencimiento"
+        elif fecha_actual == fecha_pago_real:
+            zona = "Pago Real"
+        else:
+            zona = "Mora"
+        
+        datos.append({
+            'Día': dia_num,
+            'Fecha': fecha_actual.strftime('%Y-%m-%d'),
+            'Int.Comp Acum': round(interes_comp_acum, 2),
+            'IGV Comp': round(interes_comp_acum * 0.18, 2),
+            'Int.Mora Acum': round(interes_mora_acum, 2),
+            'IGV Mora': round(interes_mora_acum * 0.18, 2),
+            'Zona': zona,
+            'Es Pago Real': (fecha_actual == fecha_pago_real)
+        })
+        
+        fecha_actual += timedelta(days=1)
+        dia_num += 1
     
-    # Parsear fechas (pueden venir con o sin hora)
-    def parse_fecha(fecha_str):
-        if not fecha_str:
-            return date.today()
-        # Intentar con timestamp completo primero
-        try:
-            return datetime.datetime.fromisoformat(fecha_str.replace('Z', '+00:00')).date()
-        except:
-            # Intentar solo fecha
-            try:
-                return datetime.datetime.strptime(fecha_str.split('T')[0], '%Y-%m-%d').date()
-            except:
-                return date.today()
-    
-    fecha_desembolso = parse_fecha(propuesta.get('fecha_desembolso_factoring'))
-    fecha_pago_teorica = parse_fecha(propuesta.get('fecha_pago_calculada'))
-    fecha_pago_real = parse_fecha(ultimo_evento.get('fecha_evento'))
-    monto_pagado = ultimo_evento.get('monto_recibido', 0.0)
-    
-    # Calcular días transcurridos (desde desembolso hasta pago real)
-    dias_transcurridos = (fecha_pago_real - fecha_desembolso).days
-    
-    # IMPORTANTE: Aplicar regla de días mínimos (igual que el sistema)
-    # El sistema usa max(dias_transcurridos, 15) por defecto
-    dias_minimos = 15
-    dias_para_interes = max(dias_transcurridos, dias_minimos)
-    
-    # Calcular días de mora (desde vencimiento hasta pago real)
-    dias_mora = max(0, (fecha_pago_real - fecha_pago_teorica).days)
-    
-    # Calcular intereses devengados (usando días_para_interes, NO dias_transcurridos)
-    interes_devengado = sistema._calcular_intereses_compensatorios(capital, tasa_comp, dias_para_interes)
-    igv_devengado = interes_devengado * 0.18
-    
-    # Calcular moratorios
-    if dias_mora > 0:
-        interes_moratorio = sistema._calcular_intereses_moratorios(capital, dias_mora)
-        igv_moratorio = interes_moratorio * 0.18
-    else:
-        interes_moratorio = 0.0
-        igv_moratorio = 0.0
-    
-    # Calcular deltas
-    delta_compensatorios = interes_devengado - interes_original
-    delta_igv = igv_devengado - igv_interes_original
-    delta_capital = capital - monto_pagado
-    
-    saldo_global = delta_compensatorios + delta_igv + interes_moratorio + igv_moratorio + delta_capital
-    
-    # Clasificar caso
-    estado, accion = sistema._clasificar_caso_liquidacion(delta_compensatorios, delta_capital, saldo_global)
-    
-    # Extraer número de caso
-    caso_num = "No clasificado"
-    for i in range(1, 7):
-        if f"Caso {i}" in estado:
-            caso_num = str(i)
-            break
-    
-    return {
-        'capital': capital,
-        'dias_transcurridos': dias_para_interes,  # Usar días_para_interes (con mínimo aplicado)
-        'dias_mora': dias_mora,
-        'interes_devengado': interes_devengado,
-        'igv_devengado': igv_devengado,
-        'interes_moratorio': interes_moratorio,
-        'igv_moratorio': igv_moratorio,
-        'delta_compensatorios': delta_compensatorios,
-        'delta_igv': delta_igv,
-        'delta_capital': delta_capital,
-        'saldo_global': saldo_global,
-        'caso': caso_num,
-        'estado': estado
-    }
+    return pd.DataFrame(datos)
 
 
 def extraer_datos_sistema(ultimo_evento: dict) -> dict:
@@ -145,9 +124,6 @@ def extraer_datos_sistema(ultimo_evento: dict) -> dict:
             break
     
     return {
-        'capital': resultado.get('capital_operacion', 0.0),
-        'dias_transcurridos': resultado.get('dias_transcurridos', 0),
-        'dias_mora': resultado.get('dias_mora', 0),
         'interes_devengado': resultado.get('interes_devengado', 0.0),
         'igv_devengado': resultado.get('igv_interes_devengado', 0.0),
         'interes_moratorio': resultado.get('interes_moratorio', 0.0),
@@ -157,8 +133,22 @@ def extraer_datos_sistema(ultimo_evento: dict) -> dict:
         'delta_capital': resultado.get('delta_capital', 0.0),
         'saldo_global': resultado.get('saldo_global', 0.0),
         'caso': caso_num,
-        'estado': estado
+        'dias_transcurridos': resultado.get('dias_transcurridos', 0),
+        'dias_mora': resultado.get('dias_mora', 0)
     }
+
+
+def parse_fecha(fecha_str):
+    """Parsea fechas en múltiples formatos"""
+    if not fecha_str:
+        return date.today()
+    try:
+        return datetime.datetime.fromisoformat(fecha_str.replace('Z', '+00:00')).date()
+    except:
+        try:
+            return datetime.datetime.strptime(fecha_str.split('T')[0], '%Y-%m-%d').date()
+        except:
+            return date.today()
 
 
 # ============================================================================
@@ -187,8 +177,8 @@ with col1:
     )
 
 with col2:
-    st.markdown("")  # Espaciado
-    st.markdown("")  # Espaciado
+    st.markdown("")
+    st.markdown("")
     if st.button("🔍 Cargar Lote", type="primary", use_container_width=True):
         if lote_id:
             with st.spinner("Buscando facturas liquidadas..."):
@@ -213,7 +203,6 @@ if st.session_state.facturas_lote:
     st.markdown("---")
     st.header("2️⃣ Seleccionar Facturas a Auditar")
     
-    # Crear tabla de selección
     st.markdown("**Facturas disponibles:**")
     
     for idx, factura in enumerate(st.session_state.facturas_lote):
@@ -247,12 +236,12 @@ if st.session_state.facturas_lote:
         st.info(f"📌 {len(st.session_state.facturas_seleccionadas)} factura(s) seleccionada(s)")
 
 # ============================================================================
-# SECCIÓN 3: AUDITORÍA
+# SECCIÓN 3: AUDITORÍA CON TABLA DÍA A DÍA
 # ============================================================================
 
 if st.session_state.facturas_seleccionadas:
     st.markdown("---")
-    st.header("3️⃣ Auditoría: VISUAL vs SISTEMA")
+    st.header("3️⃣ Auditoría: Tabla Día a Día")
     
     for proposal_id in st.session_state.facturas_seleccionadas:
         # Obtener datos
@@ -265,100 +254,154 @@ if st.session_state.facturas_seleccionadas:
         
         ultimo_evento = eventos[-1]
         
-        # Calcular VISUAL y extraer SISTEMA
-        visual = calcular_liquidacion_visual(propuesta, ultimo_evento)
+        # Extraer datos de la propuesta
+        recalc_data = json.loads(propuesta.get('recalculate_result_json', '{}'))
+        capital = recalc_data.get('calculo_con_tasa_encontrada', {}).get('capital', 0.0)
+        tasa_comp = propuesta.get('interes_mensual', 0.02)
+        tasa_mora = propuesta.get('interes_moratorio', 0.03)
+        
+        fecha_desembolso = parse_fecha(propuesta.get('fecha_desembolso_factoring'))
+        fecha_vencimiento = parse_fecha(propuesta.get('fecha_pago_calculada'))
+        fecha_pago_real = parse_fecha(ultimo_evento.get('fecha_evento'))
+        
+        # Generar tabla día a día
+        df_devengamiento = generar_tabla_devengamiento(
+            capital, tasa_comp, tasa_mora,
+            fecha_desembolso, fecha_vencimiento, fecha_pago_real
+        )
+        
+        # Extraer datos del sistema
         sistema = extraer_datos_sistema(ultimo_evento)
         
-        # Mostrar comparación con estructura similar al módulo de liquidaciones
+        # Obtener valores VISUAL del día del pago real
+        fila_pago = df_devengamiento[df_devengamiento['Es Pago Real'] == True]
+        if not fila_pago.empty:
+            visual_interes_comp = fila_pago.iloc[0]['Int.Comp Acum']
+            visual_igv_comp = fila_pago.iloc[0]['IGV Comp']
+            visual_interes_mora = fila_pago.iloc[0]['Int.Mora Acum']
+            visual_igv_mora = fila_pago.iloc[0]['IGV Mora']
+        else:
+            visual_interes_comp = 0
+            visual_igv_comp = 0
+            visual_interes_mora = 0
+            visual_igv_mora = 0
+        
+        # Mostrar header
         st.subheader(f"📄 {propuesta.get('numero_factura', 'N/A')} - {propuesta.get('emisor_nombre', 'N/A')}")
         
-        # Crear tabla comparativa con secciones
+        # Métricas clave
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Capital", f"S/ {capital:,.2f}")
+        with col2:
+            st.metric("Tasa Comp", f"{tasa_comp*100:.2f}%")
+        with col3:
+            st.metric("Tasa Mora", f"{tasa_mora*100:.2f}%")
+        with col4:
+            dias_totales = (fecha_pago_real - fecha_desembolso).days
+            st.metric("Días Totales", f"{dias_totales}")
+        
+        st.markdown("---")
+        
+        # Tabla día a día con colores
+        st.markdown("#### 📅 Tabla de Devengamiento Día a Día (Interés Compuesto)")
+        
+        def aplicar_colores(row):
+            if row['Es Pago Real']:
+                return ['background-color: #FFD700; font-weight: bold'] * len(row)
+            elif row['Zona'] == 'Normal':
+                return ['background-color: #90EE90'] * len(row)
+            elif row['Zona'] == 'Vencimiento':
+                return ['background-color: #FFFFE0; font-weight: bold'] * len(row)
+            elif row['Zona'] == 'Mora':
+                return ['background-color: #FFB6C1'] * len(row)
+            else:
+                return [''] * len(row)
+        
+        # Mostrar solo columnas relevantes
+        df_display = df_devengamiento[['Día', 'Fecha', 'Int.Comp Acum', 'IGV Comp', 'Int.Mora Acum', 'IGV Mora']].copy()
+        
+        st.dataframe(
+            df_devengamiento.style.apply(aplicar_colores, axis=1),
+            use_container_width=True,
+            height=400
+        )
+        
+        st.markdown("""
+        **Leyenda:**
+        - 🟢 Verde: Período normal
+        - 🟡 Amarillo: Fecha de vencimiento
+        - 🔴 Rojo: Período de mora
+        - 🟠 Dorado: Fecha real de pago
+        """)
+        
+        st.markdown("---")
+        
+        # Comparación VISUAL vs SISTEMA
         st.markdown("#### 📊 Comparación: VISUAL vs SISTEMA")
         
-        # SECCIÓN 1: DATOS DE LA OPERACIÓN
-        st.markdown("##### DATOS DE LA OPERACIÓN")
         col1, col2, col3 = st.columns(3)
+        
         with col1:
             st.markdown("**Concepto**")
         with col2:
-            st.markdown("**VISUAL**")
+            st.markdown("**VISUAL (Compuesto)**")
         with col3:
             st.markdown("**SISTEMA**")
         
         st.markdown("---")
         
-        # Capital
+        # Interés Compensatorio
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown("Capital Operación")
+            st.markdown("Interés Compensatorio")
         with col2:
-            st.markdown(f"S/ {visual['capital']:,.2f}")
-        with col3:
-            st.markdown(f"S/ {sistema['capital']:,.2f}")
-            if abs(visual['capital'] - sistema['capital']) < 0.01:
-                st.success("✅")
-            else:
-                st.error(f"❌ Δ {abs(visual['capital'] - sistema['capital']):,.2f}")
-        
-        st.markdown("")
-        
-        # SECCIÓN 2: PERÍODOS
-        st.markdown("##### PERÍODOS")
-        
-        # Días Transcurridos
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("Días Transcurridos")
-        with col2:
-            st.markdown(f"{visual['dias_transcurridos']} días")
-        with col3:
-            st.markdown(f"{sistema['dias_transcurridos']} días")
-            if visual['dias_transcurridos'] == sistema['dias_transcurridos']:
-                st.success("✅")
-            else:
-                st.error(f"❌ Δ {abs(visual['dias_transcurridos'] - sistema['dias_transcurridos'])} días")
-        
-        # Días de Mora
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("Días de Mora")
-        with col2:
-            st.markdown(f"{visual['dias_mora']} días")
-        with col3:
-            st.markdown(f"{sistema['dias_mora']} días")
-            if visual['dias_mora'] == sistema['dias_mora']:
-                st.success("✅")
-            else:
-                st.error(f"❌ Δ {abs(visual['dias_mora'] - sistema['dias_mora'])} días")
-        
-        st.markdown("")
-        
-        # SECCIÓN 3: COMPARACIÓN DEVENGADO VS FACTURADO
-        st.markdown("##### COMPARACIÓN: DEVENGADO VS FACTURADO")
-        
-        # Interés Devengado
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Interés Compensatorio Devengado**")
-        with col2:
-            st.markdown(f"S/ {visual['interes_devengado']:,.2f}")
+            st.markdown(f"S/ {visual_interes_comp:,.2f}")
         with col3:
             st.markdown(f"S/ {sistema['interes_devengado']:,.2f}")
-            diff = abs(visual['interes_devengado'] - sistema['interes_devengado'])
+            diff = abs(visual_interes_comp - sistema['interes_devengado'])
             if diff < 0.01:
                 st.success("✅")
             else:
                 st.error(f"❌ Δ {diff:,.2f}")
         
-        # IGV Devengado
+        # IGV Compensatorio
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown("IGV Devengado")
+            st.markdown("IGV Compensatorio")
         with col2:
-            st.markdown(f"S/ {visual['igv_devengado']:,.2f}")
+            st.markdown(f"S/ {visual_igv_comp:,.2f}")
         with col3:
             st.markdown(f"S/ {sistema['igv_devengado']:,.2f}")
-            diff = abs(visual['igv_devengado'] - sistema['igv_devengado'])
+            diff = abs(visual_igv_comp - sistema['igv_devengado'])
+            if diff < 0.01:
+                st.success("✅")
+            else:
+                st.error(f"❌ Δ {diff:,.2f}")
+        
+        # Interés Moratorio
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("Interés Moratorio")
+        with col2:
+            st.markdown(f"S/ {visual_interes_mora:,.2f}")
+        with col3:
+            st.markdown(f"S/ {sistema['interes_moratorio']:,.2f}")
+            diff = abs(visual_interes_mora - sistema['interes_moratorio'])
+            if diff < 0.01:
+                st.success("✅")
+            else:
+                st.error(f"❌ Δ {diff:,.2f}")
+        
+        # IGV Moratorio
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("IGV Moratorio")
+        with col2:
+            st.markdown(f"S/ {visual_igv_mora:,.2f}")
+        with col3:
+            st.markdown(f"S/ {sistema['igv_moratorio']:,.2f}")
+            diff = abs(visual_igv_mora - sistema['igv_moratorio'])
             if diff < 0.01:
                 st.success("✅")
             else:
@@ -366,145 +409,20 @@ if st.session_state.facturas_seleccionadas:
         
         st.markdown("")
         
-        # SECCIÓN 4: INTERESES MORATORIOS
-        if visual['dias_mora'] > 0 or sistema['dias_mora'] > 0:
-            st.markdown("##### INTERESES MORATORIOS")
-            
-            # Interés Moratorio
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.markdown("Interés Moratorio")
-            with col2:
-                st.markdown(f"S/ {visual['interes_moratorio']:,.2f}")
-            with col3:
-                st.markdown(f"S/ {sistema['interes_moratorio']:,.2f}")
-                diff = abs(visual['interes_moratorio'] - sistema['interes_moratorio'])
-                if diff < 0.01:
-                    st.success("✅")
-                else:
-                    st.error(f"❌ Δ {diff:,.2f}")
-            
-            # IGV Moratorio
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.markdown("IGV Moratorio")
-            with col2:
-                st.markdown(f"S/ {visual['igv_moratorio']:,.2f}")
-            with col3:
-                st.markdown(f"S/ {sistema['igv_moratorio']:,.2f}")
-                diff = abs(visual['igv_moratorio'] - sistema['igv_moratorio'])
-                if diff < 0.01:
-                    st.success("✅")
-                else:
-                    st.error(f"❌ Δ {diff:,.2f}")
-            
-            st.markdown("")
-        
-        # SECCIÓN 5: DELTAS
-        st.markdown("##### DELTAS")
-        
-        # Delta Compensatorios
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("Delta Compensatorios")
-        with col2:
-            st.markdown(f"S/ {visual['delta_compensatorios']:,.2f}")
-        with col3:
-            st.markdown(f"S/ {sistema['delta_compensatorios']:,.2f}")
-            diff = abs(visual['delta_compensatorios'] - sistema['delta_compensatorios'])
-            if diff < 0.01:
-                st.success("✅")
-            else:
-                st.error(f"❌ Δ {diff:,.2f}")
-        
-        # Delta IGV
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("Delta IGV")
-        with col2:
-            st.markdown(f"S/ {visual['delta_igv']:,.2f}")
-        with col3:
-            st.markdown(f"S/ {sistema['delta_igv']:,.2f}")
-            diff = abs(visual['delta_igv'] - sistema['delta_igv'])
-            if diff < 0.01:
-                st.success("✅")
-            else:
-                st.error(f"❌ Δ {diff:,.2f}")
-        
-        # Delta Capital
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("Delta Capital")
-        with col2:
-            st.markdown(f"S/ {visual['delta_capital']:,.2f}")
-        with col3:
-            st.markdown(f"S/ {sistema['delta_capital']:,.2f}")
-            diff = abs(visual['delta_capital'] - sistema['delta_capital'])
-            if diff < 0.01:
-                st.success("✅")
-            else:
-                st.error(f"❌ Δ {diff:,.2f}")
-        
-        st.markdown("")
-        
-        # SECCIÓN 6: SALDO GLOBAL
-        st.markdown("##### SALDO GLOBAL")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Saldo Global Final**")
-        with col2:
-            st.markdown(f"**S/ {visual['saldo_global']:,.2f}**")
-        with col3:
-            st.markdown(f"**S/ {sistema['saldo_global']:,.2f}**")
-            diff = abs(visual['saldo_global'] - sistema['saldo_global'])
-            if diff < 0.01:
-                st.success("✅ Coincide")
-            else:
-                st.error(f"❌ Δ {diff:,.2f}")
-        
-        # Caso Detectado
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Caso Detectado**")
-        with col2:
-            st.markdown(f"**Caso {visual['caso']}**")
-        with col3:
-            st.markdown(f"**Caso {sistema['caso']}**")
-            if visual['caso'] == sistema['caso']:
-                st.success("✅ Coincide")
-            else:
-                st.error("❌ Diferente")
-        
-        st.markdown("")
-        
-        # Resumen de auditoría
-        total_checks = 0
-        total_errors = 0
-        
-        # Contar verificaciones
+        # Resumen
         checks = [
-            abs(visual['capital'] - sistema['capital']) < 0.01,
-            visual['dias_transcurridos'] == sistema['dias_transcurridos'],
-            visual['dias_mora'] == sistema['dias_mora'],
-            abs(visual['interes_devengado'] - sistema['interes_devengado']) < 0.01,
-            abs(visual['igv_devengado'] - sistema['igv_devengado']) < 0.01,
-            abs(visual['interes_moratorio'] - sistema['interes_moratorio']) < 0.01,
-            abs(visual['igv_moratorio'] - sistema['igv_moratorio']) < 0.01,
-            abs(visual['delta_compensatorios'] - sistema['delta_compensatorios']) < 0.01,
-            abs(visual['delta_igv'] - sistema['delta_igv']) < 0.01,
-            abs(visual['delta_capital'] - sistema['delta_capital']) < 0.01,
-            abs(visual['saldo_global'] - sistema['saldo_global']) < 0.01,
-            visual['caso'] == sistema['caso']
+            abs(visual_interes_comp - sistema['interes_devengado']) < 0.01,
+            abs(visual_igv_comp - sistema['igv_devengado']) < 0.01,
+            abs(visual_interes_mora - sistema['interes_moratorio']) < 0.01,
+            abs(visual_igv_mora - sistema['igv_moratorio']) < 0.01
         ]
         
-        total_checks = len(checks)
         total_errors = sum(1 for check in checks if not check)
         
         if total_errors == 0:
-            st.success(f"✅ **AUDITORÍA EXITOSA** - Todos los cálculos coinciden ({total_checks} verificaciones)")
+            st.success("✅ **AUDITORÍA EXITOSA** - Los cálculos con interés compuesto coinciden con el sistema")
         else:
-            st.error(f"❌ **DISCREPANCIAS DETECTADAS** - {total_errors} diferencia(s) encontrada(s) de {total_checks} verificaciones")
+            st.error(f"❌ **DISCREPANCIAS DETECTADAS** - {total_errors} diferencia(s). El sistema probablemente usa interés simple.")
         
         st.markdown("---")
 
@@ -513,4 +431,5 @@ if st.session_state.facturas_seleccionadas:
 # ============================================================================
 
 st.markdown("---")
-st.caption("🧪 Módulo de Testing Liquidación Universal | Mini ERP V2")
+st.caption("🧪 Módulo de Testing Liquidación Universal | Interés Compuesto")
+st.caption("Fórmula: (1 + tasa/30)^días - 1) × capital")
