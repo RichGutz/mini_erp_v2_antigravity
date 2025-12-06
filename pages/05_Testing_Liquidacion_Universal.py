@@ -54,9 +54,23 @@ def calcular_liquidacion_visual(propuesta: dict, ultimo_evento: dict) -> dict:
     tasa_comp = propuesta.get('interes_mensual', 0.02)
     tasa_mora = propuesta.get('interes_moratorio', 0.03)
     
-    fecha_desembolso = datetime.datetime.strptime(propuesta.get('fecha_desembolso_factoring'), '%Y-%m-%d').date()
-    fecha_pago_teorica = datetime.datetime.strptime(propuesta.get('fecha_pago_calculada'), '%Y-%m-%d').date()
-    fecha_pago_real = datetime.datetime.strptime(ultimo_evento.get('fecha_evento'), '%Y-%m-%d').date()
+    # Parsear fechas (pueden venir con o sin hora)
+    def parse_fecha(fecha_str):
+        if not fecha_str:
+            return date.today()
+        # Intentar con timestamp completo primero
+        try:
+            return datetime.datetime.fromisoformat(fecha_str.replace('Z', '+00:00')).date()
+        except:
+            # Intentar solo fecha
+            try:
+                return datetime.datetime.strptime(fecha_str.split('T')[0], '%Y-%m-%d').date()
+            except:
+                return date.today()
+    
+    fecha_desembolso = parse_fecha(propuesta.get('fecha_desembolso_factoring'))
+    fecha_pago_teorica = parse_fecha(propuesta.get('fecha_pago_calculada'))
+    fecha_pago_real = parse_fecha(ultimo_evento.get('fecha_evento'))
     monto_pagado = ultimo_evento.get('monto_recibido', 0.0)
     
     # Calcular días
