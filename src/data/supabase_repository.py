@@ -144,6 +144,20 @@ def get_active_proposals_for_approval() -> List[Proposal]:
         print(f"[ERROR en get_active_proposals_for_approval]: {e}")
         return []
 
+def get_approved_proposals_for_disbursement() -> List[Proposal]:
+    """Fetches all proposals in APROBADO status for disbursement module.
+    
+    Returns:
+        List of proposals pending disbursement
+    """
+    supabase = get_supabase_client()
+    try:
+        response = supabase.table('propuestas').select('*').eq('estado', 'APROBADO').order('created_at', desc=True).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"[ERROR en get_approved_proposals_for_disbursement]: {e}")
+        return []
+
 def get_disbursed_proposals_by_lote(lote_id: str) -> List[Proposal]:
     """Retrieves a list of disbursed or in-liquidation proposals for a specific batch ID."""
     supabase = get_supabase_client()
