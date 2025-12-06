@@ -98,14 +98,15 @@ def mostrar_busqueda():
             st.warning("Por favor, introduce el Identificador de Lote.")
             st.session_state.lote_encontrado = []
         else:
-            with st.spinner("Buscando facturas activas en el lote..."):
-                resultados = db.get_proposals_by_lote(lote_id_sanitized)
+            with st.spinner("Buscando facturas aprobadas en el lote..."):
+                # Filtrar solo facturas APROBADAS (ya no ACTIVO)
+                resultados = db.get_proposals_by_lote(lote_id_sanitized, estado_filter='APROBADO')
                 st.session_state.lote_encontrado = resultados
                 if resultados:
-                    st.success(f"Se encontraron {len(resultados)} facturas activas.")
+                    st.success(f"Se encontraron {len(resultados)} facturas aprobadas.")
                     st.session_state.facturas_seleccionadas = {f['proposal_id']: True for f in resultados}
                 else:
-                    st.warning("No se encontraron facturas activas para el identificador de lote proporcionado.")
+                    st.warning("No se encontraron facturas aprobadas para el identificador de lote proporcionado.")
 
     if st.session_state.lote_encontrado:
         st.markdown("---")

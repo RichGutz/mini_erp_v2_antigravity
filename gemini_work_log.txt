@@ -564,3 +564,103 @@ IMPACTO:
 ESTADO: ✅ COMPLETADO
 TESTING: ✅ VERIFICADO (3 facturas del lote)
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-06 15:47:00
+SESIÓN: Implementación del Módulo de Aprobación
+================================================================================
+
+RESUMEN DE LA SESIÓN:
+---------------------
+Implementación completa de un nuevo módulo de aprobación que permite a gerencia
+revisar y aprobar operaciones antes de que pasen a desembolso, agregando un
+nuevo paso en el flujo de trabajo del sistema.
+
+REQUERIMIENTO DEL USUARIO:
+---------------------------
+Agregar un módulo de aprobación entre Originación y Desembolso:
+- Módulo llamado "Aprobación"
+- Mostrar automáticamente todas las facturas en estado ACTIVO
+- Checkbox para aprobar cada factura
+- Al aprobar, cambiar estado a APROBADO
+- Módulo de Desembolso debe filtrar solo facturas APROBADAS
+- Usar el mismo look & feel de los demás módulos
+
+FLUJO DE ESTADOS ACTUALIZADO:
+------------------------------
+ANTES:
+  Originación → ACTIVO → Desembolso → DESEMBOLSADO → Liquidación
+
+AHORA:
+  Originación → ACTIVO → Aprobación → APROBADO → Desembolso → DESEMBOLSADO → Liquidación
+
+ARCHIVOS CREADOS:
+-----------------
+
+1. pages/1.5_Aprobacion.py (NUEVO)
+   * Módulo completo de aprobación
+   * Header con logos (igual que otros módulos)
+   * Carga automática de facturas ACTIVAS
+   * Tabla con checkboxes de aprobación
+   * Columnas: Checkbox, Factura, Emisor, Aceptante, Monto, F. Emisión, F. Desembolso
+   * Botón "Aprobar Facturas Seleccionadas"
+   * Actualización de estados a APROBADO
+   * Información del módulo en expander
+
+ARCHIVOS MODIFICADOS:
+---------------------
+
+1. src/data/supabase_repository.py
+   * Línea 116: Modificada función get_proposals_by_lote()
+     - Agregado parámetro opcional estado_filter (default: 'APROBADO')
+     - Permite filtrar por cualquier estado
+   * Línea 128: Agregada función get_active_proposals_for_approval()
+     - Obtiene todas las propuestas en estado ACTIVO
+     - Ordenadas por fecha de creación (más recientes primero)
+     - Para uso exclusivo del módulo de aprobación
+
+2. pages/02_Desembolso.py
+   * Línea 102: Modificada llamada a get_proposals_by_lote()
+     - Ahora filtra por estado_filter='APROBADO' en lugar de ACTIVO
+   * Líneas 101-108: Actualizados mensajes de usuario
+     - "Buscando facturas aprobadas..." (antes: activas)
+     - "Se encontraron X facturas aprobadas" (antes: activas)
+
+CARACTERÍSTICAS IMPLEMENTADAS:
+-------------------------------
+✅ Carga automática de facturas ACTIVAS al abrir el módulo
+✅ Tabla responsive con 7 columnas de información
+✅ Checkboxes individuales para seleccionar facturas
+✅ Botón de recarga manual de lista
+✅ Validación de selección (warning si no hay selección)
+✅ Procesamiento batch de aprobaciones
+✅ Mensajes de éxito/error por factura
+✅ Contador de aprobaciones exitosas y errores
+✅ Recarga automática después de aprobar
+✅ Sección informativa sobre el flujo de trabajo
+
+IMPACTO EN EL SISTEMA:
+----------------------
+✅ Nuevo paso de aprobación en el flujo de trabajo
+✅ Separación clara entre creación (ACTIVO) y aprobación (APROBADO)
+✅ Módulo de Desembolso ahora solo procesa facturas aprobadas
+✅ Mayor control y trazabilidad en el proceso
+✅ Preparado para futura integración con API de aprobaciones
+
+NOTAS TÉCNICAS:
+---------------
+- El módulo se nombró 1.5_Aprobacion.py para aparecer entre Originación (01) y Desembolso (02)
+- Se mantiene compatibilidad con código existente mediante parámetro opcional
+- La función get_proposals_by_lote() tiene default 'APROBADO' para no romper código existente
+- El módulo usa session_state para manejar la lista de facturas y checkboxes
+
+PRÓXIMOS PASOS (FUTURO):
+-------------------------
+- Integración con API de aprobaciones automáticas
+- Control de permisos por rol de usuario
+- Historial de aprobaciones
+- Notificaciones de facturas pendientes
+
+ESTADO: ✅ COMPLETADO
+PENDIENTE: ⏳ Testing manual del flujo completo por usuario
+================================================================================

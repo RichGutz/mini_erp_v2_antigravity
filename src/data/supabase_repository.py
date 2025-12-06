@@ -113,16 +113,35 @@ def get_signatory_data_by_ruc(ruc: str) -> Optional[Dict[str, Any]]:
 
 # --- Functions for Liquidation & Disbursement Modules ---
 
-def get_proposals_by_lote(lote_id: str) -> List[Proposal]:
-    """Retrieves a list of active proposals for a specific batch ID."""
+def get_proposals_by_lote(lote_id: str, estado_filter: str = 'APROBADO') -> List[Proposal]:
+    """Retrieves a list of proposals for a specific batch ID filtered by status.
+    
+    Args:
+        lote_id: Batch identifier
+        estado_filter: Status to filter by (default: 'APROBADO' for disbursement)
+    """
     supabase = get_supabase_client()
     try:
         response = supabase.table('propuestas').select(
             'proposal_id, emisor_nombre, aceptante_nombre, monto_neto_factura, moneda_factura, anexo_number, contract_number, recalculate_result_json, estado'
-        ).eq('identificador_lote', lote_id).eq('estado', 'ACTIVO').execute()
+        ).eq('identificador_lote', lote_id).eq('estado', estado_filter).execute()
         return response.data if response.data else []
     except Exception as e:
         print(f"[ERROR en get_proposals_by_lote]: {e}")
+        return []
+
+def get_active_proposals_for_approval() -> List[Proposal]:
+    """Fetches all proposals in ACTIVO status for approval module.
+    
+    Returns:
+        List of proposals pending approval, ordered by creation date (newest first)
+    """
+    supabase = get_supabase_client()
+    try:
+        response = supabase.table('propuestas').select('*').eq('estado', 'ACTIVO').order('created_at', desc=True).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"[ERROR en get_active_proposals_for_approval]: {e}")
         return []
 
 def get_disbursed_proposals_by_lote(lote_id: str) -> List[Proposal]:
