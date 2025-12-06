@@ -15,8 +15,8 @@ from src.utils.pdf_generators import generate_liquidacion_universal_pdf
 st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
-    page_title="Módulo de Liquidación Universal INANDES",
-    page_icon="🌍"
+    page_title="Módulo de Liquidación INANDES",
+    page_icon="💰"
 )
 
 # --- Session State Initialization ---
@@ -293,7 +293,7 @@ col1, col2, col3 = st.columns([0.25, 0.5, 0.25])
 with col1:
     st.image(os.path.join(project_root, "static", "logo_geek.png"), width=200)
 with col2:
-    st.markdown("<h2 style='text-align: center;'>Módulo de Liquidación Universal</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>Módulo de Liquidación</h2>", unsafe_allow_html=True)
 with col3:
     empty_col, logo_col = st.columns([2, 1])
     with logo_col:
@@ -301,7 +301,7 @@ with col3:
 
 # --- UI Views ---
 def mostrar_busqueda_universal():
-    st.header("Paso 1: Buscar Lote a Liquidar (Universal)")
+    st.header("Paso 1: Buscar Lote a Liquidar")
     with st.form(key="search_lote_form_universal"):
         lote_id_input = st.text_input("Identificador de Lote", help="Pega aquí el identificador único del lote que deseas liquidar.")
         submit_button = st.form_submit_button(label="Buscar Lote")
@@ -328,7 +328,7 @@ def mostrar_busqueda_universal():
                     st.warning("No se encontraron facturas para el identificador de lote proporcionado.")
 
 def mostrar_liquidacion_universal():
-    st.header("Paso 2: Configurar y Ejecutar Liquidación Universal")
+    st.header("Paso 2: Configurar y Ejecutar Liquidación")
     if st.button("<- Volver a la búsqueda"):
         st.session_state.vista_actual_universal = 'busqueda'
         st.session_state.lote_encontrado_universal = []
@@ -497,7 +497,7 @@ def mostrar_liquidacion_universal():
 
     if st.session_state.resultados_liquidacion_universal:
         st.markdown("---")
-        st.header("Paso 3: Resultados de la Liquidación Universal")
+        st.header("Paso 3: Resultados de la Liquidación")
 
         for resultado in st.session_state.resultados_liquidacion_universal:
             with st.container(border=True):
@@ -595,8 +595,7 @@ def mostrar_liquidacion_universal():
                         st.error(f"Ocurrió un error al guardar en la base de datos: {e}")
 
 # --- Main App Logic ---
-st.title("🌍 Módulo de Liquidación Universal")
-st.markdown("Esta es la nueva versión del sistema de liquidación que utiliza el motor de cálculo corregido y la lógica de `backdoor`.")
+st.title("💰 Módulo de Liquidación")
 
 if st.session_state.vista_actual_universal == 'busqueda':
     mostrar_busqueda_universal()
