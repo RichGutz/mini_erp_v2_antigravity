@@ -105,6 +105,7 @@ def generar_tabla_devengamiento(
             'Día': dia_num,
             'Fecha': fecha_actual.strftime('%Y-%m-%d'),
             'Int.Comp Acum': round(interes_comp_acum, 2),
+            'IGV Comp': round(interes_comp_acum * 0.18, 2),
             'Int.Mínimo (15d)': round(interes_minimo, 2),
             'Int.Devengado': round(interes_devengado, 2),
             'IGV Devengado': round(igv_devengado, 2),
@@ -343,7 +344,7 @@ if st.session_state.facturas_seleccionadas:
                 return [''] * len(row)
         
         # Mostrar solo columnas relevantes
-        df_display = df_devengamiento[['Día', 'Fecha', 'Int.Comp Acum', 'IGV Comp', 'Int.Mora Acum', 'IGV Mora']].copy()
+        df_display = df_devengamiento[['Día', 'Fecha', 'Int.Comp Acum', 'IGV Comp', 'Int.Mínimo (15d)', 'Int.Devengado', 'IGV Devengado', 'Int.Mora Acum', 'IGV Mora']].copy()
         
         st.dataframe(
             df_devengamiento.style.apply(aplicar_colores, axis=1),
