@@ -142,9 +142,35 @@ def mostrar_formulario_crear():
         
         # Datos bancarios
         st.subheader("Datos Bancarios")
+        
+        # Lista de bancos de Perú
+        bancos_peru = [
+            "",  # Opción vacía
+            "Banco de Crédito del Perú (BCP)",
+            "BBVA Perú",
+            "Scotiabank Perú",
+            "Interbank",
+            "Banco Pichincha",
+            "Banco de Comercio",
+            "Banco Interamericano de Finanzas (BanBif)",
+            "Banco GNB Perú",
+            "Banco Falabella",
+            "Banco Ripley",
+            "Banco Santander Perú",
+            "Citibank Perú",
+            "Banco Azteca",
+            "Banco Cencosud (Scotiabank)",
+            "ICBC Peru Bank",
+            "Mibanco",
+            "Banco de la Nación",
+            "Banco Agropecuario (Agrobanco)",
+            "Caja Municipal de Ahorro y Crédito",
+            "Otro"
+        ]
+        
         col1, col2, col3 = st.columns(3)
         with col1:
-            institucion_financiera = st.text_input("Institución Financiera")
+            institucion_financiera = st.selectbox("Institución Financiera", bancos_peru)
         with col2:
             numero_cuenta = st.text_input("Número de Cuenta")
         with col3:
@@ -235,9 +261,42 @@ def mostrar_formulario_editar():
         
         # Datos bancarios
         st.subheader("Datos Bancarios")
+        
+        # Lista de bancos de Perú
+        bancos_peru = [
+            "",  # Opción vacía
+            "Banco de Crédito del Perú (BCP)",
+            "BBVA Perú",
+            "Scotiabank Perú",
+            "Interbank",
+            "Banco Pichincha",
+            "Banco de Comercio",
+            "Banco Interamericano de Finanzas (BanBif)",
+            "Banco GNB Perú",
+            "Banco Falabella",
+            "Banco Ripley",
+            "Banco Santander Perú",
+            "Citibank Perú",
+            "Banco Azteca",
+            "Banco Cencosud (Scotiabank)",
+            "ICBC Peru Bank",
+            "Mibanco",
+            "Banco de la Nación",
+            "Banco Agropecuario (Agrobanco)",
+            "Caja Municipal de Ahorro y Crédito",
+            "Otro"
+        ]
+        
+        # Obtener valor actual y encontrar índice
+        valor_actual = registro.get('Institucion Financiera', '') or ''
+        try:
+            index_banco = bancos_peru.index(valor_actual) if valor_actual in bancos_peru else 0
+        except ValueError:
+            index_banco = 0
+        
         col1, col2, col3 = st.columns(3)
         with col1:
-            institucion_financiera = st.text_input("Institución Financiera", value=registro.get('Institucion Financiera', '') or '')
+            institucion_financiera = st.selectbox("Institución Financiera", bancos_peru, index=index_banco)
         with col2:
             numero_cuenta = st.text_input("Número de Cuenta", value=registro.get('Numero de Cuenta', '') or '')
         with col3:
