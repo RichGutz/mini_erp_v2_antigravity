@@ -595,7 +595,6 @@ def mostrar_liquidacion_universal():
                         st.error(f"Ocurrió un error al guardar en la base de datos: {e}")
 
 # --- Main App Logic ---
-st.title("💰 Módulo de Liquidación")
 
 if st.session_state.vista_actual_universal == 'busqueda':
     mostrar_busqueda_universal()
