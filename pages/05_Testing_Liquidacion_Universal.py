@@ -55,7 +55,8 @@ def generar_tabla_devengamiento(
     tasa_mora: float,
     fecha_desembolso: date,
     fecha_vencimiento: date,
-    fecha_pago_real: date
+    fecha_pago_real: date,
+    dias_minimos: int = 15
 ) -> pd.DataFrame:
     """
     Genera tabla día a día de devengamiento con interés compuesto
@@ -64,6 +65,10 @@ def generar_tabla_devengamiento(
     fecha_inicio = fecha_desembolso
     fecha_fin = max(fecha_pago_real, fecha_vencimiento) + timedelta(days=5)
     
+    # Calcular intereses mínimos (constante para todos los días)
+    interes_minimo = calcular_interes_compuesto_diario(capital, tasa_comp, dias_minimos)
+    igv_minimo = interes_minimo * 0.18
+    
     datos = []
     fecha_actual = fecha_inicio
     dia_num = 0
@@ -71,8 +76,12 @@ def generar_tabla_devengamiento(
     while fecha_actual <= fecha_fin:
         dias_desde_desembolso = (fecha_actual - fecha_desembolso).days
         
-        # Calcular intereses compensatorios acumulados
+        # Calcular intereses compensatorios acumulados (con días reales)
         interes_comp_acum = calcular_interes_compuesto_diario(capital, tasa_comp, dias_desde_desembolso)
+        
+        # Intereses devengados = MAX(reales, mínimos)
+        interes_devengado = max(interes_comp_acum, interes_minimo)
+        igv_devengado = interes_devengado * 0.18
         
         # Calcular intereses moratorios acumulados (solo después de vencimiento)
         if fecha_actual > fecha_vencimiento:
@@ -96,7 +105,9 @@ def generar_tabla_devengamiento(
             'Día': dia_num,
             'Fecha': fecha_actual.strftime('%Y-%m-%d'),
             'Int.Comp Acum': round(interes_comp_acum, 2),
-            'IGV Comp': round(interes_comp_acum * 0.18, 2),
+            'Int.Mínimo (15d)': round(interes_minimo, 2),
+            'Int.Devengado': round(interes_devengado, 2),
+            'IGV Devengado': round(igv_devengado, 2),
             'Int.Mora Acum': round(interes_mora_acum, 2),
             'IGV Mora': round(interes_mora_acum * 0.18, 2),
             'Zona': zona,
@@ -279,24 +290,21 @@ if st.session_state.facturas_seleccionadas:
         fila_pago = df_devengamiento[df_devengamiento['Es Pago Real'] == True]
         if not fila_pago.empty:
             visual_interes_comp = fila_pago.iloc[0]['Int.Comp Acum']
-            visual_igv_comp = fila_pago.iloc[0]['IGV Comp']
+            visual_interes_devengado = fila_pago.iloc[0]['Int.Devengado']
+            visual_igv_devengado = fila_pago.iloc[0]['IGV Devengado']
             visual_interes_mora = fila_pago.iloc[0]['Int.Mora Acum']
             visual_igv_mora = fila_pago.iloc[0]['IGV Mora']
+            visual_interes_minimo = fila_pago.iloc[0]['Int.Mínimo (15d)']
         else:
             visual_interes_comp = 0
-            visual_igv_comp = 0
+            visual_interes_devengado = 0
+            visual_igv_devengado = 0
             visual_interes_mora = 0
             visual_igv_mora = 0
+            visual_interes_minimo = 0
         
-        # Calcular intereses mínimos (15 días)
-        dias_minimos = 15
-        interes_minimo = calcular_interes_compuesto_diario(capital, tasa_comp, dias_minimos)
-        igv_minimo = interes_minimo * 0.18
-        
-        # Intereses devengados finales = MAX(reales, mínimos)
+        # Días reales
         dias_reales = (fecha_pago_real - fecha_desembolso).days
-        interes_devengado_final = max(visual_interes_comp, interes_minimo)
-        igv_devengado_final = interes_devengado_final * 0.18
         
         # Mostrar header
         st.subheader(f"📄 {propuesta.get('numero_factura', 'N/A')} - {propuesta.get('emisor_nombre', 'N/A')}")
@@ -399,9 +407,9 @@ if st.session_state.facturas_seleccionadas:
         # Interés mínimo (15 días)
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown(f"**Int. Comp Mínimo ({dias_minimos} días)**")
+            st.markdown(f"**Int. Comp Mínimo (15 días)**")
         with col2:
-            st.markdown(f"**S/ {interes_minimo:,.2f}**")
+            st.markdown(f"**S/ {visual_interes_minimo:,.2f}**")
         with col3:
             st.markdown("-")
         
@@ -410,14 +418,14 @@ if st.session_state.facturas_seleccionadas:
         with col1:
             st.markdown(f"**Int. Devengado Final (MAX)**")
         with col2:
-            st.markdown(f"**S/ {interes_devengado_final:,.2f}**")
-            if interes_devengado_final == interes_minimo:
+            st.markdown(f"**S/ {visual_interes_devengado:,.2f}**")
+            if visual_interes_devengado == visual_interes_minimo:
                 st.caption("(Se aplicó mínimo)")
             else:
                 st.caption("(Se usó real)")
         with col3:
             st.markdown(f"S/ {sistema['interes_devengado']:,.2f}")
-            diff = abs(interes_devengado_final - sistema['interes_devengado'])
+            diff = abs(visual_interes_devengado - sistema['interes_devengado'])
             if diff < 0.01:
                 st.success("✅")
             else:
@@ -428,10 +436,10 @@ if st.session_state.facturas_seleccionadas:
         with col1:
             st.markdown("IGV Compensatorio")
         with col2:
-            st.markdown(f"S/ {igv_devengado_final:,.2f}")
+            st.markdown(f"S/ {visual_igv_devengado:,.2f}")
         with col3:
             st.markdown(f"S/ {sistema['igv_devengado']:,.2f}")
-            diff = abs(igv_devengado_final - sistema['igv_devengado'])
+            diff = abs(visual_igv_devengado - sistema['igv_devengado'])
             if diff < 0.01:
                 st.success("✅")
             else:
