@@ -330,8 +330,13 @@ if st.session_state.facturas_seleccionadas:
                     comparacion_data['Estado'].append('✅ Coincide')
                 else:
                     comparacion_data['Estado'].append('❌ Diferente')
-            elif concepto in ['Días Transcurridos', 'Días de Mora']:
-                if visual[concepto.lower().replace(' ', '_')] == sistema[concepto.lower().replace(' ', '_')]:
+            elif concepto == 'Días Transcurridos':
+                if visual['dias_transcurridos'] == sistema['dias_transcurridos']:
+                    comparacion_data['Estado'].append('✅')
+                else:
+                    comparacion_data['Estado'].append('❌')
+            elif concepto == 'Días de Mora':
+                if visual['dias_mora'] == sistema['dias_mora']:
                     comparacion_data['Estado'].append('✅')
                 else:
                     comparacion_data['Estado'].append('❌')
