@@ -61,7 +61,7 @@ prompts/PROMPTS_APROBADOS.md
 ~$*.xlsm
 
 # Test directories
-pruebas/
+# pruebas/  # Temporalmente deshabilitado para debugging
 # testing/  # Temporalmente deshabilitado
 
 # Secrets
