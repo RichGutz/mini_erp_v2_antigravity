@@ -52,7 +52,7 @@ with col3:
 # Vistas
 def mostrar_busqueda():
     """Vista principal: búsqueda por RUC"""
-    st.header("Búsqueda de Emisor/Deudor")
+    st.header("Búsqueda de Emisor/Aceptante")
     
     col1, col2 = st.columns([3, 1])
     with col1:
@@ -96,7 +96,7 @@ def mostrar_busqueda():
 
 def mostrar_formulario_crear():
     """Vista de creación de nuevo registro con TODOS los campos"""
-    st.header("Crear Nuevo Emisor/Deudor")
+    st.header("Crear Nuevo Emisor/Aceptante")
     
     if st.button("← Volver a la búsqueda"):
         st.session_state.vista_registro = 'busqueda'
@@ -214,7 +214,7 @@ def mostrar_formulario_crear():
 
 def mostrar_formulario_editar():
     """Vista de edición mostrando TODOS los campos"""
-    st.header("Editar Emisor/Deudor")
+    st.header("Editar Emisor/Aceptante")
     
     if st.button("← Volver a la búsqueda"):
         st.session_state.vista_registro = 'busqueda'
