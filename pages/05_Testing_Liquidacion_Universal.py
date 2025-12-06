@@ -163,6 +163,22 @@ def parse_fecha(fecha_str):
             return date.today()
 
 
+def extraer_numero_correlativo(proposal_id: str) -> int:
+    """
+    Extrae el número correlativo del proposal_id.
+    Formato esperado: EMISOR-SERIE-NUMERO-TIMESTAMP
+    Ejemplo: TRANS_STAR_HERMANOS_SAC-E001-1104-20251205164005
+    Retorna: 1104
+    """
+    try:
+        parts = proposal_id.split('-')
+        if len(parts) >= 3:
+            return int(parts[2])
+        return 0
+    except (IndexError, ValueError, AttributeError):
+        return 0
+
+
 # ============================================================================
 # INICIALIZACIÓN DE SESSION STATE
 # ============================================================================
@@ -197,7 +213,9 @@ with col2:
                 propuestas = get_liquidated_proposals_by_lote(lote_id)
                 
                 if propuestas:
-                    st.session_state.facturas_lote = propuestas
+                    # Ordenar facturas por número correlativo ascendente
+                    propuestas_ordenadas = sorted(propuestas, key=lambda x: extraer_numero_correlativo(x.get('proposal_id', '')))
+                    st.session_state.facturas_lote = propuestas_ordenadas
                     st.session_state.facturas_seleccionadas = []
                     st.success(f"✅ Se encontraron {len(propuestas)} facturas liquidadas")
                     st.rerun()
