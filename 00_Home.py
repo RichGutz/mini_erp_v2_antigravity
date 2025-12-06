@@ -190,33 +190,45 @@ else:
     # --- MODULE NAVIGATION ---
     st.subheader("Flujo de Módulos del Sistema", divider='blue')
 
-    # Create a 3-column layout
-    cols = st.columns(3)
+    # Define the 3x3 grid layout
+    # Row 1: Registro, Originación, Aprobación
+    # Row 2: Desembolso, Liquidación, Reporte
+    # Row 3: Empty, Calculadora Factoring, Empty
+    
+    grid_layout = [
+        ["Registro", "Originación", "Aprobación"],
+        ["Desembolso", "Liquidación", "Reporte"],
+        [None, "Calculadora Factoring", None]
+    ]
 
-    for i, module_name in enumerate(DISPLAY_ORDER):
-        details = MODULES[module_name]
-        is_prod = details['status'] == "✅ En Producción"
-        col = cols[i % 3]
-
-        with col:
-            with st.container(border=True):
-                # Set title color based on status
-                title_color = "green" if is_prod else "red"
-                st.markdown(f'<h4 style="color:{title_color};">{module_name}</h4>', unsafe_allow_html=True)
-                
-                st.markdown("&nbsp;") # Spacer for vertical alignment
-                
-                # --- NEW BUTTON LOGIC ---
-                if details["page"]:
-                    # Use a standard 'if' block to handle navigation instead of on_click
-                    if st.button(f"Ir a {module_name}", help=details["help"], key=f"btn_{module_name}", use_container_width=True):
-                        switch_page(details['page'])
+    for row in grid_layout:
+        cols = st.columns(3)
+        for i, module_name in enumerate(row):
+            with cols[i]:
+                if module_name is None:
+                    # Empty cell
+                    st.write("")
                 else:
-                    st.button("Próximamente", 
-                              disabled=True, 
-                              help=details["help"],
-                              key=f"btn_{module_name}",
-                              use_container_width=True)
+                    details = MODULES[module_name]
+                    is_prod = details['status'] == "✅ En Producción"
+                    
+                    with st.container(border=True):
+                        # Set title color based on status
+                        title_color = "green" if is_prod else "red"
+                        st.markdown(f'<h4 style="color:{title_color};">{module_name}</h4>', unsafe_allow_html=True)
+                        
+                        st.markdown("&nbsp;") # Spacer for vertical alignment
+                        
+                        # Button logic
+                        if details["page"]:
+                            if st.button(f"Ir a {module_name}", help=details["help"], key=f"btn_{module_name}", use_container_width=True):
+                                switch_page(details['page'])
+                        else:
+                            st.button("Próximamente", 
+                                      disabled=True, 
+                                      help=details["help"],
+                                      key=f"btn_{module_name}",
+                                      use_container_width=True)
 
     # --- INTERACTIVE FLOWCHART ---
     st.markdown("&nbsp;")
