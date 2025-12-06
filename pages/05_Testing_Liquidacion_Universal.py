@@ -9,11 +9,19 @@ import datetime
 from datetime import date, timedelta
 import sys
 import os
+import json
 
 # Agregar el directorio raíz al path para imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.core.factoring_system import SistemaFactoringCompleto
+from src.data.supabase_repository import (
+    get_proposal_details_by_id,
+    get_liquidacion_resumen,
+    get_liquidacion_eventos,
+    get_disbursed_proposals_by_lote
+)
+from src.data.supabase_client import get_supabase_client
 
 # ============================================================================
 # CONFIGURACIÓN DE PÁGINA
@@ -268,6 +276,58 @@ def aplicar_estilos_tabla(df: pd.DataFrame) -> pd.DataFrame:
     return df.style.apply(colorear_fila, axis=1)
 
 
+def cargar_datos_desde_liquidacion(proposal_id: str) -> dict:
+    """
+    Carga todos los datos de una liquidación existente desde Supabase
+    """
+    try:
+        # Obtener detalles de la propuesta
+        propuesta = get_proposal_details_by_id(proposal_id)
+        if not propuesta:
+            return None
+        
+        # Obtener eventos de liquidación
+        eventos = get_liquidacion_eventos(proposal_id)
+        if not eventos:
+            return None
+        
+        # Parsear recalculate_result_json
+        recalc_data = json.loads(propuesta.get('recalculate_result_json', '{}'))
+        capital = recalc_data.get('calculo_con_tasa_encontrada', {}).get('capital', 0.0)
+        interes_original = recalc_data.get('desglose_final_detallado', {}).get('interes', {}).get('monto', 0.0)
+        igv_interes_original = recalc_data.get('calculo_con_tasa_encontrada', {}).get('igv_interes', 0.0)
+        
+        # Obtener el último evento de liquidación
+        ultimo_evento = eventos[-1] if eventos else None
+        if not ultimo_evento:
+            return None
+        
+        # Parsear resultado del evento
+        resultado_evento = json.loads(ultimo_evento.get('resultado_json', '{}'))
+        
+        # Extraer datos
+        datos = {
+            'capital': capital,
+            'tasa_comp': propuesta.get('interes_mensual', 0.02),
+            'tasa_mora': propuesta.get('interes_moratorio', 0.03),
+            'fecha_desembolso': datetime.datetime.strptime(propuesta.get('fecha_desembolso_factoring'), '%Y-%m-%d').date() if propuesta.get('fecha_desembolso_factoring') else date.today(),
+            'fecha_pago_teorica': datetime.datetime.strptime(propuesta.get('fecha_pago_calculada'), '%Y-%m-%d').date() if propuesta.get('fecha_pago_calculada') else date.today(),
+            'intereses_cobrados': interes_original,
+            'igv_cobrado': igv_interes_original,
+            'fecha_pago_real': datetime.datetime.strptime(ultimo_evento.get('fecha_evento'), '%Y-%m-%d').date() if ultimo_evento.get('fecha_evento') else date.today(),
+            'monto_pagado': ultimo_evento.get('monto_recibido', 0.0),
+            'proposal_id': proposal_id,
+            'emisor_nombre': propuesta.get('emisor_nombre', 'N/A'),
+            'numero_factura': propuesta.get('numero_factura', 'N/A')
+        }
+        
+        return datos
+        
+    except Exception as e:
+        st.error(f"Error al cargar datos: {str(e)}")
+        return None
+
+
 # ============================================================================
 # INICIALIZACIÓN DE SESSION STATE
 # ============================================================================
@@ -302,6 +362,105 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 with tab1:
     st.header("Parámetros de la Liquidación")
+    
+    # ========================================================================
+    # SECCIÓN: CARGAR DESDE SUPABASE
+    # ========================================================================
+    
+    with st.expander("🔍 Cargar datos desde una liquidación existente", expanded=False):
+        st.markdown("**Opción 1: Cargar por ID de Propuesta**")
+        
+        col_a, col_b = st.columns([3, 1])
+        
+        with col_a:
+            proposal_id_input = st.text_input(
+                "ID de Propuesta (proposal_id)",
+                placeholder="Ejemplo: EMPRESA_SA-F001-20251206...",
+                key="proposal_id_input"
+            )
+        
+        with col_b:
+            st.markdown("")  # Espaciado
+            st.markdown("")  # Espaciado
+            if st.button("📥 Cargar", type="primary", key="btn_cargar_propuesta"):
+                if proposal_id_input:
+                    with st.spinner("Cargando datos desde Supabase..."):
+                        datos_cargados = cargar_datos_desde_liquidacion(proposal_id_input)
+                        
+                        if datos_cargados:
+                            # Actualizar session state con los datos cargados
+                            st.session_state.testing_inputs.update(datos_cargados)
+                            st.success(f"✅ Datos cargados: {datos_cargados.get('emisor_nombre')} - {datos_cargados.get('numero_factura')}")
+                            st.rerun()
+                        else:
+                            st.error("❌ No se encontraron datos para este ID de propuesta o no tiene liquidaciones.")
+                else:
+                    st.warning("⚠️ Ingresa un ID de propuesta válido")
+        
+        st.markdown("---")
+        st.markdown("**Opción 2: Cargar por Lote**")
+        
+        col_c, col_d = st.columns([3, 1])
+        
+        with col_c:
+            lote_id_input = st.text_input(
+                "ID de Lote",
+                placeholder="Ejemplo: LOTE-20251206-001",
+                key="lote_id_input"
+            )
+        
+        with col_d:
+            st.markdown("")  # Espaciado
+            st.markdown("")  # Espaciado
+            if st.button("🔍 Buscar Lote", type="secondary", key="btn_buscar_lote"):
+                if lote_id_input:
+                    with st.spinner("Buscando propuestas en el lote..."):
+                        propuestas_lote = get_disbursed_proposals_by_lote(lote_id_input)
+                        
+                        if propuestas_lote:
+                            st.session_state.propuestas_lote = propuestas_lote
+                            st.success(f"✅ Se encontraron {len(propuestas_lote)} propuestas en el lote")
+                        else:
+                            st.warning("⚠️ No se encontraron propuestas desembolsadas en este lote")
+                            st.session_state.propuestas_lote = []
+                else:
+                    st.warning("⚠️ Ingresa un ID de lote válido")
+        
+        # Mostrar selector de propuestas si hay resultados
+        if 'propuestas_lote' in st.session_state and st.session_state.propuestas_lote:
+            st.markdown("**Selecciona una propuesta del lote:**")
+            
+            opciones = [
+                f"{p['emisor_nombre']} - {p.get('numero_factura', 'N/A')} ({p['proposal_id']})"
+                for p in st.session_state.propuestas_lote
+            ]
+            
+            seleccion = st.selectbox(
+                "Propuestas disponibles",
+                options=opciones,
+                key="selector_propuesta_lote"
+            )
+            
+            if st.button("📥 Cargar Propuesta Seleccionada", type="primary", key="btn_cargar_desde_lote"):
+                # Extraer proposal_id de la selección
+                idx = opciones.index(seleccion)
+                proposal_id_seleccionado = st.session_state.propuestas_lote[idx]['proposal_id']
+                
+                with st.spinner("Cargando datos..."):
+                    datos_cargados = cargar_datos_desde_liquidacion(proposal_id_seleccionado)
+                    
+                    if datos_cargados:
+                        st.session_state.testing_inputs.update(datos_cargados)
+                        st.success(f"✅ Datos cargados correctamente")
+                        st.rerun()
+                    else:
+                        st.error("❌ Error al cargar los datos de esta propuesta")
+    
+    st.markdown("---")
+    
+    # ========================================================================
+    # SECCIÓN: INPUTS MANUALES
+    # ========================================================================
     
     col1, col2 = st.columns(2)
     
