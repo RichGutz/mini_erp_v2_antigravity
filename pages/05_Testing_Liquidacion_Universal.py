@@ -415,20 +415,15 @@ with tab1:
             st.markdown("")  # Espaciado
             if st.button("🔍 Buscar Lote", type="secondary", key="btn_buscar_lote"):
                 if lote_id_input:
-                    with st.spinner("Buscando propuestas en el lote..."):
-                        # Buscar en propuestas desembolsadas
-                        propuestas_desembolsadas = get_disbursed_proposals_by_lote(lote_id_input)
-                        # Buscar en propuestas liquidadas
-                        propuestas_liquidadas = get_liquidated_proposals_by_lote(lote_id_input)
-                        
-                        # Combinar ambas listas
-                        propuestas_lote = propuestas_desembolsadas + propuestas_liquidadas
+                    with st.spinner("Buscando propuestas liquidadas en el lote..."):
+                        # Solo buscar propuestas que tengan liquidaciones (EN PROCESO o LIQUIDADA)
+                        propuestas_lote = get_liquidated_proposals_by_lote(lote_id_input)
                         
                         if propuestas_lote:
                             st.session_state.propuestas_lote = propuestas_lote
-                            st.success(f"✅ Se encontraron {len(propuestas_lote)} propuestas en el lote ({len(propuestas_desembolsadas)} desembolsadas, {len(propuestas_liquidadas)} liquidadas)")
+                            st.success(f"✅ Se encontraron {len(propuestas_lote)} propuestas con liquidaciones en el lote")
                         else:
-                            st.warning("⚠️ No se encontraron propuestas en este lote")
+                            st.warning("⚠️ No se encontraron propuestas liquidadas en este lote. Solo se pueden auditar propuestas que ya fueron liquidadas.")
                             st.session_state.propuestas_lote = []
                 else:
                     st.warning("⚠️ Ingresa un ID de lote válido")

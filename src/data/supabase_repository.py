@@ -138,12 +138,14 @@ def get_disbursed_proposals_by_lote(lote_id: str) -> List[Proposal]:
         return []
 
 def get_liquidated_proposals_by_lote(lote_id: str) -> List[Proposal]:
-    """Retrieves a list of liquidated proposals for a specific batch ID."""
+    """Retrieves proposals with liquidation data (EN PROCESO or LIQUIDADA states)."""
     supabase = get_supabase_client()
     try:
+        # Buscar propuestas que contengan "EN PROCESO" o "LIQUIDADA" en su estado
+        # Estos son los únicos estados que tienen eventos de liquidación
         response = supabase.table('propuestas').select(
             'proposal_id, emisor_nombre, aceptante_nombre, monto_neto_factura, moneda_factura, anexo_number, contract_number, recalculate_result_json, estado, numero_factura'
-        ).eq('identificador_lote', lote_id).eq('estado', 'LIQUIDADA').execute()
+        ).eq('identificador_lote', lote_id).or_('estado.like.%EN PROCESO%,estado.like.%LIQUIDADA%').execute()
         return response.data if response.data else []
     except Exception as e:
         print(f"[ERROR en get_liquidated_proposals_by_lote]: {e}")
