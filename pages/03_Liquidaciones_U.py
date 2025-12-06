@@ -281,6 +281,13 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     
     return "\n".join(lines)
 
+# --- CSS para alineación del header ---
+st.markdown('''<style>
+[data-testid="stHorizontalBlock"] { 
+    align-items: center; 
+}
+</style>''', unsafe_allow_html=True)
+
 # --- Header Estándar ---
 col1, col2, col3 = st.columns([0.25, 0.5, 0.25])
 with col1:
