@@ -62,7 +62,7 @@ prompts/PROMPTS_APROBADOS.md
 
 # Test directories
 pruebas/
-testing/
+# testing/  # Temporalmente deshabilitado
 
 # Secrets
 secrets oauth/
