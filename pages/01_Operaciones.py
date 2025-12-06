@@ -33,7 +33,7 @@ if not API_BASE_URL:
 st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
-    page_title="Calculadora de Factoring INANDES",
+    page_title="Módulo de Originación INANDES",
     page_icon="📊",
 )
 
