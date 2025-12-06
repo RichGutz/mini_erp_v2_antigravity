@@ -487,6 +487,8 @@ def mostrar_liquidacion_universal():
                         monto_minimo=st.session_state.global_backdoor_min_amount_universal,
                         dias_minimos_interes=dias_minimos
                     )
+                    # CRÍTICO: Guardar la fecha de pago individual en el resultado para usarla al guardar en BD
+                    resultado['fecha_pago_individual'] = fecha_pago_factura
                     resultados_finales.append(resultado)
 
                 except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
@@ -580,7 +582,7 @@ def mostrar_liquidacion_universal():
                             db.add_liquidacion_evento(
                                 liquidacion_resumen_id=resumen_id,
                                 tipo_evento="Liquidación Universal",
-                                fecha_evento=st.session_state.global_liquidation_date_universal,
+                                fecha_evento=resultado.get('fecha_pago_individual', st.session_state.global_liquidation_date_universal),
                                 monto_recibido=resultado['monto_pagado'],
                                 dias_diferencia=resultado['dias_mora'],
                                 resultado_json=resultado_serializado

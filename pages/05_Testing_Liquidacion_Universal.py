@@ -480,8 +480,8 @@ if st.session_state.facturas_seleccionadas:
         
         # Resumen
         checks = [
-            abs(visual_interes_comp - sistema['interes_devengado']) < 0.01,
-            abs(visual_igv_comp - sistema['igv_devengado']) < 0.01,
+            abs(visual_interes_devengado - sistema['interes_devengado']) < 0.01,
+            abs(visual_igv_devengado - sistema['igv_devengado']) < 0.01,
             abs(visual_interes_mora - sistema['interes_moratorio']) < 0.01,
             abs(visual_igv_mora - sistema['igv_moratorio']) < 0.01
         ]
