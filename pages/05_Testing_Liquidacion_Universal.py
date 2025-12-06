@@ -73,12 +73,19 @@ def calcular_liquidacion_visual(propuesta: dict, ultimo_evento: dict) -> dict:
     fecha_pago_real = parse_fecha(ultimo_evento.get('fecha_evento'))
     monto_pagado = ultimo_evento.get('monto_recibido', 0.0)
     
-    # Calcular días
+    # Calcular días transcurridos (desde desembolso hasta pago real)
     dias_transcurridos = (fecha_pago_real - fecha_desembolso).days
+    
+    # IMPORTANTE: Aplicar regla de días mínimos (igual que el sistema)
+    # El sistema usa max(dias_transcurridos, 15) por defecto
+    dias_minimos = 15
+    dias_para_interes = max(dias_transcurridos, dias_minimos)
+    
+    # Calcular días de mora (desde vencimiento hasta pago real)
     dias_mora = max(0, (fecha_pago_real - fecha_pago_teorica).days)
     
-    # Calcular intereses devengados
-    interes_devengado = sistema._calcular_intereses_compensatorios(capital, tasa_comp, dias_transcurridos)
+    # Calcular intereses devengados (usando días_para_interes, NO dias_transcurridos)
+    interes_devengado = sistema._calcular_intereses_compensatorios(capital, tasa_comp, dias_para_interes)
     igv_devengado = interes_devengado * 0.18
     
     # Calcular moratorios
@@ -108,7 +115,7 @@ def calcular_liquidacion_visual(propuesta: dict, ultimo_evento: dict) -> dict:
     
     return {
         'capital': capital,
-        'dias_transcurridos': dias_transcurridos,
+        'dias_transcurridos': dias_para_interes,  # Usar días_para_interes (con mínimo aplicado)
         'dias_mora': dias_mora,
         'interes_devengado': interes_devengado,
         'igv_devengado': igv_devengado,
