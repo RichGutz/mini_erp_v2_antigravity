@@ -288,6 +288,16 @@ if st.session_state.facturas_seleccionadas:
             visual_interes_mora = 0
             visual_igv_mora = 0
         
+        # Calcular intereses mínimos (15 días)
+        dias_minimos = 15
+        interes_minimo = calcular_interes_compuesto_diario(capital, tasa_comp, dias_minimos)
+        igv_minimo = interes_minimo * 0.18
+        
+        # Intereses devengados finales = MAX(reales, mínimos)
+        dias_reales = (fecha_pago_real - fecha_desembolso).days
+        interes_devengado_final = max(visual_interes_comp, interes_minimo)
+        igv_devengado_final = interes_devengado_final * 0.18
+        
         # Mostrar header
         st.subheader(f"📄 {propuesta.get('numero_factura', 'N/A')} - {propuesta.get('emisor_nombre', 'N/A')}")
         
@@ -357,15 +367,57 @@ if st.session_state.facturas_seleccionadas:
         
         st.markdown("---")
         
-        # Interés Compensatorio
+        # SECCIÓN: DÍAS
+        st.markdown("##### DÍAS")
+        
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown("Interés Compensatorio")
+            st.markdown("Días Reales (Desemb → Pago)")
+        with col2:
+            st.markdown(f"{dias_reales} días")
+        with col3:
+            st.markdown(f"{sistema['dias_transcurridos']} días")
+            if dias_reales == sistema['dias_transcurridos']:
+                st.success("✅")
+            else:
+                st.error(f"❌ Δ {abs(dias_reales - sistema['dias_transcurridos'])} días")
+        
+        st.markdown("")
+        
+        # SECCIÓN: INTERESES COMPENSATORIOS
+        st.markdown("##### INTERESES COMPENSATORIOS")
+        
+        # Interés con días reales
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f"Int. Comp ({dias_reales} días reales)")
         with col2:
             st.markdown(f"S/ {visual_interes_comp:,.2f}")
         with col3:
+            st.markdown("-")
+        
+        # Interés mínimo (15 días)
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f"**Int. Comp Mínimo ({dias_minimos} días)**")
+        with col2:
+            st.markdown(f"**S/ {interes_minimo:,.2f}**")
+        with col3:
+            st.markdown("-")
+        
+        # Interés devengado final (máximo)
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f"**Int. Devengado Final (MAX)**")
+        with col2:
+            st.markdown(f"**S/ {interes_devengado_final:,.2f}**")
+            if interes_devengado_final == interes_minimo:
+                st.caption("(Se aplicó mínimo)")
+            else:
+                st.caption("(Se usó real)")
+        with col3:
             st.markdown(f"S/ {sistema['interes_devengado']:,.2f}")
-            diff = abs(visual_interes_comp - sistema['interes_devengado'])
+            diff = abs(interes_devengado_final - sistema['interes_devengado'])
             if diff < 0.01:
                 st.success("✅")
             else:
@@ -376,14 +428,16 @@ if st.session_state.facturas_seleccionadas:
         with col1:
             st.markdown("IGV Compensatorio")
         with col2:
-            st.markdown(f"S/ {visual_igv_comp:,.2f}")
+            st.markdown(f"S/ {igv_devengado_final:,.2f}")
         with col3:
             st.markdown(f"S/ {sistema['igv_devengado']:,.2f}")
-            diff = abs(visual_igv_comp - sistema['igv_devengado'])
+            diff = abs(igv_devengado_final - sistema['igv_devengado'])
             if diff < 0.01:
                 st.success("✅")
             else:
                 st.error(f"❌ Δ {diff:,.2f}")
+        
+        st.markdown("")
         
         # Interés Moratorio
         col1, col2, col3 = st.columns(3)
