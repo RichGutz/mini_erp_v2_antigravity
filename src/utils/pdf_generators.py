@@ -232,3 +232,53 @@ def generate_liquidacion_universal_pdf(resultados_liquidacion: List[Dict[str, An
     }
     
     return _generate_pdf_in_memory("liquidacion_universal.html", template_data)
+
+def generar_voucher_transferencia_pdf(
+    datos_emisor: Dict[str, Any],
+    monto_total: float,
+    moneda: str,
+    facturas: List[Dict[str, Any]],
+    fecha_generacion: datetime.date = None
+) -> bytes | None:
+    """
+    Genera PDF de voucher de transferencia bancaria.
+    
+    Args:
+        datos_emisor: Datos del emisor (razon_social, ruc, banco, cuenta, cci)
+        monto_total: Monto total a transferir
+        moneda: Moneda (PEN/USD)
+        facturas: Lista de facturas incluidas en la transferencia
+        fecha_generacion: Fecha de generación del voucher (default: hoy)
+    
+    Returns:
+        bytes: PDF generado
+    """
+    if fecha_generacion is None:
+        fecha_generacion = datetime.date.today()
+    
+    # Convertir monto a letras (simplificado)
+    def numero_a_letras(numero):
+        """Convierte número a letras (versión simplificada)"""
+        if numero == 0:
+            return "CERO"
+        # Implementación básica - en producción usar librería como num2words
+        return f"{numero:,.2f}"
+    
+    template_data = {
+        'fecha_generacion': fecha_generacion.strftime('%d-%m-%Y'),
+        'hora_generacion': datetime.datetime.now().strftime('%H:%M:%S'),
+        'emisor': {
+            'razon_social': datos_emisor.get('Razon Social', 'N/A'),
+            'ruc': datos_emisor.get('RUC', 'N/A'),
+            'banco': datos_emisor.get('Institucion Financiera', 'N/A'),
+            'numero_cuenta': datos_emisor.get('Numero de Cuenta', 'N/A'),
+            'cci': datos_emisor.get('CCI', 'N/A')
+        },
+        'monto_total': monto_total,
+        'monto_letras': numero_a_letras(monto_total),
+        'moneda': moneda,
+        'facturas': facturas,
+        'num_facturas': len(facturas)
+    }
+    
+    return _generate_pdf_in_memory("voucher_transferencia.html", template_data)

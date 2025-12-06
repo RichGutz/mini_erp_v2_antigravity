@@ -10,6 +10,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 # --- Module Imports from `src` ---
 from src.data import supabase_repository as db
+from src.utils.pdf_generators import generar_voucher_transferencia_pdf
 
 # --- Estrategia Unificada para la URL del Backend ---
 API_BASE_URL = os.getenv("BACKEND_API_URL")
@@ -50,6 +51,11 @@ if 'consolidated_proof_file' not in st.session_state:
     st.session_state.consolidated_proof_file = None
 if 'individual_proof_files' not in st.session_state:
     st.session_state.individual_proof_files = {}
+# Nuevos estados para Paso 2 (Voucher)
+if 'voucher_generado' not in st.session_state:
+    st.session_state.voucher_generado = False
+if 'mostrar_paso_3' not in st.session_state:
+    st.session_state.mostrar_paso_3 = False
 
 # --- Funciones de Ayuda ---
 def parse_invoice_number(proposal_id: str) -> str:
@@ -205,9 +211,113 @@ else:
         if st.session_state.facturas_seleccionadas_desembolso.get(f['proposal_id'], False)
     ]
     
-    # Mostrar menús de configuración solo si hay facturas seleccionadas
+    # Mostrar Paso 2 (Voucher) y Paso 3 (Configuración) solo si hay facturas seleccionadas
     if facturas_seleccionadas:
-        st.markdown("#### Paso 2: Configurar Desembolso")
+        # ========== PASO 2: GENERAR VOUCHER DE TRANSFERENCIA ==========
+        st.markdown("#### Paso 2: Generar Voucher de Transferencia")
+        
+        # Calcular monto total
+        monto_total = sum(get_monto_a_desembolsar(f) for f in facturas_seleccionadas)
+        moneda = facturas_seleccionadas[0].get('moneda_factura', 'PEN')
+        
+        # Obtener datos del emisor (asumiendo que todas las facturas son del mismo emisor)
+        emisor_ruc = facturas_seleccionadas[0].get('emisor_ruc')
+        
+        if emisor_ruc:
+            # Obtener datos bancarios del emisor desde la BD
+            datos_emisor = db.get_signatory_data_by_ruc(str(emisor_ruc))
+            
+            if datos_emisor:
+                # Mostrar información del voucher
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("##### 📋 Datos del Beneficiario")
+                    st.markdown(f"**Razón Social:** {datos_emisor.get('Razon Social', 'N/A')}")
+                    st.markdown(f"**RUC:** {datos_emisor.get('RUC', 'N/A')}")
+                
+                with col2:
+                    st.markdown("##### 🏦 Datos Bancarios")
+                    banco = datos_emisor.get('Institucion Financiera', 'N/A')
+                    cuenta = datos_emisor.get('Numero de Cuenta', 'N/A')
+                    cci = datos_emisor.get('CCI', 'N/A')
+                    
+                    st.markdown(f"**Banco:** {banco}")
+                    st.markdown(f"**Número de Cuenta:** {cuenta}")
+                    st.markdown(f"**CCI:** {cci}")
+                
+                # Mostrar monto total destacado
+                st.markdown("---")
+                st.markdown("##### 💰 Monto Total a Transferir")
+                st.markdown(f"## {moneda} {monto_total:,.2f}")
+                st.caption(f"Total de {len(facturas_seleccionadas)} factura(s) seleccionada(s)")
+                
+                # Botón para generar PDF del voucher
+                col_pdf, col_continuar = st.columns(2)
+                
+                with col_pdf:
+                    if st.button("📄 Generar Voucher PDF", type="secondary", use_container_width=True):
+                        try:
+                            # Preparar datos de facturas para el PDF
+                            facturas_para_pdf = []
+                            for f in facturas_seleccionadas:
+                                facturas_para_pdf.append({
+                                    'numero_factura': parse_invoice_number(f['proposal_id']),
+                                    'emisor_nombre': f.get('emisor_nombre', 'N/A'),
+                                    'monto': get_monto_a_desembolsar(f)
+                                })
+                            
+                            # Generar PDF
+                            pdf_bytes = generar_voucher_transferencia_pdf(
+                                datos_emisor=datos_emisor,
+                                monto_total=monto_total,
+                                moneda=moneda,
+                                facturas=facturas_para_pdf,
+                                fecha_generacion=datetime.date.today()
+                            )
+                            
+                            if pdf_bytes:
+                                st.session_state.voucher_generado = True
+                                timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                                st.download_button(
+                                    label="⬇️ Descargar Voucher",
+                                    data=pdf_bytes,
+                                    file_name=f"voucher_transferencia_{timestamp}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True
+                                )
+                                st.success("✅ Voucher generado exitosamente. Descárgalo y úsalo para realizar la transferencia bancaria.")
+                            else:
+                                st.error("❌ Error al generar el voucher PDF.")
+                        except Exception as e:
+                            st.error(f"❌ Error al generar voucher: {e}")
+                
+                with col_continuar:
+                    if st.button("➡️ Continuar al Paso 3", type="primary", use_container_width=True):
+                        st.session_state.mostrar_paso_3 = True
+                        st.rerun()
+                
+                # Instrucciones
+                with st.expander("📝 Instrucciones"):
+                    st.markdown("""
+                    1. Haz clic en **"Generar Voucher PDF"** para crear el documento
+                    2. Descarga el voucher generado
+                    3. Ingresa a la plataforma de banca en línea de tu banco
+                    4. Realiza la transferencia por el monto indicado
+                    5. Descarga el voucher de confirmación del banco
+                    6. Haz clic en **"Continuar al Paso 3"** para subir el voucher de confirmación
+                    """)
+            else:
+                st.warning("⚠️ No se encontraron datos bancarios para este emisor. Por favor, actualiza la información en el módulo de Registro de Clientes.")
+        else:
+            st.error("❌ No se pudo obtener el RUC del emisor.")
+        
+        st.markdown("---")
+        
+        # ========== PASO 3: CONFIGURAR DESEMBOLSO ==========
+        # Solo mostrar si el usuario ha hecho clic en "Continuar al Paso 3"
+        if st.session_state.mostrar_paso_3:
+            st.markdown("#### Paso 3: Configurar Desembolso")
         
         # Checkbox para sustento único
         st.checkbox("APLICAR SUSTENTO DE PAGO ÚNICO", key="sustento_unico")

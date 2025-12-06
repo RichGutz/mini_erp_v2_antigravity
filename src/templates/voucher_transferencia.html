@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Voucher de Transferencia Bancaria</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #2c3e50;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 24pt;
+            margin: 0 0 10px 0;
+        }
+
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 12pt;
+        }
+
+        .info-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-left: 4px solid #3498db;
+        }
+
+        .info-section h2 {
+            color: #2c3e50;
+            font-size: 14pt;
+            margin: 0 0 15px 0;
+        }
+
+        .info-row {
+            display: flex;
+            margin: 8px 0;
+        }
+
+        .info-label {
+            font-weight: bold;
+            width: 180px;
+            color: #34495e;
+        }
+
+        .info-value {
+            flex: 1;
+            color: #2c3e50;
+        }
+
+        .monto-section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            text-align: center;
+        }
+
+        .monto-section h3 {
+            color: #856404;
+            margin: 0 0 10px 0;
+        }
+
+        .monto-numero {
+            font-size: 28pt;
+            font-weight: bold;
+            color: #856404;
+            margin: 10px 0;
+        }
+
+        .monto-letras {
+            font-size: 12pt;
+            color: #856404;
+            font-style: italic;
+        }
+
+        .facturas-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .facturas-table th {
+            background-color: #34495e;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 10pt;
+        }
+
+        .facturas-table td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            font-size: 10pt;
+        }
+
+        .facturas-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .instrucciones {
+            margin: 30px 0;
+            padding: 15px;
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .instrucciones h3 {
+            color: #0c5460;
+            margin: 0 0 10px 0;
+        }
+
+        .instrucciones ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .instrucciones li {
+            margin: 5px 0;
+            color: #0c5460;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 9pt;
+            color: #7f8c8d;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+
+        .highlight {
+            background-color: #ffffcc;
+            padding: 2px 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>VOUCHER DE TRANSFERENCIA BANCARIA</h1>
+        <div class="subtitle">Documento de Referencia para Desembolso</div>
+        <div class="subtitle">Generado el {{ fecha_generacion }} a las {{ hora_generacion }}</div>
+    </div>
+
+    <div class="info-section">
+        <h2>📋 DATOS DEL BENEFICIARIO</h2>
+        <div class="info-row">
+            <div class="info-label">Razón Social:</div>
+            <div class="info-value">{{ emisor.razon_social }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">RUC:</div>
+            <div class="info-value">{{ emisor.ruc }}</div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h2>🏦 DATOS BANCARIOS</h2>
+        <div class="info-row">
+            <div class="info-label">Banco:</div>
+            <div class="info-value"><span class="highlight">{{ emisor.banco }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Número de Cuenta:</div>
+            <div class="info-value"><span class="highlight">{{ emisor.numero_cuenta }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">CCI:</div>
+            <div class="info-value"><span class="highlight">{{ emisor.cci }}</span></div>
+        </div>
+    </div>
+
+    <div class="monto-section">
+        <h3>💰 MONTO TOTAL A TRANSFERIR</h3>
+        <div class="monto-numero">{{ moneda }} {{ monto_total|format_currency(moneda) }}</div>
+        <div class="monto-letras">{{ monto_letras }}</div>
+    </div>
+
+    <div class="info-section">
+        <h2>📄 FACTURAS INCLUIDAS ({{ num_facturas }})</h2>
+        <table class="facturas-table">
+            <thead>
+                <tr>
+                    <th>Factura</th>
+                    <th>Emisor</th>
+                    <th>Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for factura in facturas %}
+                <tr>
+                    <td>{{ factura.numero_factura }}</td>
+                    <td>{{ factura.emisor_nombre }}</td>
+                    <td>{{ moneda }} {{ factura.monto|format_currency(moneda) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="instrucciones">
+        <h3>📝 INSTRUCCIONES</h3>
+        <ol>
+            <li>Ingrese a la plataforma de banca en línea de su institución financiera</li>
+            <li>Realice la transferencia por el monto indicado a la cuenta del beneficiario</li>
+            <li>Descargue el voucher de confirmación de la transferencia</li>
+            <li>Regrese al sistema y suba el voucher en el <strong>Paso 3: Configurar Desembolso</strong></li>
+            <li>Complete el proceso de desembolso</li>
+        </ol>
+    </div>
+
+    <div class="footer">
+        <p>Este documento es solo una referencia para realizar la transferencia bancaria.</p>
+        <p>No tiene validez legal ni contable. El voucher oficial es el emitido por su banco.</p>
+    </div>
+</body>
+
+</html>
