@@ -476,9 +476,155 @@ if st.session_state.facturas_seleccionadas:
             else:
                 st.error(f"❌ Δ {diff:,.2f}")
         
+        
         st.markdown("")
         
-        # Resumen
+        # NUEVA SECCIÓN: RESUMEN DE LIQUIDACIÓN
+        st.markdown("##### 💰 RESUMEN DE LIQUIDACIÓN")
+        st.markdown("**Componentes del Sistema:**")
+        
+        # Obtener datos del sistema
+        monto_pagado = resultado.get('monto_pagado', 0)
+        capital_operacion = resultado.get('capital_operacion', 0)
+        delta_capital = sistema.get('delta_capital', 0)
+        delta_compensatorios = sistema.get('delta_compensatorios', 0)
+        delta_igv = sistema.get('delta_igv', 0)
+        interes_moratorio = sistema.get('interes_moratorio', 0)
+        igv_moratorio = sistema.get('igv_moratorio', 0)
+        saldo_global = sistema.get('saldo_global', 0)
+        
+        # Tabla de resumen
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("**💵 PAGOS Y CAPITAL**")
+        with col2:
+            st.markdown("**Monto (S/)**")
+        with col3:
+            st.markdown("")
+        
+        st.markdown("---")
+        
+        # Monto recibido
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("💰 Monto Recibido")
+        with col2:
+            st.markdown(f"S/ {monto_pagado:,.2f}")
+        with col3:
+            st.markdown("(Pago del cliente)")
+        
+        # Capital operación
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("📊 Capital Operación")
+        with col2:
+            st.markdown(f"S/ {capital_operacion:,.2f}")
+        with col3:
+            st.markdown("(Capital a recuperar)")
+        
+        # Delta capital
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("**📉 Delta Capital**")
+        with col2:
+            delta_cap_color = "🟢" if delta_capital <= 0 else "🔴"
+            st.markdown(f"**{delta_cap_color} S/ {delta_capital:,.2f}**")
+        with col3:
+            if delta_capital > 0:
+                st.markdown("(Capital pendiente)")
+            elif delta_capital < 0:
+                st.markdown("(Sobrepago de capital)")
+            else:
+                st.markdown("(Capital liquidado)")
+        
+        st.markdown("")
+        
+        # Intereses
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("**📈 INTERESES**")
+        with col2:
+            st.markdown("")
+        with col3:
+            st.markdown("")
+        
+        st.markdown("---")
+        
+        # Delta compensatorios
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("Δ Intereses Compensatorios")
+        with col2:
+            delta_int_color = "🟢" if delta_compensatorios <= 0 else "🔴"
+            st.markdown(f"{delta_int_color} S/ {delta_compensatorios:,.2f}")
+        with col3:
+            if delta_compensatorios > 0:
+                st.markdown("(A facturar)")
+            elif delta_compensatorios < 0:
+                st.markdown("(Nota de crédito)")
+            else:
+                st.markdown("(Sin diferencia)")
+        
+        # Delta IGV
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("Δ IGV Intereses")
+        with col2:
+            delta_igv_color = "🟢" if delta_igv <= 0 else "🔴"
+            st.markdown(f"{delta_igv_color} S/ {delta_igv:,.2f}")
+        with col3:
+            if delta_igv > 0:
+                st.markdown("(A facturar)")
+            elif delta_igv < 0:
+                st.markdown("(Nota de crédito)")
+            else:
+                st.markdown("(Sin diferencia)")
+        
+        # Intereses moratorios (si aplica)
+        if interes_moratorio > 0 or igv_moratorio > 0:
+            st.markdown("")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown("⚠️ Interés Moratorio")
+            with col2:
+                st.markdown(f"🔴 S/ {interes_moratorio:,.2f}")
+            with col3:
+                st.markdown("(A facturar)")
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown("⚠️ IGV Moratorio")
+            with col2:
+                st.markdown(f"🔴 S/ {igv_moratorio:,.2f}")
+            with col3:
+                st.markdown("(A facturar)")
+        
+        st.markdown("")
+        st.markdown("---")
+        
+        # Saldo global final
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("**💵 SALDO GLOBAL FINAL**")
+        with col2:
+            if saldo_global > 0:
+                st.markdown(f"**🔴 S/ {saldo_global:,.2f}**")
+            elif saldo_global < 0:
+                st.markdown(f"**🟢 S/ {saldo_global:,.2f}**")
+            else:
+                st.markdown(f"**✅ S/ {saldo_global:,.2f}**")
+        with col3:
+            if saldo_global > 0:
+                st.markdown("**(Cliente debe)**")
+            elif saldo_global < 0:
+                st.markdown("**(A devolver)**")
+            else:
+                st.markdown("**(Liquidado)**")
+        
+        st.markdown("")
+        
+        # Resumen de validación
         checks = [
             abs(visual_interes_devengado - sistema['interes_devengado']) < 0.01,
             abs(visual_igv_devengado - sistema['igv_devengado']) < 0.01,
