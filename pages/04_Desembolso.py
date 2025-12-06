@@ -253,10 +253,7 @@ else:
                 st.caption(f"Total de {len(facturas_seleccionadas)} factura(s) seleccionada(s)")
                 
                 # Botón para generar PDF del voucher
-                col_pdf, col_continuar = st.columns(2)
-                
-                with col_pdf:
-                    if st.button("📄 Generar Voucher PDF", type="secondary", use_container_width=True):
+                if st.button("📄 Generar Voucher PDF", type="secondary", use_container_width=True):
                         try:
                             # Preparar datos de facturas para el PDF
                             facturas_para_pdf = []
@@ -292,11 +289,6 @@ else:
                         except Exception as e:
                             st.error(f"❌ Error al generar voucher: {e}")
                 
-                with col_continuar:
-                    if st.button("➡️ Continuar al Paso 3", type="primary", use_container_width=True):
-                        st.session_state.mostrar_paso_3 = True
-                        st.rerun()
-                
                 # Instrucciones
                 with st.expander("📝 Instrucciones"):
                     st.markdown("""
@@ -315,9 +307,7 @@ else:
         st.markdown("---")
         
         # ========== PASO 3: CONFIGURAR DESEMBOLSO ==========
-        # Solo mostrar si el usuario ha hecho clic en "Continuar al Paso 3"
-        if st.session_state.mostrar_paso_3:
-            st.markdown("#### Paso 3: Configurar Desembolso")
+        st.markdown("#### Paso 3: Configurar Desembolso")
         
         # Checkbox para sustento único
         st.checkbox("APLICAR SUSTENTO DE PAGO ÚNICO", key="sustento_unico")
