@@ -483,9 +483,10 @@ if st.session_state.facturas_seleccionadas:
         st.markdown("##### 💰 RESUMEN DE LIQUIDACIÓN")
         st.markdown("**Componentes del Sistema:**")
         
-        # Obtener datos del sistema
-        monto_pagado = resultado.get('monto_pagado', 0)
-        capital_operacion = resultado.get('capital_operacion', 0)
+        # Obtener datos del sistema desde el resultado_json del evento
+        resultado_sistema = json.loads(ultimo_evento.get('resultado_json', '{}'))
+        monto_pagado = resultado_sistema.get('monto_pagado', 0)
+        capital_operacion = resultado_sistema.get('capital_operacion', 0)
         delta_capital = sistema.get('delta_capital', 0)
         delta_compensatorios = sistema.get('delta_compensatorios', 0)
         delta_igv = sistema.get('delta_igv', 0)
