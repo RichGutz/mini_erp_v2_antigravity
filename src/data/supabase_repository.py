@@ -152,7 +152,7 @@ def get_approved_proposals_for_disbursement() -> List[Proposal]:
     """
     supabase = get_supabase_client()
     try:
-        response = supabase.table('propuestas').select('*').eq('estado', 'APROBADO').order('created_at', desc=True).execute()
+        response = supabase.table('propuestas').select('*').eq('estado', 'APROBADO').execute()
         return response.data if response.data else []
     except Exception as e:
         print(f"[ERROR en get_approved_proposals_for_disbursement]: {e}")
