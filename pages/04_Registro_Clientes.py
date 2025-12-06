@@ -148,7 +148,7 @@ def mostrar_formulario_crear():
         with col2:
             numero_cuenta = st.text_input("Número de Cuenta")
         with col3:
-            cci = st.text_input("CCI", max_chars=20)
+            cci = st.text_input("Número de CCI", max_chars=20)
         
         submitted = st.form_submit_button("Crear Registro", type="primary")
         
@@ -241,7 +241,7 @@ def mostrar_formulario_editar():
         with col2:
             numero_cuenta = st.text_input("Número de Cuenta", value=registro.get('Numero de Cuenta', '') or '')
         with col3:
-            cci = st.text_input("CCI", value=registro.get('CCI', '') or '', max_chars=20)
+            cci = st.text_input("Número de CCI", value=registro.get('CCI', '') or '', max_chars=20)
         
         submitted = st.form_submit_button("Guardar Cambios", type="primary")
         
