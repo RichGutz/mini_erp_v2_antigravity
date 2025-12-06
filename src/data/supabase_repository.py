@@ -134,11 +134,11 @@ def get_active_proposals_for_approval() -> List[Proposal]:
     """Fetches all proposals in ACTIVO status for approval module.
     
     Returns:
-        List of proposals pending approval, ordered by creation date (newest first)
+        List of proposals pending approval
     """
     supabase = get_supabase_client()
     try:
-        response = supabase.table('propuestas').select('*').eq('estado', 'ACTIVO').order('created_at', desc=True).execute()
+        response = supabase.table('propuestas').select('*').eq('estado', 'ACTIVO').execute()
         return response.data if response.data else []
     except Exception as e:
         print(f"[ERROR en get_active_proposals_for_approval]: {e}")
