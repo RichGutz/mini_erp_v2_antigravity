@@ -137,6 +137,18 @@ def get_disbursed_proposals_by_lote(lote_id: str) -> List[Proposal]:
         print(f"[ERROR en get_disbursed_proposals_by_lote]: {e}")
         return []
 
+def get_liquidated_proposals_by_lote(lote_id: str) -> List[Proposal]:
+    """Retrieves a list of liquidated proposals for a specific batch ID."""
+    supabase = get_supabase_client()
+    try:
+        response = supabase.table('propuestas').select(
+            'proposal_id, emisor_nombre, aceptante_nombre, monto_neto_factura, moneda_factura, anexo_number, contract_number, recalculate_result_json, estado, numero_factura'
+        ).eq('identificador_lote', lote_id).eq('estado', 'LIQUIDADA').execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"[ERROR en get_liquidated_proposals_by_lote]: {e}")
+        return []
+
 def get_proposal_details_by_id(proposal_id: str) -> Optional[Proposal]:
     """Retrieves all details for a single proposal by its ID."""
     supabase = get_supabase_client()
