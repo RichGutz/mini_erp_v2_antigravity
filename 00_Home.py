@@ -155,15 +155,16 @@ else:
 
     # --- DATA & ORDER ---
     MODULES = {
-        "Registro": {"status": "✅ En Producción", "help": "Gestión de emisores y deudores. Permite crear, consultar y modificar registros de clientes.", "page": "04_Registro"},
-        "Originación": {"status": "✅ En Producción", "help": "Gestión de operaciones para clientes existentes. Permite crear anexos, procesar facturas y generar los perfiles de la operación.", "page": "01_Originacion"},
-        "Desembolso": {"status": "✅ En Producción", "help": "Automatiza la solicitud de Letras Electrónicas, contrasta datos y gestiona la aprobación del desembolso.", "page": "02_Desembolso"},
-        "Liquidación": {"status": "✅ En Producción", "help": "Procesa los pagos recibidos, determina si fueron a tiempo, anticipados o tardíos, y calcula los ajustes finales.", "page": "03_Liquidacion"},
+        "Registro": {"status": "✅ En Producción", "help": "Gestión de emisores y aceptantes. Permite crear, consultar y modificar registros de clientes.", "page": "01_Registro"},
+        "Originación": {"status": "✅ En Producción", "help": "Gestión de operaciones para clientes existentes. Permite crear anexos, procesar facturas y generar los perfiles de la operación.", "page": "02_Originacion"},
+        "Aprobación": {"status": "✅ En Producción", "help": "Revisión y aprobación gerencial de operaciones. Permite aprobar operaciones antes de que pasen a desembolso.", "page": "03_Aprobacion"},
+        "Desembolso": {"status": "✅ En Producción", "help": "Automatiza la solicitud de Letras Electrónicas, contrasta datos y gestiona la aprobación del desembolso.", "page": "04_Desembolso"},
+        "Liquidación": {"status": "✅ En Producción", "help": "Procesa los pagos recibidos, determina si fueron a tiempo, anticipados o tardíos, y calcula los ajustes finales.", "page": "05_Liquidacion"},
         "Reporte": {"status": "📝 Planeado", "help": "Generación de reportes gerenciales (volumen, mora, etc.) y tributarios para el análisis y control del negocio.", "page": None},
         "Calculadora Factoring": {"status": "✅ En Producción", "help": "Permite realizar simulaciones y cálculos manuales de operaciones de factoring.", "page": "07_Calculadora_Factoring"}
     }
 
-    DISPLAY_ORDER = ["Registro", "Originación", "Desembolso", "Liquidación", "Reporte", "Calculadora Factoring"]
+    DISPLAY_ORDER = ["Registro", "Originación", "Aprobación", "Desembolso", "Liquidación", "Reporte", "Calculadora Factoring"]
 
     # --- STYLING ---
     st.markdown("""<style>
