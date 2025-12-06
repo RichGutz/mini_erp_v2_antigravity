@@ -292,7 +292,7 @@ if st.session_state.facturas_seleccionadas:
         st.subheader(f"📄 {propuesta.get('numero_factura', 'N/A')} - {propuesta.get('emisor_nombre', 'N/A')}")
         
         # Métricas clave
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.metric("Capital", f"S/ {capital:,.2f}")
         with col2:
@@ -300,8 +300,12 @@ if st.session_state.facturas_seleccionadas:
         with col3:
             st.metric("Tasa Mora", f"{tasa_mora*100:.2f}%")
         with col4:
-            dias_totales = (fecha_pago_real - fecha_desembolso).days
-            st.metric("Días Totales", f"{dias_totales}")
+            dias_reales = (fecha_pago_real - fecha_desembolso).days
+            st.metric("Días Reales", f"{dias_reales}")
+        with col5:
+            dias_sistema = sistema['dias_transcurridos']
+            st.metric("Días Sistema", f"{dias_sistema}", 
+                     delta=f"Mínimo aplicado" if dias_sistema > dias_reales else "Sin mínimo")
         
         st.markdown("---")
         
