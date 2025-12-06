@@ -141,12 +141,14 @@ else:
     st.markdown("#### Paso 1: Seleccionar Facturas para Desembolso")
     
     # Header de la tabla
-    col_check, col_factura, col_emisor, col_aceptante, col_monto, col_fecha_emision, col_fecha_desembolso = st.columns([0.5, 1.5, 2, 2, 1.5, 1.5, 1.5])
+    col_check, col_factura, col_lote, col_emisor, col_aceptante, col_monto, col_fecha_emision, col_fecha_desembolso = st.columns([0.5, 1.5, 1.5, 2, 2, 1.5, 1.5, 1.5])
     
     with col_check:
         st.markdown("**Seleccionar**")
     with col_factura:
         st.markdown("**Factura**")
+    with col_lote:
+        st.markdown("**Lote**")
     with col_emisor:
         st.markdown("**Emisor**")
     with col_aceptante:
@@ -162,7 +164,7 @@ else:
     
     # Filas de facturas con checkboxes
     for idx, factura in enumerate(st.session_state.facturas_aprobadas):
-        col_check, col_factura, col_emisor, col_aceptante, col_monto, col_fecha_emision, col_fecha_desembolso = st.columns([0.5, 1.5, 2, 2, 1.5, 1.5, 1.5])
+        col_check, col_factura, col_lote, col_emisor, col_aceptante, col_monto, col_fecha_emision, col_fecha_desembolso = st.columns([0.5, 1.5, 1.5, 2, 2, 1.5, 1.5, 1.5])
         
         with col_check:
             st.session_state.facturas_seleccionadas_desembolso[factura['proposal_id']] = st.checkbox(
@@ -174,6 +176,9 @@ else:
         
         with col_factura:
             st.markdown(f"`{parse_invoice_number(factura['proposal_id'])}`")
+        
+        with col_lote:
+            st.markdown(f"`{factura.get('identificador_lote', 'N/A')}`")
         
         with col_emisor:
             st.markdown(factura.get('emisor_nombre', 'N/A'))
