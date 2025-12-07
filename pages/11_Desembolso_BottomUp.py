@@ -91,27 +91,12 @@ if 'token' not in st.session_state:
     st.error("⚠️ No hay token de autenticación. Por favor ve a 'Home' e inicia sesión con Google.")
     st.stop()
 
-# ==============================================================================
-# SECCIÓN 1: SELECTOR DE CARPETAS (CRÍTICO - SIEMPRE VISIBLE)
-# ==============================================================================
-st.markdown("### 1. Selector de Carpeta Google Drive (Componente Base)")
-st.info("Este componente debe ser visible SIEMPRE, seleccione o no facturas.")
 
-try:
-    folder = render_simple_folder_selector(key="picker_bottom_up", label="Seleccionar Carpeta Destino")
-    if folder:
-        st.success(f"✅ Carpeta Seleccionada: {folder.get('name')} (ID: {folder.get('id')})")
-    else:
-        st.info("Esperando selección de carpeta...")
-except Exception as e:
-    st.error(f"❌ Error al renderizar el selector: {e}")
-
-st.divider()
 
 # ==============================================================================
-# SECCIÓN 2: TABLA DE FACTURAS (Lógica de Negocio)
+# SECCIÓN 1: TABLA DE FACTURAS (Lógica de Negocio)
 # ==============================================================================
-st.markdown("### 2. Facturas Pendientes")
+st.markdown("### 1. Facturas Pendientes")
 
 # Contar seleccionadas (Definir antes de usar)
 facturas_seleccionadas = [
@@ -157,10 +142,10 @@ else:
 st.divider()
 
 # ==============================================================================
-# SECCIÓN 3: GENERAR VOUCHER (Condicional)
+# SECCIÓN 2: GENERAR VOUCHER (Condicional)
 # ==============================================================================
 if facturas_seleccionadas:
-    st.markdown("### 3. Generar Voucher de Transferencia")
+    st.markdown("### 2. Generar Voucher de Transferencia")
     
     monto_total = sum(get_monto_a_desembolsar(f) for f in facturas_seleccionadas)
     moneda = facturas_seleccionadas[0].get('moneda_factura', 'PEN')
@@ -211,10 +196,10 @@ if facturas_seleccionadas:
 st.divider()
 
 # ==============================================================================
-# SECCIÓN 4: CONFIGURACIÓN Y DESEMBOLSO FINAL (Condicional)
+# SECCIÓN 3: CONFIGURACIÓN Y DESEMBOLSO FINAL (Condicional)
 # ==============================================================================
 if facturas_seleccionadas:
-    st.markdown("### 4. Configuración y Desembolso")
+    st.markdown("### 3. Configuración y Desembolso")
     
     # 4.1 Config Global
     col_g1, col_g2 = st.columns(2)
@@ -271,7 +256,22 @@ if facturas_seleccionadas:
 
     st.markdown("---")
     
-    # 4.3 BOTÓN MAESTRO
+    st.markdown("---")
+
+    # 4.3 PICKER (MOVED HERE)
+    st.markdown("#### Selección de Carpeta Destino (Google Drive)")
+    try:
+        folder = render_simple_folder_selector(key="picker_bottom_up", label="Seleccionar Carpeta Destino")
+        if folder:
+            st.success(f"✅ Carpeta Seleccionada: {folder.get('name')} (ID: {folder.get('id')})")
+        else:
+            st.info("👆 Selecciona donde se guardarán los archivos.")
+    except Exception as e:
+        st.error(f"❌ Error al renderizar el selector: {e}")
+
+    st.markdown("---")
+    
+    # 4.4 BOTÓN MAESTRO
     st.markdown("### ✅ Acción Final")
     
     if st.button("💵 Registrar Desembolso y Subir Archivos", type="primary", use_container_width=True):
