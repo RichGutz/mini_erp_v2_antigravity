@@ -154,55 +154,36 @@ else:
         st.switch_page(f"pages/{page_name}.py")
 
     # --- DATA & ORDER ---
+    # --- DATA & ORDER ---
     MODULES = {
         "Registro": {"status": "✅ En Producción", "help": "Gestión de emisores y aceptantes. Permite crear, consultar y modificar registros de clientes.", "page": "01_Registro"},
         "Originación": {"status": "✅ En Producción", "help": "Gestión de operaciones para clientes existentes. Permite crear anexos, procesar facturas y generar los perfiles de la operación.", "page": "02_Originacion"},
         "Aprobación": {"status": "✅ En Producción", "help": "Revisión y aprobación gerencial de operaciones. Permite aprobar operaciones antes de que pasen a desembolso.", "page": "03_Aprobacion"},
         "Desembolso": {"status": "✅ En Producción", "help": "Automatiza la solicitud de Letras Electrónicas, contrasta datos y gestiona la aprobación del desembolso.", "page": "04_Desembolso"},
         "Liquidación": {"status": "✅ En Producción", "help": "Procesa los pagos recibidos, determina si fueron a tiempo, anticipados o tardíos, y calcula los ajustes finales.", "page": "05_Liquidacion"},
-        "Reporte": {"status": "📝 Planeado", "help": "Generación de reportes gerenciales (volumen, mora, etc.) y tributarios para el análisis y control del negocio.", "page": None},
-        "Calculadora Factoring": {"status": "✅ En Producción", "help": "Permite realizar simulaciones y cálculos manuales de operaciones de factoring.", "page": "07_Calculadora_Factoring"}
+        "Reporte": {"status": "📝 Planeado", "help": "Generación de reportes gerenciales (volumen, mora, etc.) y tributarios.", "page": "06_Reporte"},
+        "Repositorio": {"status": "✅ En Producción", "help": "Gestor documental integrado con Google Drive. Visualización y descarga de expedientes.", "page": "07_Repositorio"},
+        "Calculadora": {"status": "✅ En Producción", "help": "Simulaciones y cálculos manuales de operaciones de factoring.", "page": "08_Calculadora_Factoring"},
+        "Limpieza BD": {"status": "⚠️ Mantenimiento", "help": "Herramientas para purgar y corregir datos en Base de Datos.", "page": "09_Limpieza_Base_Datos"},
+        "Testing Liq.": {"status": "🧪 Testing", "help": "Módulo de pruebas unitarias y validación para el motor de liquidaciones.", "page": "10_Testing_Liquidacion_Universal"}
     }
 
-    DISPLAY_ORDER = ["Registro", "Originación", "Aprobación", "Desembolso", "Liquidación", "Reporte", "Calculadora Factoring"]
-
-    # --- STYLING ---
-    st.markdown("""<style>
-        /* Center align the main header logos and title */
-        [data-testid="stHorizontalBlock"] { 
-            align-items: center; 
-        }
-    </style>""", unsafe_allow_html=True)
-
-    # --- HEADER ---
-    col1, col2, col3 = st.columns([0.25, 0.5, 0.25])
-    with col1:
-        st.image(os.path.join(project_root, "static", "logo_geek.png"), width=200)
-    with col2:
-        st.markdown("<h1 style='text-align: center; color: black;'>ERP Factoring</h1>", unsafe_allow_html=True)
-    with col3:
-        empty_col, logo_col = st.columns([1, 2])
-        with logo_col:
-            st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
-
-    st.markdown("&nbsp;")
-
     # --- MODULE NAVIGATION ---
-    st.subheader("Flujo de Módulos del Sistema", divider='blue')
+    st.subheader("Map de Módulos del Sistema", divider='blue')
 
-    # Define the 3x3 grid layout
-    # Row 1: Registro, Originación, Aprobación
-    # Row 2: Desembolso, Liquidación, Reporte
-    # Row 3: Empty, Calculadora Factoring, Empty
+    # Define the 4x3 grid layout based on pages/ order
+    # Row 1: 01, 02, 03, 04
+    # Row 2: 05, 06, 07, 08
+    # Row 3: 09, 10, Empty, Empty
     
     grid_layout = [
-        ["Registro", "Originación", "Aprobación"],
-        ["Desembolso", "Liquidación", "Reporte"],
-        [None, "Calculadora Factoring", None]
+        ["Registro", "Originación", "Aprobación", "Desembolso"],
+        ["Liquidación", "Reporte", "Repositorio", "Calculadora"],
+        ["Limpieza BD", "Testing Liq.", None, None]
     ]
 
     for row in grid_layout:
-        cols = st.columns(3)
+        cols = st.columns(4) # 4 Columns
         for i, module_name in enumerate(row):
             with cols[i]:
                 if module_name is None:
@@ -210,25 +191,26 @@ else:
                     st.write("")
                 else:
                     details = MODULES[module_name]
-                    is_prod = details['status'] == "✅ En Producción"
+                    status_text = details['status']
                     
+                    # Color logic
+                    if "✅" in status_text:
+                        title_color = "green"
+                    elif "⚠️" in status_text:
+                        title_color = "orange"
+                    elif "🧪" in status_text:
+                        title_color = "purple"
+                    else:
+                        title_color = "gray"
+
                     with st.container(border=True):
-                        # Set title color based on status
-                        title_color = "green" if is_prod else "red"
-                        st.markdown(f'<h4 style="color:{title_color};">{module_name}</h4>', unsafe_allow_html=True)
+                        st.markdown(f'<h4 style="color:{title_color}; text-align:center;">{module_name}</h4>', unsafe_allow_html=True)
+                        st.caption(f"Status: {status_text}")
+                        st.markdown("&nbsp;") # Spacer
                         
-                        st.markdown("&nbsp;") # Spacer for vertical alignment
-                        
-                        # Button logic
-                        if details["page"]:
-                            if st.button(f"Ir a {module_name}", help=details["help"], key=f"btn_{module_name}", use_container_width=True):
-                                switch_page(details['page'])
-                        else:
-                            st.button("Próximamente", 
-                                      disabled=True, 
-                                      help=details["help"],
-                                      key=f"btn_{module_name}",
-                                      use_container_width=True)
+                        # Button
+                        if st.button(f"Abrir", help=details["help"], key=f"btn_{module_name}", use_container_width=True):
+                            switch_page(details['page'])
 
     # --- INTERACTIVE FLOWCHART ---
     st.markdown("&nbsp;")
