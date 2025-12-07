@@ -99,13 +99,13 @@ with col_btn2:
         # Abrir Google Picker
         try:
             selected_files = google_picker(
-                client_id=GOOGLE_CLIENT_ID,
-                developer_key=GOOGLE_API_KEY,
-                app_id=GOOGLE_CLIENT_ID.split('-')[0],  # Extraer App ID del Client ID
-                folder_id=FOLDER_ID,
-                multi_select=True,
-                show_upload_view=True,
-                show_upload_folders=True,
+                clientId=GOOGLE_CLIENT_ID,
+                developerKey=GOOGLE_API_KEY,
+                appId=GOOGLE_CLIENT_ID.split('-')[0],  # Extraer App ID del Client ID
+                folderId=FOLDER_ID,
+                multiselect=True,
+                showUploadView=True,
+                showUploadFolders=True,
             )
             
             if selected_files:
