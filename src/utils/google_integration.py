@@ -85,8 +85,23 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     def safe_flatten_picker_result(picker_result, token, use_cache=True):
          # picker_result might be a list directly or a dict with 'docs'
          if isinstance(picker_result, list):
-             return picker_result
-         return picker_result.get("docs", [])
+             raw_docs = picker_result
+         else:
+             raw_docs = picker_result.get("docs", [])
+             
+         # The library expects objects with attributes (f.id), but our code uses .get()
+         # We create a hybrid class to satisfy both.
+         class PickerFile:
+             def __init__(self, data):
+                 self.data = data
+                 for k, v in data.items():
+                     setattr(self, k, v)
+             def get(self, key, default=None):
+                 return self.data.get(key, default)
+             def __getitem__(self, key):
+                 return self.data[key]
+                 
+         return [PickerFile(d) for d in raw_docs]
 
     # Save original just in case (though we won't switch back per request inside this block)
     original_flatten = lib_upl.flatten_picker_result
