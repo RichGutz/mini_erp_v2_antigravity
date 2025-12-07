@@ -49,7 +49,7 @@ if 'selected_files' not in st.session_state:
 # --- OAuth2 Component ---
 AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
-SCOPE = "https://www.googleapis.com/auth/drive.readonly"
+SCOPE = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly"
 
 oauth2 = OAuth2Component(
     GOOGLE_CLIENT_ID,
@@ -68,7 +68,7 @@ if not st.session_state.access_token:
     result = oauth2.authorize_button(
         name="Iniciar sesión con Google",
         icon="https://www.google.com/favicon.ico",
-        redirect_uri="https://minierpv2antigravity-wwnqmavykpjtsogtphufpa.streamlit.app/component/streamlit_oauth.authorize",
+        redirect_uri="http://localhost:8501/component/streamlit_oauth.authorize",
         scope=SCOPE,
         key="google_oauth",
         extras_params={"access_type": "offline", "prompt": "consent"},
