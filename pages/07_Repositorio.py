@@ -65,20 +65,27 @@ st.markdown("### 🔐 Autenticación")
 
 if not st.session_state.access_token:
     # Mostrar botón de login
-    result = oauth2.authorize_button(
-        name="Iniciar sesión con Google",
-        icon="https://www.google.com/favicon.ico",
-        redirect_uri="https://minierpv2antigravity-wwnqmavykpjtsogtphufpa.streamlit.app/component/streamlit_oauth.authorize",
-        scope=SCOPE,
-        key="google_oauth",
-        extras_params={"access_type": "offline", "prompt": "consent"},
-    )
-    
-    if result and 'token' in result:
-        st.session_state.access_token = result.get('token')
-        st.rerun()
-    else:
-        st.info("👆 Inicia sesión con tu cuenta de Google para acceder al repositorio")
+    try:
+        result = oauth2.authorize_button(
+            name="Iniciar sesión con Google",
+            icon="https://www.google.com/favicon.ico",
+            redirect_uri="https://minierpv2antigravity-wwnqmavykpjtsogtphufpa.streamlit.app/component/streamlit_oauth.authorize",
+            scope=SCOPE,
+            key="google_oauth",
+            extras_params={"access_type": "offline", "prompt": "consent"},
+        )
+        
+        if result and 'token' in result:
+            st.session_state.access_token = result.get('token')
+            st.rerun()
+        else:
+            st.info("👆 Inicia sesión con tu cuenta de Google para acceder al repositorio")
+            st.stop()
+    except Exception as e:
+        st.error(f"❌ Error de autenticación: {str(e)}")
+        st.warning("💡 **Solución**: Recarga la página (F5) e intenta nuevamente")
+        if st.button("🔄 Recargar página"):
+            st.rerun()
         st.stop()
 else:
     # Mostrar estado autenticado
