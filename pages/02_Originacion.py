@@ -885,7 +885,21 @@ if st.session_state.invoices_data:
                     success_count = 0
                     errors_db = []
                     
-                    identificador_lote = str(uuid.uuid4())
+                    import re
+                    def sanitize_filename(name):
+                        return re.sub(r'[^a-zA-Z0-9_\-]', '_', name)
+
+                    # Obtener nombre del emisor de la primera factura (si existe)
+                    first_invoice_emisor = "EMISOR"
+                    if st.session_state.invoices_data:
+                        first_invoice_emisor = st.session_state.invoices_data[0].get('emisor_nombre', 'EMISOR')
+                    
+                    sanitized_emisor = sanitize_filename(first_invoice_emisor)
+                    sanitized_contract = sanitize_filename(contract_input)
+                    sanitized_annex = sanitize_filename(annex_input)
+                    
+                    # Formato: EMISOR_CONTRATO_ANEXO
+                    identificador_lote = f"{sanitized_emisor}_{sanitized_contract}_{sanitized_annex}"
                     
                     for invoice_data in st.session_state.invoices_data:
                         if invoice_data.get('recalculate_result'):
