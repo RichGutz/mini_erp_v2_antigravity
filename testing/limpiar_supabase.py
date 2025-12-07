@@ -11,7 +11,7 @@ import sys
 import os
 
 # Agregar el directorio raíz al path
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.data.supabase_client import get_supabase_client
 
@@ -46,7 +46,7 @@ def limpiar_tablas_operacionales():
     print("  ❌ authorized_users")
     print("  ❌ modules")
     print("  ❌ user_module_access")
-    print("  ❌ EMISORES.DEUDORES")
+    print("  ❌ EMISORES.ACEPTANTES")
     print()
     
     confirmacion = input("¿Estás seguro de continuar? (escribe 'SI' para confirmar): ")
@@ -72,13 +72,10 @@ def limpiar_tablas_operacionales():
                 continue
             
             # Borrar todos los registros
-            # Nota: Supabase no tiene un DELETE sin WHERE, así que borramos por lotes
             if tabla == 'propuestas':
-                # Para propuestas, usar proposal_id
                 for record in response.data:
                     supabase.table(tabla).delete().eq('proposal_id', record['proposal_id']).execute()
-            elif tabla in ['liquidaciones_resumen', 'desembolsos_resumen', 'liquidacion_eventos', 'desembolso_eventos', 'auditoria_eventos']:
-                # Para otras tablas, usar id
+            else:
                 for record in response.data:
                     supabase.table(tabla).delete().eq('id', record['id']).execute()
             
@@ -98,7 +95,7 @@ def limpiar_tablas_operacionales():
     print("  - authorized_users (usuarios autorizados)")
     print("  - modules (módulos del sistema)")
     print("  - user_module_access (permisos de acceso)")
-    print("  - EMISORES.DEUDORES (catálogo de empresas)")
+    print("  - EMISORES.ACEPTANTES (catálogo de empresas)")
     print()
 
 
