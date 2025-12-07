@@ -192,20 +192,6 @@ if facturas_seleccionadas:
             st.warning("⚠️ No hay datos bancarios para este emisor.")
     else:
         st.error("❌ Emisor sin RUC.")
-
-st.divider()
-
-# ==============================================================================
-# SECCIÓN 3: CONFIGURACIÓN Y DESEMBOLSO FINAL (Condicional)
-# ==============================================================================
-if facturas_seleccionadas:
-    st.markdown("### 3. Configuración y Desembolso")
-    
-    # 4.1 Config Global
-    col_g1, col_g2 = st.columns(2)
-    with col_g1:
-        st.session_state.global_desembolso_vars['fecha_desembolso'] = st.date_input(
-            "Fecha de Desembolso (Real)", 
             st.session_state.global_desembolso_vars['fecha_desembolso']
         )
     with col_g2:
@@ -253,21 +239,6 @@ if facturas_seleccionadas:
                     key=f"uploader_ind_{i}",
                     disabled=st.session_state.sustento_unico
                 )
-
-    st.markdown("---")
-    
-    st.markdown("---")
-
-    # 4.3 PICKER (MOVED HERE)
-    st.markdown("#### Selección de Carpeta Destino (Google Drive)")
-    try:
-        folder = render_simple_folder_selector(key="picker_bottom_up", label="Seleccionar Carpeta Destino")
-        if folder:
-            st.success(f"✅ Carpeta Seleccionada: {folder.get('name')} (ID: {folder.get('id')})")
-        else:
-            st.info("👆 Selecciona donde se guardarán los archivos.")
-    except Exception as e:
-        st.error(f"❌ Error al renderizar el selector: {e}")
 
     st.markdown("---")
     
