@@ -167,10 +167,8 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
         apiKey=api_key,
         appId=app_id,
         view_ids=["FOLDERS"],
-        mimeTypes="application/vnd.google-apps.folder", # Force folder selection
         allow_folders=True, # Critical for folder view
-        support_drives=True,
-        multiselect=False,
+        accept_multiple_files=False, # Use this instead of multiselect
         key=picker_key
     )
 
