@@ -277,20 +277,7 @@ if files:
             st.markdown(f"*{format_date(file.get('modifiedTime'))}*")
         
         with col5:
-            col_download, col_delete = st.columns(2)
-            with col_download:
-                file_bytes = st.session_state.drive_manager.download_file(file['id'])
-                if file_bytes:
-                    st.download_button(
-                        label="⬇️",
-                        data=file_bytes,
-                        file_name=file['name'],
-                        mime=file.get('mimeType', 'application/octet-stream'),
-                        key=f"download_{file['id']}",
-                        help="Descargar archivo"
-                    )
-            
-            with col_delete:
+            # Botón de eliminar
                 if st.button("🗑️", key=f"delete_file_{file['id']}", help="Eliminar archivo"):
                     if st.session_state.drive_manager.delete_file(file['id']):
                         st.success(f"✅ Archivo eliminado")
@@ -328,3 +315,4 @@ with st.expander("ℹ️ Información del Módulo"):
                   ├── PDFs...
     ```
     """)
+
