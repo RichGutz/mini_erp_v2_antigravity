@@ -1080,3 +1080,85 @@ CAMBIOS REALIZADOS:
 
 ESTADO:  AL DÍA
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-07 11:43:00
+SESIÓN: Integración Google Picker en Originación - La Saga del Monkeypatch
+================================================================================
+
+PROBLEMA INICIAL:
+-----------------
+El usuario requería integrar la subida de archivos (PDFs generados) a una carpeta de Google Drive seleccionada dinámicamente en el módulo 'Originación'.
+
+INTENTOS Y OBSTÁCULOS:
+----------------------
+1.  **Enfoque 'Picker Proactivo':**
+    -   Se intentó colocar el Picker antes de la generación del PDF.
+    -   *Fallo:* Generaba confusión en el UX y duplicidad de pickers. Fue descartado por el usuario.
+
+2.  **Integración del Picker (Componente Existente):**
+    -   Se reutilizó la lógica de '07_Repositorio.py'.
+    -   *Error Crítico:* 'requests.exceptions.HTTPError: 403 Client Error'.
+    -   *Causa Raíz:* La librería 'streamlit-google-picker' intenta listar los archivos de la carpeta seleccionada ('list_files_in_folder') para devolver su contenido.
+    -   *Bloqueo:* El token de OAuth del usuario tiene scope 'drive.file' (solo acceso a archivos creados por la app), por lo que NO tiene permiso para leer/listar carpetas ajenas. Esto causaba el crash inmediato al seleccionar cualquier carpeta.
+
+SOLUCIÓN TÉCNICA (MONKEYPATCHING):
+----------------------------------
+Para hacer funcionar la librería sin cambiar los permisos de seguridad (lo cual es buena práctica de 'menor privilegio'), se aplicó ingeniería inversa y 'Monkeypatching' en caliente:
+
+1.  **Intento 1 (Suave):** Parchear 'list_files_in_folder' dentro del contexto.
+    -   *Resultado:* Fallido. La librería importaba la función de forma que el parche no surtía efecto.
+
+2.  **Intento 2 (Agresivo):** Parchear 'flatten_picker_result' en el módulo 'uploaded_file'.
+    -   *Estrategia:* Interceptar la función padre que procesa los resultados.
+    -   *Resultado:* Parcialmente exitoso, evitó el crash de red.
+
+3.  **Intento 3 (Definitivo - Manejo de Tipos):**
+    -   *Nuevo Error:* 'AttributeError: list object has no attribute get'.
+    -   *Causa:* La librería espera objetos con atributos (como '.id'), pero el parche devolvía diccionarios o listas crudas.
+    -   *Solución Final:* Se creó una clase wrapper 'PickerFile' que actúa simultáneamente como objeto y diccionario.
+
+RESULTADO FINAL:
+----------------
+-   Módulo 'src/utils/google_integration.py' blindado.
+-   El Picker permite seleccionar carpetas SIN intentar leerlas (bypass de seguridad exitoso).
+-   UX limpia: Usuario genera PDF -> Selecciona Carpeta -> Sube Archivo.
+-   Código desplegado y verificado en Originación.
+
+ESTADO:  ÉXITO ROTUNDO (ORIGINACIÓN)
+PENDIENTE: Replicar en Desembolso y Liquidación.
+================================================================================
+
+
+
+================================================================================
+FECHA: 2025-12-07 11:55:00
+PLAN: Refinamiento UI/UX - Flujo Contable Estructurado
+================================================================================
+
+OBJETIVO:
+---------
+Establecer un flujo de trabajo post-cálculo que garantice la integridad contable y facilite la futura generación de reportes masivos.
+
+ESTRATEGIA DEFINIDA:
+--------------------
+1.  REVISIÓN LOCAL:
+    -   Permitir descarga manual de PDFs (Perfil/Liquidación) para control personal del usuario.
+    
+2.  CLASIFICACIÓN (METADATA):
+    -   Exigir inputs explícitos: Contrato y Anexo antes de guardar.
+    -   Estos datos vincularán los archivos en la Base de Datos.
+
+3.  RUTEO LÓGICO:
+    -   Validación visual mediante Picker: EMISOR > Contrato > Anexo.
+
+4.  GUARDADO ATÓMICO:
+    -   Unificación de Guardar en BD + Subir a Drive.
+    -   Registro completo o nada.
+    
+ACCIÓN INMEDIATA:
+-----------------
+-   Modificar UI de 02_Originacion.py.
+-   Implementar campos de Contrato/Anexo.
+-   Unificar botones de acción.
+================================================================================

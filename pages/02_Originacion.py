@@ -1,11 +1,12 @@
 import streamlit as st
-# Force reload for google integration update (v12)
+# Force reload for google integration update (v13)
 import requests
 import os
 import datetime
 import json
 import tempfile
 import sys
+import uuid
 
 # This page only needs to know the project root for static assets.
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -872,8 +873,6 @@ if st.session_state.invoices_data:
                             'bytes': pdf_bytes,
                             'filename': output_filename
                         }
-                        
-                        # ------------------------------------
                     except Exception as e:
                         st.error(f"Error al generar el PDF de perfiles: {e}")
                 else:
@@ -881,21 +880,16 @@ if st.session_state.invoices_data:
             else:
                 st.warning("No hay resultados de cálculo para generar perfiles.")
 
-        # Renderizar contenido persistente fuera del bloque del botón
+        # Renderizar descarga local (Backup)
         if 'last_generated_perfil_pdf' in st.session_state:
             pdf_data = st.session_state['last_generated_perfil_pdf']
-            st.write("---")
+            st.divider()
             st.download_button(
-                label=f"⬇️ Descargar {pdf_data['filename']}",
+                label=f"⬇️ Descargar Perfil (Local)",
                 data=pdf_data['bytes'],
                 file_name=pdf_data['filename'],
-                mime="application/pdf"
-            )
-            render_drive_picker_uploader(
-                key="perfil_consolidados_persistent",
-                file_data=pdf_data['bytes'],
-                file_name=pdf_data['filename'],
-                label="Guardar Perfiles en Drive"
+                mime="application/pdf",
+                key="dl_perfil_local"
             )
 
     with col4:
@@ -914,8 +908,6 @@ if st.session_state.invoices_data:
                             'bytes': pdf_bytes,
                             'filename': output_filename
                         }
-                        
-                        # ------------------------------------
                     except Exception as e:
                         st.error(f"Error al generar la liquidación: {e}")
                 else:
@@ -923,22 +915,111 @@ if st.session_state.invoices_data:
             else:
                 st.warning("No hay resultados de cálculo para generar el anexo de liquidación.")
 
-        # Renderizar contenido persistente fuera del bloque del botón
+        # Renderizar descarga local (Backup)
         if 'last_generated_liquidacion_pdf' in st.session_state:
             pdf_data = st.session_state['last_generated_liquidacion_pdf']
-            st.write("---")
+            st.divider()
             st.download_button(
-                label=f"⬇️ Descargar {pdf_data['filename']}",
+                label=f"⬇️ Descargar Liquidación (Local)",
                 data=pdf_data['bytes'],
                 file_name=pdf_data['filename'],
-                mime="application/pdf"
+                mime="application/pdf",
+                key="dl_liquidacion_local"
             )
-            render_drive_picker_uploader(
-                key="anexo_liquidacion_persistent",
-                file_data=pdf_data['bytes'],
-                file_name=pdf_data['filename'],
-                label="Guardar Liquidación en Drive"
-            )
+
+    # --- NUEVA SECCIÓN: FORMALIZACIÓN Y GUARDADO ---
+    st.markdown("---")
+    st.subheader("📚 Formalización y Guardado")
+    
+    with st.container(border=True):
+        st.info("Paso Final: Ingrese la metadata del contrato y seleccione la carpeta de destino para guardar en BD y Drive.")
+        
+        col_meta1, col_meta2 = st.columns(2)
+        with col_meta1:
+            contract_input = st.text_input("Nro. Contrato", key="input_contract_number", placeholder="Ej: 001-2024")
+        with col_meta2:
+            annex_input = st.text_input("Nro. Anexo", key="input_annex_number", placeholder="Ej: 1")
+            
+        # Folder Selection
+        selected_folder_info = render_simple_folder_selector(key="accounting_folder_selection", label="Seleccionar Carpeta Destino (Drive)")
+        
+        st.markdown("### Acciones Finales")
+        if st.button("💾 Guardar Propuesta y Subir Archivos", type="primary", use_container_width=True):
+            # Validations
+            params_ok = True
+            if not contract_input or not annex_input:
+                st.error("❌ Debe ingresar el Nro. Contrato y Nro. Anexo.")
+                params_ok = False
+            
+            if not selected_folder_info:
+                st.error("❌ Debe seleccionar una carpeta de Google Drive.")
+                params_ok = False
+                
+            if not st.session_state.invoices_data:
+                st.error("❌ No hay facturas para guardar.")
+                params_ok = False
+
+            if params_ok:
+                with st.spinner("Procesando Guardado Atómico (BD + Drive)..."):
+                    # 1. Save to Database
+                    success_count = 0
+                    errors_db = []
+                    
+                    identificador_lote = str(uuid.uuid4())
+                    
+                    for invoice_data in st.session_state.invoices_data:
+                        if invoice_data.get('recalculate_result'):
+                            # Inject Metadata
+                            invoice_data['contract_number'] = contract_input
+                            invoice_data['anexo_number'] = annex_input
+                            
+                            saved_ok, message = db.save_proposal(invoice_data, identificador_lote)
+                            if saved_ok:
+                                success_count += 1
+                                # Add to accumulated for print list (legacy logic support)
+                                newly_saved_id = message.split('ID ')[1].split(' ')[0] # Extract ID roughly
+                                # full_proposal_details = db.get_proposal_details_by_id(newly_saved_id) # Optional refresh
+                            else:
+                                errors_db.append(message)
+                    
+                    if errors_db:
+                        st.error(f"Errores al guardar en BD: {errors_db}")
+                    else:
+                        st.success(f"✅ {success_count} Propuestas guardadas en Base de Datos.")
+                        
+                        # 2. Upload to Drive (if PDFs exist)
+                        drive_errors = []
+                        if 'last_generated_perfil_pdf' in st.session_state:
+                            pdf = st.session_state['last_generated_perfil_pdf']
+                            ok_upl, res_upl = upload_file_to_drive(
+                                pdf['bytes'], 
+                                pdf['filename'], 
+                                selected_folder_info['id'], 
+                                st.session_state.token['access_token']
+                            )
+                            if ok_upl:
+                                st.success(f"✅ Perfil subido a Drive: {pdf['filename']}")
+                            else:
+                                drive_errors.append(f"Perfil: {res_upl}")
+
+                        if 'last_generated_liquidacion_pdf' in st.session_state:
+                            pdf = st.session_state['last_generated_liquidacion_pdf']
+                            ok_upl, res_upl = upload_file_to_drive(
+                                pdf['bytes'], 
+                                pdf['filename'], 
+                                selected_folder_info['id'], 
+                                st.session_state.token['access_token']
+                            )
+                            if ok_upl:
+                                st.success(f"✅ Liquidación subida a Drive: {pdf['filename']}")
+                            else:
+                                drive_errors.append(f"Liquidación: {res_upl}")
+                                
+                        if not drive_errors:
+                            st.balloons()
+                            st.success("✨ ¡Proceso Completado Exitosamente!")
+                        else:
+                            st.error(f"Hubo errores subiendo archivos: {drive_errors}")
     
     st.markdown("---")
     st.write("#### Descripción de las Acciones:")
