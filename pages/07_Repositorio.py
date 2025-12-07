@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+from streamlit_google_picker import google_picker
 
 # --- Configuración de la Página ---
 st.set_page_config(
@@ -25,57 +26,144 @@ with col3:
 
 st.markdown("---")
 
-# --- Configuración del Folder ID ---
-# Carpeta raíz del Repositorio INANDES en Google Drive
-FOLDER_ID = "1hOomiUg0Gw3VBpsyLYFcUGBLe9ujewV-"
+# --- Configuración ---
+# Obtener credenciales de secrets.toml
+try:
+    GOOGLE_CLIENT_ID = st.secrets["google"]["client_id"]
+    GOOGLE_CLIENT_SECRET = st.secrets["google"]["client_secret"]
+    GOOGLE_API_KEY = st.secrets["google"]["api_key"]
+    FOLDER_ID = st.secrets["google"]["drive_folder_id"]
+except KeyError as e:
+    st.error(f"⚠️ **Error de configuración**: Falta la clave {e} en secrets.toml")
+    st.info("""
+    **Instrucciones para configurar:**
+    
+    1. Edita el archivo `.streamlit/secrets.toml`
+    2. Agrega las siguientes líneas:
+    
+    ```toml
+    [google]
+    client_id = "TU_CLIENT_ID.apps.googleusercontent.com"
+    client_secret = "TU_CLIENT_SECRET"
+    api_key = "TU_API_KEY"
+    drive_folder_id = "1hOomiUg0Gw3VBpsyLYFcUGBLe9ujewV-"
+    ```
+    
+    3. Obtén las credenciales desde Google Cloud Console:
+       - Ve a APIs & Services → Credentials
+       - Crea OAuth 2.0 Client ID (Web application)
+       - Crea API Key
+       - Habilita Google Drive API y Google Picker API
+    """)
+    st.stop()
 
 # --- Información ---
-st.info("💡 **Repositorio de Documentos INANDES** - Navega, crea carpetas y sube archivos directamente en Google Drive.")
+st.info("💡 **Repositorio de Documentos INANDES** - Selecciona archivos directamente desde Google Drive con una interfaz interactiva.")
 
-# --- Embed Google Drive ---
-if FOLDER_ID == "REEMPLAZAR_CON_FOLDER_ID":
-    st.warning("⚠️ **Configuración pendiente**: El administrador debe configurar el Folder ID de Google Drive.")
+# --- Inicializar session state ---
+if 'selected_files' not in st.session_state:
+    st.session_state.selected_files = None
+
+# --- Google Picker ---
+st.markdown("### 📂 Seleccionar Archivos")
+
+# Instrucciones
+with st.expander("📖 Cómo usar el Repositorio", expanded=False):
     st.markdown("""
-    **Instrucciones para el administrador:**
-    1. Abre Google Drive y navega a la carpeta raíz del repositorio
-    2. Copia el Folder ID de la URL (la parte después de `/folders/`)
-    3. Edita este archivo y reemplaza `REEMPLAZAR_CON_FOLDER_ID` con el ID real
-    4. Haz commit y push para desplegar
+    ### Funcionalidades Disponibles
+    
+    ✅ **Autenticación segura** - Inicia sesión con tu cuenta de Google
+    
+    ✅ **Explorar carpetas** - Navega por la estructura de carpetas
+    
+    ✅ **Seleccionar archivos** - Elige uno o múltiples archivos
+    
+    ✅ **Vista previa** - Visualiza información de archivos seleccionados
+    
+    ✅ **Descarga directa** - Descarga archivos con un clic
+    
+    ### Notas Importantes
+    
+    - Necesitas autenticarte con Google la primera vez
+    - Los archivos seleccionados se muestran en una tabla
+    - Puedes descargar archivos usando los enlaces directos
+    - La sesión se mantiene mientras uses la aplicación
     """)
-else:
-    # Embed Google Drive con vista de grid
-    iframe_html = f"""
-    <iframe src="https://drive.google.com/embeddedfolderview?id={FOLDER_ID}#grid" 
-            style="width:100%; height:700px; border:1px solid #ddd; border-radius:8px;">
-    </iframe>
-    """
-    st.markdown(iframe_html, unsafe_allow_html=True)
-    
+
+st.markdown("---")
+
+# Botón para abrir el picker
+col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+with col_btn2:
+    if st.button("🔍 Abrir Selector de Archivos", type="primary", use_container_width=True):
+        # Abrir Google Picker
+        try:
+            selected_files = google_picker(
+                client_id=GOOGLE_CLIENT_ID,
+                developer_key=GOOGLE_API_KEY,
+                app_id=GOOGLE_CLIENT_ID.split('-')[0],  # Extraer App ID del Client ID
+                folder_id=FOLDER_ID,
+                multi_select=True,
+                show_upload_view=True,
+                show_upload_folders=True,
+            )
+            
+            if selected_files:
+                st.session_state.selected_files = selected_files
+                st.rerun()
+        except Exception as e:
+            st.error(f"❌ Error al abrir el selector: {str(e)}")
+            st.info("""
+            **Posibles causas:**
+            - Credenciales incorrectas en secrets.toml
+            - APIs no habilitadas en Google Cloud Console
+            - Problemas de autenticación
+            
+            Verifica tu configuración y vuelve a intentar.
+            """)
+
+# --- Mostrar archivos seleccionados ---
+if st.session_state.selected_files:
     st.markdown("---")
+    st.markdown("### 📋 Archivos Seleccionados")
     
-    # Instrucciones
-    with st.expander("📖 Cómo usar el Repositorio"):
-        st.markdown("""
-        ### Funcionalidades Disponibles
-        
-        ✅ **Navegar carpetas** - Click en las carpetas para explorar
-        
-        ✅ **Crear carpetas** - Click derecho → Nueva carpeta
-        
-        ✅ **Subir archivos** - Arrastra archivos o usa el botón de subir
-        
-        ✅ **Descargar archivos** - Click derecho → Descargar
-        
-        ✅ **Organizar** - Mover, renombrar, eliminar archivos y carpetas
-        
-        ### Notas Importantes
-        
-        - Necesitas tener acceso a la carpeta de Google Drive
-        - Los cambios se sincronizan automáticamente
-        - Sin límites de profundidad de carpetas
-        - Soporta todos los tipos de archivos
-        """)
+    files = st.session_state.selected_files
+    
+    # Mostrar información de archivos
+    if isinstance(files, dict):
+        files = [files]
+    
+    for idx, file in enumerate(files):
+        with st.container():
+            col_info, col_actions = st.columns([3, 1])
+            
+            with col_info:
+                # Información del archivo
+                file_name = file.get('name', 'Sin nombre')
+                file_id = file.get('id', '')
+                file_type = file.get('mimeType', 'Desconocido')
+                
+                st.markdown(f"**{idx + 1}. {file_name}**")
+                st.caption(f"📄 Tipo: {file_type}")
+                st.caption(f"🆔 ID: {file_id}")
+            
+            with col_actions:
+                # Botón de descarga/vista
+                if file_id:
+                    download_url = f"https://drive.google.com/file/d/{file_id}/view"
+                    st.link_button("🔗 Abrir", download_url, use_container_width=True)
+            
+            st.markdown("---")
+    
+    # Botón para limpiar selección
+    if st.button("🗑️ Limpiar Selección", type="secondary"):
+        st.session_state.selected_files = None
+        st.rerun()
+
+else:
+    # Mensaje cuando no hay archivos seleccionados
+    st.info("👆 Haz clic en el botón para abrir el selector de archivos de Google Drive")
 
 # --- Footer ---
 st.markdown("---")
-st.caption("🔒 **Seguro y confiable** - Powered by Google Drive")
+st.caption("🔒 **Seguro y confiable** - Powered by Google Drive & Google Picker API")
