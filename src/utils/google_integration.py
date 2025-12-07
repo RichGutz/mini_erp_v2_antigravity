@@ -77,14 +77,33 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     # Extract appId safely
     app_id = client_id.split('-')[0] if client_id else None
     
-    selected_folder = google_picker(
-        token=st.session_state.token['access_token'],
-        apiKey=api_key,
-        appId=app_id,
-        view_ids=["FOLDERS"], # Only show folders
-        allow_folders=True,
-        key=picker_key
-    )
+    # --- MONKEYPATCH START ---
+    # Reuse the same monkeypatch logic for consistency
+    original_func = lib_upl.list_files_in_folder
+    
+    def no_op_list_files(folder_id, token):
+        return [{
+            'id': folder_id, 
+            'name': 'Carpeta Seleccionada', 
+            'mimeType': 'application/octet-stream' 
+        }]
+
+    try:
+        lib_upl.list_files_in_folder = no_op_list_files
+        
+        selected_folder = google_picker(
+            label="📂 Guardar en Drive (Seleccionar Carpeta)",
+            token=st.session_state.token['access_token'],
+            apiKey=api_key,
+            appId=app_id,
+            view_ids=["FOLDERS"],
+            allow_folders=True,
+            accept_multiple_files=False,
+            key=picker_key
+        )
+    finally:
+        lib_upl.list_files_in_folder = original_func
+    # --- MONKEYPATCH END ---
 
     # 3. Handle Selection & Upload
     if selected_folder:

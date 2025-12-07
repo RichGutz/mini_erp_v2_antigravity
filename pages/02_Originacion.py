@@ -1,5 +1,5 @@
 import streamlit as st
-# Force reload for google integration update (v6)
+# Force reload for google integration update (v8)
 import requests
 import os
 import datetime
@@ -848,15 +848,6 @@ if st.session_state.invoices_data:
                     st.warning("No hay resultados de cálculo para guardar.")
     
     with col3:
-        # --- [UX IMPROVEMENT] PROACTIVE PICKER ---
-        # Show picker ONLY if we can print profiles (calculation done)
-        if can_print_profiles:
-             st.markdown("##### 1. Seleccionar Destino")
-             selected_folder = render_simple_folder_selector(key="originacion_folder_selector")
-             st.markdown("---")
-        else:
-             selected_folder = None
-
         if st.button("Generar Perfil", disabled=not can_print_profiles, help=COMMENT_PERFIL, use_container_width=True):
             if can_print_profiles:
                 invoices_to_print = []
@@ -882,16 +873,6 @@ if st.session_state.invoices_data:
                             'filename': output_filename
                         }
                         
-                        # --- [UX IMPROVEMENT] AUTO-UPLOAD ---
-                        if selected_folder:
-                            with st.spinner(f"Subiendo a {selected_folder['name']}..."):
-                                success, res = upload_file_to_drive(
-                                    pdf_bytes, output_filename, selected_folder['id'], st.session_state.token['access_token']
-                                )
-                                if success:
-                                    st.success(f"✅ Auto-subido a **{selected_folder['name']}**")
-                                else:
-                                    st.error(f"❌ Error subiendo: {res}")
                         # ------------------------------------
                     except Exception as e:
                         st.error(f"Error al generar el PDF de perfiles: {e}")
@@ -934,16 +915,6 @@ if st.session_state.invoices_data:
                             'filename': output_filename
                         }
                         
-                        # --- [UX IMPROVEMENT] AUTO-UPLOAD ---
-                        if selected_folder:
-                             with st.spinner(f"Subiendo a {selected_folder['name']}..."):
-                                success, res = upload_file_to_drive(
-                                    pdf_bytes, output_filename, selected_folder['id'], st.session_state.token['access_token']
-                                )
-                                if success:
-                                    st.success(f"✅ Auto-subido a **{selected_folder['name']}**")
-                                else:
-                                    st.error(f"❌ Error subiendo: {res}")
                         # ------------------------------------
                     except Exception as e:
                         st.error(f"Error al generar la liquidación: {e}")
