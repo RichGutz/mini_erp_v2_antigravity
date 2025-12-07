@@ -987,3 +987,58 @@ CÓDIGO AUMENTADO:
 ESTADO: ✅ COMPLETADO
 PENDIENTE: ⏳ Testing manual por usuario
 ================================================================================
+
+
+================================================================================
+FECHA: 2025-12-07 09:16:00
+SESIÓN: Diagnóstico y Solución del Error 403 en Google Picker (Streamlit Cloud)
+================================================================================
+
+PROBLEMA REPORTADO:
+-------------------
+Usuario reporta error 403 (Forbidden) al presionar "Browse file" en el iframe 
+del Google Picker en el módulo de Repositorio (07_Repositorio.py).
+
+CONTEXTO:
+---------
+- Aplicación ejecutándose en Streamlit Cloud (NO localhost)
+- URL de producción: https://minierpv2antigravity-wwnqmavykpjtsogtphufpa.streamlit.app
+- Módulo usa streamlit-google-picker y streamlit-oauth para autenticación
+- OAuth 2.0 Client ID ya configurado
+- API Key posiblemente no configurado correctamente
+
+CAUSA RAÍZ IDENTIFICADA:
+------------------------
+El error 403 en Google Picker cuando se ejecuta en Streamlit Cloud se debe a:
+
+1. Authorized JavaScript origins no configurados en Google Cloud Console
+   - Google Picker requiere que el dominio esté explícitamente autorizado
+   - Falta agregar: https://minierpv2antigravity-wwnqmavykpjtsogtphufpa.streamlit.app
+
+2. Authorized redirect URIs incompletos
+   - El redirect_uri está hardcodeado en línea 72 de 07_Repositorio.py
+   - Falta agregar las URLs del componente OAuth en Google Cloud Console
+
+3. API Key con restricciones incorrectas
+   - Posiblemente restringido a localhost o sin HTTP referrers configurados
+   - Necesita permitir el dominio de Streamlit Cloud
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+1. Documentación Creada:
+   - Archivo: docs/FIX_ERROR_403_PICKER.md
+   - Guía paso a paso para configurar Google Cloud Console
+   - Instrucciones específicas para Streamlit Cloud
+
+2. Configuración Requerida en Google Cloud Console:
+   - OAuth JavaScript origins: URL de Streamlit Cloud
+   - OAuth redirect URIs: URLs del componente OAuth
+   - API Key: HTTP referrers para Streamlit Cloud
+
+ARCHIVOS CREADOS:
+-----------------
+- docs/FIX_ERROR_403_PICKER.md
+
+ESTADO:  DOCUMENTACIÓN COMPLETADA
+PENDIENTE:  Usuario debe aplicar cambios en Google Cloud Console
+================================================================================

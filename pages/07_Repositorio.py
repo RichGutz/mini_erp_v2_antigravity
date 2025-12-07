@@ -41,68 +41,14 @@ except KeyError as e:
 st.info("💡 **Repositorio de Documentos INANDES** - Selecciona archivos directamente desde Google Drive.")
 
 # --- Inicializar session state ---
-if 'access_token' not in st.session_state:
-    st.session_state.access_token = None
 if 'selected_files' not in st.session_state:
     st.session_state.selected_files = None
 
-# --- OAuth2 Component ---
-AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-TOKEN_URL = "https://oauth2.googleapis.com/token"
-SCOPE = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly"
+# --- Verificar Autenticación ---
+st.markdown("### 📂 Seleccionar Archivos")
 
-oauth2 = OAuth2Component(
-    GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-    AUTHORIZATION_URL,
-    TOKEN_URL,
-    TOKEN_URL,
-    None
-)
-
-# --- Autenticación ---
-st.markdown("### 🔐 Autenticación")
-
-if not st.session_state.access_token:
-    # Mostrar botón de login
-    try:
-        result = oauth2.authorize_button(
-            name="Iniciar sesión con Google",
-            icon="https://www.google.com/favicon.ico",
-            redirect_uri="https://minierpv2antigravity-wwnqmavykpjtsogtphufpa.streamlit.app/component/streamlit_oauth.authorize",
-            scope=SCOPE,
-            key="google_oauth",
-            extras_params={"access_type": "offline", "prompt": "consent"},
-        )
-        
-        if result and 'token' in result:
-            st.session_state.access_token = result.get('token')
-            st.rerun()
-        else:
-            st.info("👆 Inicia sesión con tu cuenta de Google para acceder al repositorio")
-            st.stop()
-    except Exception as e:
-        st.error(f"❌ Error de autenticación: {str(e)}")
-        st.warning("💡 **Solución**: Recarga la página (F5) e intenta nuevamente")
-        if st.button("🔄 Recargar página"):
-            st.rerun()
-        st.stop()
-else:
-    # Mostrar estado autenticado
-    col_auth1, col_auth2 = st.columns([3, 1])
-    with col_auth1:
-        st.success("✅ Autenticado con Google")
-    with col_auth2:
-        if st.button("🚪 Cerrar sesión"):
-            st.session_state.access_token = None
-            st.session_state.selected_files = None
-            st.rerun()
-
-st.markdown("---")
-
-# --- Google Picker (solo si está autenticado) ---
-if st.session_state.access_token:
-    st.markdown("### 📂 Seleccionar Archivos")
+if 'token' in st.session_state and st.session_state.token:
+    access_token = st.session_state.token.get('access_token')
     
     # Instrucciones
     with st.expander("📖 Cómo usar el Repositorio", expanded=False):
@@ -124,7 +70,7 @@ if st.session_state.access_token:
     try:
         selected_files = google_picker(
             label="🔍 Seleccionar archivos de Google Drive",
-            token=st.session_state.access_token,
+            token=access_token,
             # apiKey=GOOGLE_API_KEY,  # Comentado - causa error developerKey
             appId=GOOGLE_CLIENT_ID.split('-')[0],
             accept_multiple_files=True,
@@ -135,11 +81,12 @@ if st.session_state.access_token:
         
         if selected_files:
             st.session_state.selected_files = selected_files
+            
     except Exception as e:
         st.error(f"❌ Error al abrir el selector: {str(e)}")
         st.info("""
         **Posibles causas:**
-        - Token de acceso expirado (intenta cerrar sesión y volver a autenticarte)
+        - Token de acceso expirado (intenta cerrar sesión y volver a autenticarte en Home)
         - APIs no habilitadas en Google Cloud Console
         - Problemas de permisos
         """)
@@ -181,6 +128,11 @@ if st.session_state.access_token:
         if st.button("🗑️ Limpiar Selección", type="secondary"):
             st.session_state.selected_files = None
             st.rerun()
+
+else:
+    st.warning("⚠️ No estás autenticado. Por favor, inicia sesión en la página de **Inicio**.")
+    if st.button("🏠 Ir a Inicio"):
+        st.switch_page("00_Home.py")
 
 # --- Footer ---
 st.markdown("---")
