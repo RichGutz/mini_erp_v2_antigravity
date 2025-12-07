@@ -92,7 +92,6 @@ if 'token' not in st.session_state:
     st.stop()
 
 
-
 # ==============================================================================
 # SECCIÓN 1: TABLA DE FACTURAS (Lógica de Negocio)
 # ==============================================================================
@@ -192,6 +191,37 @@ if facturas_seleccionadas:
             st.warning("⚠️ No hay datos bancarios para este emisor.")
     else:
         st.error("❌ Emisor sin RUC.")
+
+st.divider()
+
+# ==============================================================================
+# SECCIÓN 3.5: SELECTOR DE CARPETAS (CRÍTICO - SIEMPRE VISIBLE)
+# ==============================================================================
+st.markdown("### 3.5 Selección de Carpeta Destino (Google Drive)")
+st.info("Componente técnico obligatorio: Debe estar visible permanentemente.")
+
+try:
+    folder = render_simple_folder_selector(key="picker_bottom_up", label="Seleccionar Carpeta Destino")
+    if folder:
+        st.success(f"✅ Carpeta Seleccionada: {folder.get('name')} (ID: {folder.get('id')})")
+    else:
+        st.info("👆 Selecciona carpeta antes de procesar.")
+except Exception as e:
+    st.error(f"❌ Error al renderizar el selector: {e}")
+
+st.divider()
+
+# ==============================================================================
+# SECCIÓN 4: CONFIGURACIÓN Y DESEMBOLSO FINAL (Condicional)
+# ==============================================================================
+if facturas_seleccionadas:
+    st.markdown("### 4. Configuración y Desembolso")
+    
+    # 4.1 Config Global
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        st.session_state.global_desembolso_vars['fecha_desembolso'] = st.date_input(
+            "Fecha de Desembolso (Real)", 
             st.session_state.global_desembolso_vars['fecha_desembolso']
         )
     with col_g2:
