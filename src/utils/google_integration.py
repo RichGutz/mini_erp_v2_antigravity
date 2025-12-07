@@ -5,8 +5,6 @@ from streamlit_google_picker import google_picker
 import streamlit_google_picker.uploaded_file as lib_upl # Import for monkeypatching
 
 def upload_file_to_drive(file_data, file_name, folder_id, access_token):
-
-def upload_file_to_drive(file_data, file_name, folder_id, access_token):
     """
     Uploads a file (bytes) to a specific Google Drive folder using the Drive API v3 (REST).
     """
