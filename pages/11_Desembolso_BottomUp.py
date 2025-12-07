@@ -201,7 +201,7 @@ st.markdown("### 3.5 Selección de Carpeta Destino (Google Drive)")
 st.info("Componente técnico obligatorio: Debe estar visible permanentemente.")
 
 try:
-    folder = render_simple_folder_selector(key="picker_bottom_up", label="Seleccionar Carpeta Destino")
+    folder = render_simple_folder_selector(key="picker_bu_final_v1", label="Seleccionar Carpeta Destino")
     if folder:
         st.success(f"✅ Carpeta Seleccionada: {folder.get('name')} (ID: {folder.get('id')})")
     else:
