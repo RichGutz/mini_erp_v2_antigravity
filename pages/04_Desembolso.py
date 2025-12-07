@@ -134,6 +134,28 @@ if st.session_state.reload_data:
         st.session_state.reload_data = False
 
 # --- Mostrar Facturas Pendientes ---
+with st.expander("🛠️ Diagnóstico / Test Picker", expanded=False):
+    st.write("### Prueba de Componentes")
+    
+    # Check Token
+    has_token = 'token' in st.session_state and st.session_state.token is not None
+    st.write(f"1. Estado de Autenticación: {'✅ Conectado' if has_token else '❌ Desconectado'}")
+    if not has_token:
+        st.error("No hay token. Inicia sesión en Home.")
+    
+    # Raw Picker Test
+    st.write("2. Prueba Directa del Selector:")
+    try:
+        test_picker = render_simple_folder_selector(key="test_picker_standalone", label="Selector de Prueba")
+        st.write(f"Resultado Selector: {test_picker}")
+    except Exception as e:
+        st.error(f"Error crítico en el selector: {e}")
+
+    # Check Invoices
+    st.write("3. Estado de Selección:")
+    sel_count = len([f for f in st.session_state.facturas_aprobadas if st.session_state.facturas_seleccionadas_desembolso.get(f['proposal_id'])])
+    st.write(f"Facturas seleccionadas actualmente: {sel_count}")
+
 if not st.session_state.facturas_aprobadas:
     st.info("✅ No hay facturas aprobadas pendientes de desembolso en este momento.")
 else:
