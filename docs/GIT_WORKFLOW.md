@@ -190,3 +190,37 @@ git pull origin main --no-edit
 # 6. Push
 git push origin main
 ```
+
+## Incidente Crítico: Bloqueo por Secretos (DLP)
+
+**Fecha:** 07/12/2025
+
+**Problema:**
+GitHub tiene un sistema de protección de secretos (Secret Scanning) que **bloquea inmediatamente** cualquier push que contenga strings que parezcan claves API, secretos de cliente o tokens reales (especialmente de Google, AWS, etc.).
+
+**Síntoma:**
+El comando git push falla con un mensaje como:
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: Secret detection violation: Google OAuth Client Secret
+
+**Consecuencia:**
+Los agentes de IA entran en un bucle infinito de intentos fallidos, tratando de corregir el error sin éxito, consumiendo mucho tiempo y créditos.
+
+**Regla de Oro:**
+ **NUNCA** incluir secretos reales en archivos de documentación, ejemplos de código, o comentarios. Ni siquiera si el archivo está en .gitignore (ya que si cometes el error de agregarlo con git add, el daño está hecho).
+ Usar siempre **PLACEHOLDERS** claros:
+   - client_secret = "TU_CLIENT_SECRET_AQUI"
+   - api_key = "TU_API_KEY_AQUI"
+
+**Procedimiento de Recuperación (Si ocurre):**
+Si accidentalmente hiciste un commit con un secreto:
+
+1.  **NO hagas push.** Fallará.
+2.  **Elimina el secreto** del archivo inmediatamente.
+3.  **Enmienda el commit** (esto reescribe la historia local para que el secreto nunca haya existido en ese commit):
+    git add <archivo_corregido>
+    git commit --amend --no-edit
+4.  **Haz push:**
+    git push origin main
+
+**Nota:** Si el secreto se commiteó en un commit anterior (no el último), la solución es mucho más compleja (reset soft o rebase interactivo). Por eso la prevención es clave.
