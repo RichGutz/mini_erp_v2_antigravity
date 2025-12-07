@@ -77,19 +77,22 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     # Extract appId safely
     app_id = client_id.split('-')[0] if client_id else None
     
-    # --- MONKEYPATCH START ---
-    # Reuse the same monkeypatch logic for consistency
-    original_func = lib_upl.list_files_in_folder
+    # --- AGGRESSIVE MONKEYPATCH START ---
+    # The library `streamlit-google-picker` tries to flatten results and list files in folders.
+    # We must DISABLE this behavior because we don't have scope to list files, only to pick/upload.
+    # We redefine the flatten function to simply extract the ID and Name without calling API.
     
-    def no_op_list_files(folder_id, token):
-        return [{
-            'id': folder_id, 
-            'name': 'Carpeta Seleccionada', 
-            'mimeType': 'application/octet-stream' 
-        }]
+    def safe_flatten_picker_result(picker_result, token, use_cache=True):
+         # Just return the raw docs or formatted list without making API calls
+         docs = picker_result.get("docs", [])
+         return docs
 
+    # Save original just in case (though we won't switch back per request inside this block)
+    original_flatten = lib_upl.flatten_picker_result
+    
     try:
-        lib_upl.list_files_in_folder = no_op_list_files
+        # Override the function that processes the result
+        lib_upl.flatten_picker_result = safe_flatten_picker_result
         
         selected_folder = google_picker(
             label="📂 Guardar en Drive (Seleccionar Carpeta)",
@@ -102,8 +105,9 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
             key=picker_key
         )
     finally:
-        lib_upl.list_files_in_folder = original_func
-    # --- MONKEYPATCH END ---
+        # Optimize: keep it patched or restore? Restoring is safer for other potential uses.
+        lib_upl.flatten_picker_result = original_flatten
+    # --- AGGRESSIVE MONKEYPATCH END ---
 
     # 3. Handle Selection & Upload
     if selected_folder:
