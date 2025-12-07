@@ -1,5 +1,5 @@
 import streamlit as st
-# Force reload for google integration update (v13)
+# Force reload for google integration update (v14) - UI Cleanup
 import requests
 import os
 import datetime
@@ -630,27 +630,12 @@ if st.session_state.invoices_data:
                 tabla_md = "\n".join(lines)
                 st.markdown(tabla_md, unsafe_allow_html=True)
 
-    # --- Pasos 3 y 4: Grabar e Imprimir ---
-    st.markdown("---")
-    st.subheader("Acciones de la Operación")
-
-    st.write("##### Datos de Contrato (para Grabar)")
-    col_anexo, col_contrato = st.columns(2)
-    with col_anexo:
-        st.text_input("Número de Anexo", key="anexo_number_global")
-    with col_contrato:
-        st.text_input("Número de Contrato", key="contract_number_global")
-
-    st.markdown("---")
-
     # Define conditions for disabling buttons
     has_recalc_result = any(invoice.get('recalculate_result') for invoice in st.session_state.invoices_data)
-    contract_fields_filled = bool(st.session_state.anexo_number_global) and bool(st.session_state.contract_number_global)
-    can_save_proposal = has_recalc_result and contract_fields_filled
     can_print_profiles = has_recalc_result
 
-    # Create horizontal buttons
-    col1, col2, col3, col4 = st.columns(4)
+    # Create horizontal buttons (Calcular, Perfil, Liquidación)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         if st.button("Calcular Facturas", key="calculate_all_invoices", help=COMMENT_CALCULAR, type="primary", use_container_width=True):
@@ -781,74 +766,9 @@ if st.session_state.invoices_data:
                 except requests.exceptions.RequestException as e:
                     st.error(f"Error de conexión con la API: {e}")
 
-    with col2:
-        if st.button("GRABAR Propuesta", disabled=not can_save_proposal, help=COMMENT_GRABAR, use_container_width=True):
-            if can_save_proposal:
-                anexo_number_str = st.session_state.anexo_number_global
-                contract_number_str = st.session_state.contract_number_global
-                timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-                identificador_lote = f"LOTE-{contract_number_str}-{anexo_number_str}-{timestamp}"
 
-                for idx_btn, invoice_btn in enumerate(st.session_state.invoices_data):
-                    if invoice_btn.get('recalculate_result'):
-                        with st.spinner(f"Guardando propuesta para Factura {idx_btn + 1}..."):
-                            anexo_number_int = int(anexo_number_str) if anexo_number_str else None
-                            contract_number_int = int(contract_number_str) if contract_number_str else None
-                            
-                            temp_session_data = {
-                                'emisor_nombre': invoice_btn.get('emisor_nombre'),
-                                'emisor_ruc': invoice_btn.get('emisor_ruc'),
-                                'aceptante_nombre': invoice_btn.get('aceptante_nombre'),
-                                'aceptante_ruc': invoice_btn.get('aceptante_ruc'),
-                                'numero_factura': invoice_btn.get('numero_factura'),
-                                'monto_total_factura': invoice_btn.get('monto_total_factura'),
-                                'monto_neto_factura': invoice_btn.get('monto_neto_factura'),
-                                'moneda_factura': invoice_btn.get('moneda_factura'),
-                                'fecha_emision_factura': invoice_btn.get('fecha_emision_factura'),
-                                'plazo_credito_dias': invoice_btn.get('plazo_credito_dias'),
-                                'fecha_desembolso_factoring': invoice_btn.get('fecha_desembolso_factoring'),
-                                'tasa_de_avance': invoice_btn.get('tasa_de_avance'),
-                                'interes_mensual': invoice_btn.get('interes_mensual'),
-                                'interes_moratorio': invoice_btn.get('interes_moratorio'),
-                                'comision_de_estructuracion': invoice_btn.get('comision_de_estructuracion'),
-                                'comision_minima_pen': invoice_btn.get('comision_minima_pen'),
-                                'comision_minima_usd': invoice_btn.get('comision_minima_usd'),
-                                'comision_afiliacion_pen': invoice_btn.get('comision_afiliacion_pen'),
-                                'comision_afiliacion_usd': invoice_btn.get('comision_afiliacion_usd'),
-                                'aplicar_comision_afiliacion': invoice_btn.get('aplicar_comision_afiliacion'),
-                                'detraccion_porcentaje': invoice_btn.get('detraccion_porcentaje'),
-                                'fecha_pago_calculada': invoice_btn.get('fecha_pago_calculada'),
-                                'plazo_operacion_calculado': invoice_btn.get('plazo_operacion_calculado'),
-                                'initial_calc_result': invoice_btn.get('initial_calc_result'),
-                                'recalculate_result': invoice_btn.get('recalculate_result'),
-                                'anexo_number': anexo_number_int,
-                                'contract_number': contract_number_int,
-                            }
-                            success, message = db.save_proposal(temp_session_data, identificador_lote=identificador_lote)
-                            if success:
-                                st.success(message)
-                                if "Propuesta con ID" in message:
-                                    start_index = message.find("ID ") + 3
-                                    end_index = message.find(" guardada")
-                                    newly_saved_id = message[start_index:end_index]
-                                    invoice_btn['proposal_id'] = newly_saved_id
-                                    invoice_btn['identificador_lote'] = identificador_lote
-                                    st.session_state.last_saved_proposal_id = newly_saved_id
-
-                                    if 'accumulated_proposals' not in st.session_state:
-                                        st.session_state.accumulated_proposals = []
-                                    
-                                    full_proposal_details = db.get_proposal_details_by_id(newly_saved_id)
-                                    if full_proposal_details and 'proposal_id' in full_proposal_details:
-                                        if not any(p.get('proposal_id') == newly_saved_id for p in st.session_state.accumulated_proposals):
-                                            st.session_state.accumulated_proposals.append(full_proposal_details)
-                                            st.success(f"Propuesta {newly_saved_id} añadida a la lista de impresión.")
-                            else:
-                                st.error(message)
-                else:
-                    st.warning("No hay resultados de cálculo para guardar.")
     
-    with col3:
+    with col2:
         if st.button("Generar Perfil", disabled=not can_print_profiles, help=COMMENT_PERFIL, use_container_width=True):
             if can_print_profiles:
                 invoices_to_print = []
@@ -892,7 +812,7 @@ if st.session_state.invoices_data:
                 key="dl_perfil_local"
             )
 
-    with col4:
+    with col3:
         if st.button("Generar Liquidación", disabled=not can_print_profiles, help=COMMENT_LIQUIDACION, use_container_width=True):
             if can_print_profiles:
                 invoices_to_generate_anexo = [inv for inv in st.session_state.invoices_data if inv.get('recalculate_result')]
