@@ -83,9 +83,10 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     # We redefine the flatten function to simply extract the ID and Name without calling API.
     
     def safe_flatten_picker_result(picker_result, token, use_cache=True):
-         # Just return the raw docs or formatted list without making API calls
-         docs = picker_result.get("docs", [])
-         return docs
+         # picker_result might be a list directly or a dict with 'docs'
+         if isinstance(picker_result, list):
+             return picker_result
+         return picker_result.get("docs", [])
 
     # Save original just in case (though we won't switch back per request inside this block)
     original_flatten = lib_upl.flatten_picker_result
