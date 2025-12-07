@@ -220,7 +220,13 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     # If already selected, show it
     if key in st.session_state:
          curr = st.session_state[key]
-         st.success(f"📂 Carpeta Destino: **{curr['name']}**")
+         col_info, col_change = st.columns([4, 1])
+         with col_info:
+             st.success(f"📂 Carpeta Destino: **{curr['name']}**")
+         with col_change:
+             if st.button("🔄 Cambiar", key=f"change_{key}"):
+                 del st.session_state[key]
+                 st.rerun()
          return curr
          
     return None

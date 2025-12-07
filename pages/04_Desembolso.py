@@ -213,6 +213,7 @@ else:
         f for f in st.session_state.facturas_aprobadas
         if st.session_state.facturas_seleccionadas_desembolso.get(f['proposal_id'], False)
     ]
+    st.write(f"DEBUG: Facturas seleccionadas: {len(facturas_seleccionadas)}")
     
     # Mostrar Paso 2 (Voucher) y Paso 3 (Configuración) solo si hay facturas seleccionadas
     if facturas_seleccionadas:
