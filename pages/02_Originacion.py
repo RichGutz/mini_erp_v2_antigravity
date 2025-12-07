@@ -14,6 +14,8 @@ from src.services import pdf_parser
 from src.data import supabase_repository as db
 from src.utils import pdf_generators
 from src.utils.pdf_generators import generar_anexo_liquidacion_pdf
+from src.utils.google_integration import render_drive_picker_uploader
+
 
 # --- Estrategia Unificada para la URL del Backend ---
 
@@ -847,8 +849,6 @@ if st.session_state.invoices_data:
     with col3:
         if st.button("Generar Perfil", disabled=not can_print_profiles, help=COMMENT_PERFIL, use_container_width=True):
             if can_print_profiles:
-                st.write("Generando PDF...")
-                
                 invoices_to_print = []
                 num_invoices_for_pdf = len([inv for inv in st.session_state.invoices_data if inv.get('recalculate_result')])
                 for invoice_btn in st.session_state.invoices_data:
@@ -865,12 +865,12 @@ if st.session_state.invoices_data:
                         pdf_bytes = pdf_generators.generate_perfil_operacion_pdf(invoices_to_print)
                         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                         output_filename = f"perfiles_consolidados_{timestamp}.pdf"
-                        st.download_button(
-                            label=f"Descargar {output_filename}",
-                            data=pdf_bytes,
-                            file_name=output_filename,
-                            mime="application/pdf"
-                        )
+                        
+                        # Guardar en Session State para persistencia
+                        st.session_state['last_generated_perfil_pdf'] = {
+                            'bytes': pdf_bytes,
+                            'filename': output_filename
+                        }
                     except Exception as e:
                         st.error(f"Error al generar el PDF de perfiles: {e}")
                 else:
@@ -878,34 +878,62 @@ if st.session_state.invoices_data:
             else:
                 st.warning("No hay resultados de cálculo para generar perfiles.")
 
+        # Renderizar contenido persistente fuera del bloque del botón
+        if 'last_generated_perfil_pdf' in st.session_state:
+            pdf_data = st.session_state['last_generated_perfil_pdf']
+            st.write("---")
+            st.download_button(
+                label=f"⬇️ Descargar {pdf_data['filename']}",
+                data=pdf_data['bytes'],
+                file_name=pdf_data['filename'],
+                mime="application/pdf"
+            )
+            render_drive_picker_uploader(
+                key="perfil_consolidados_persistent",
+                file_data=pdf_data['bytes'],
+                file_name=pdf_data['filename'],
+                label="Guardar Perfiles en Drive"
+            )
+
     with col4:
         if st.button("Generar Liquidación", disabled=not can_print_profiles, help=COMMENT_LIQUIDACION, use_container_width=True):
             if can_print_profiles:
-                # Find all invoices that have a result to generate the report
                 invoices_to_generate_anexo = [inv for inv in st.session_state.invoices_data if inv.get('recalculate_result')]
 
                 if invoices_to_generate_anexo:
-                    st.write("Generando Anexo de Liquidación...")
                     try:
-                        # Generate the PDF using the new builder
-                        pdf_bytes = generar_anexo_liquidacion_pdf(invoices_to_generate_anexo) # Changed function call
-                        
+                        pdf_bytes = generar_anexo_liquidacion_pdf(invoices_to_generate_anexo)
                         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                        # Use a more generic filename for the consolidated annex
                         output_filename = f"anexo_liquidacion_{timestamp}.pdf"
                         
-                        st.download_button(
-                            label=f"Descargar {output_filename}",
-                            data=pdf_bytes,
-                            file_name=output_filename,
-                            mime="application/pdf"
-                        )
+                        # Guardar en Session State para persistencia
+                        st.session_state['last_generated_liquidacion_pdf'] = {
+                            'bytes': pdf_bytes,
+                            'filename': output_filename
+                        }
                     except Exception as e:
                         st.error(f"Error al generar la liquidación: {e}")
                 else:
                     st.warning("No se encontraron facturas con resultados calculados para generar el anexo de liquidación.")
             else:
                 st.warning("No hay resultados de cálculo para generar el anexo de liquidación.")
+
+        # Renderizar contenido persistente fuera del bloque del botón
+        if 'last_generated_liquidacion_pdf' in st.session_state:
+            pdf_data = st.session_state['last_generated_liquidacion_pdf']
+            st.write("---")
+            st.download_button(
+                label=f"⬇️ Descargar {pdf_data['filename']}",
+                data=pdf_data['bytes'],
+                file_name=pdf_data['filename'],
+                mime="application/pdf"
+            )
+            render_drive_picker_uploader(
+                key="anexo_liquidacion_persistent",
+                file_data=pdf_data['bytes'],
+                file_name=pdf_data['filename'],
+                label="Guardar Liquidación en Drive"
+            )
     
     st.markdown("---")
     st.write("#### Descripción de las Acciones:")
