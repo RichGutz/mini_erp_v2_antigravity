@@ -128,42 +128,47 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     # 3. Handle Selection & Upload
     if selected_folder:
         # The picker returns a list of selected items (or single object depending on config)
-        # streamlit-google-picker typically returns detailed object
+        # streamlit-google-picker returns a GooglePickerResult object which acts like a list
         
         # Safely extract folder ID and Name
         try:
-            # Assuming 'docs' or similar structure, typically it returns the docs array if multiple
-            # If not array, it might be the object directly. Let's inspect based on common usage or handle both.
-            if isinstance(selected_folder, list) and len(selected_folder) > 0:
+            # Handle both list and GooglePickerResult (which supports len() and indexing)
+            if len(selected_folder) > 0:
                 doc = selected_folder[0]
-            else:
-                doc = selected_folder
                 
-            folder_id = doc.get("id")
-            folder_name = doc.get("name")
-            
-            if folder_id:
-                st.info(f"📁 Carpeta seleccionada: **{folder_name}**")
-                
-                # Upload Button
-                if st.button(f"⬆️ Confirmar subida de: {file_name}", key=f"btn_upload_{key}", type="primary"):
-                    with st.spinner("Subiendo archivo a Google Drive..."):
-                        success, result = upload_file_to_drive(
-                            file_data=file_data,
-                            file_name=file_name,
-                            folder_id=folder_id,
-                            access_token=st.session_state.token['access_token']
-                        )
-                        
-                        if success:
-                            st.success(f"✅ ¡Archivo guardado exitosamente en Drive!")
-                            # Optional: Show link to file
-                            # file_url = f"https://drive.google.com/file/d/{result.get('id')}/view"
-                            # st.markdown(f"[Ver archivo en Drive]({file_url})")
-                        else:
-                            st.error(f"❌ Error al subir: {result}")
+                # Check for .get (dict/PickerFile) or attribute access
+                if hasattr(doc, 'get'):
+                    folder_id = doc.get("id")
+                    folder_name = doc.get("name")
+                elif hasattr(doc, 'id'):
+                     folder_id = doc.id
+                     folder_name = getattr(doc, 'name', 'Carpeta')
+                else:
+                    st.error(f"Formato de documento desconocido: {type(doc)}")
+                    return
+
+                if folder_id:
+                    st.info(f"📁 Carpeta seleccionada: **{folder_name}**")
+                    
+                    # Upload Button
+                    if st.button(f"⬆️ Confirmar subida de: {file_name}", key=f"btn_upload_{key}", type="primary"):
+                        with st.spinner("Subiendo archivo a Google Drive..."):
+                            success, result = upload_file_to_drive(
+                                file_data=file_data,
+                                file_name=file_name,
+                                folder_id=folder_id,
+                                access_token=st.session_state.token['access_token']
+                            )
+                            
+                            if success:
+                                st.success(f"✅ ¡Archivo guardado exitosamente en Drive!")
+                                # Optional: Show link to file
+                                # file_url = f"https://drive.google.com/file/d/{result.get('id')}/view"
+                                # st.markdown(f"[Ver archivo en Drive]({file_url})")
+                            else:
+                                st.error(f"❌ Error al subir: {result}")
             else:
-                st.warning("No se pudo identificar la carpeta seleccionada.")
+                st.warning("No se seleccionó ninguna carpeta.")
 
         except Exception as e:
             st.error(f"Error procesando la selección del Picker: {e}")
