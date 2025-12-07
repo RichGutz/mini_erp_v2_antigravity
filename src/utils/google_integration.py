@@ -73,11 +73,15 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     # picker_result will be None until user selects
     picker_key = f"picker_{key}"
     
+    # Extract appId safely
+    app_id = client_id.split('-')[0] if client_id else None
+    
     selected_folder = google_picker(
-        clientId=client_id,
-        developerKey=api_key, # Explicitly passing developerKey as learned in previous task
         token=st.session_state.token['access_token'],
-        viewId="FOLDERS", # Only show folders
+        apiKey=api_key,
+        appId=app_id,
+        view_ids=["FOLDERS"], # Only show folders
+        allow_folders=True,
         key=picker_key
     )
 
@@ -123,3 +127,76 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
 
         except Exception as e:
             st.error(f"Error procesando la selección del Picker: {e}")
+
+def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
+    """
+    Renders a Google Picker to select a folder and stores the result in st.session_state[key].
+    Returns the selected folder info (dict) or None.
+    
+    Args:
+        key (str): Unique key for session state storage.
+        label (str): Label for the section.
+    """
+    st.markdown(f"**{label}**")
+
+    # Check authentication
+    if 'token' not in st.session_state or not st.session_state.token:
+        st.warning("⚠️ Debes iniciar sesión con Google en el Home.")
+        return None
+
+    # 1. Google Picker Config
+    try:
+        picker_secrets = st.secrets["google"]
+        client_secrets = st.secrets["google_oauth"]
+        api_key = picker_secrets.get("api_key") or st.secrets.get("GOOGLE_API_KEY")
+        client_id = client_secrets.get("client_id") or st.secrets.get("GOOGLE_CLIENT_ID")
+    except Exception:
+        st.error("Error de configuración de Google Secrets.")
+        return None
+
+    # 2. Render Picker
+    picker_key = f"simple_picker_{key}"
+    
+    # Extract appId safely
+    app_id = client_id.split('-')[0] if client_id else None
+
+    # Use arguments matching 07_Repositorio.py
+    selected_folder = google_picker(
+        token=st.session_state.token['access_token'],
+        apiKey=api_key,
+        appId=app_id,
+        view_ids=["FOLDERS"],
+        allow_folders=True,
+        key=picker_key
+    )
+
+    # 3. Handle Selection
+    if selected_folder:
+        try:
+            if isinstance(selected_folder, list) and len(selected_folder) > 0:
+                doc = selected_folder[0]
+            else:
+                doc = selected_folder
+                
+            folder_id = doc.get("id")
+            folder_name = doc.get("name")
+            
+            if folder_id:
+                # Store in session state for external access
+                st.session_state[key] = {
+                    'id': folder_id,
+                    'name': folder_name
+                }
+                st.success(f"📂 Carpeta Destino: **{folder_name}**")
+                return st.session_state[key]
+            
+        except Exception as e:
+            st.error(f"Error procesando selección: {e}")
+            
+    # If already selected in previous run, show it
+    if key in st.session_state:
+         curr = st.session_state[key]
+         st.success(f"📂 Carpeta Destino: **{curr['name']}**")
+         return curr
+         
+    return None
