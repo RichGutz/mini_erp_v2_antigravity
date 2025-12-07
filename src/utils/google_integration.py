@@ -162,11 +162,15 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
 
     # Use arguments matching 07_Repositorio.py
     selected_folder = google_picker(
+        label="📂 Seleccionar Carpeta",
         token=st.session_state.token['access_token'],
         apiKey=api_key,
         appId=app_id,
         view_ids=["FOLDERS"],
-        allow_folders=True,
+        mimeTypes="application/vnd.google-apps.folder", # Force folder selection
+        allow_folders=True, # Critical for folder view
+        support_drives=True,
+        multiselect=False,
         key=picker_key
     )
 
