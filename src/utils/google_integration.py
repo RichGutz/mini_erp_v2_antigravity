@@ -2,6 +2,9 @@ import streamlit as st
 import requests
 import json
 from streamlit_google_picker import google_picker
+import streamlit_google_picker.uploaded_file as lib_upl # Import for monkeypatching
+
+def upload_file_to_drive(file_data, file_name, folder_id, access_token):
 
 def upload_file_to_drive(file_data, file_name, folder_id, access_token):
     """
@@ -160,17 +163,38 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     # Extract appId safely
     app_id = client_id.split('-')[0] if client_id else None
 
-    # Use arguments matching 07_Repositorio.py
-    selected_folder = google_picker(
-        label="📂 Seleccionar Carpeta",
-        token=st.session_state.token['access_token'],
-        apiKey=api_key,
-        appId=app_id,
-        view_ids=["FOLDERS"],
-        allow_folders=True, # Critical for folder view
-        accept_multiple_files=False, # Use this instead of multiselect
-        key=picker_key
-    )
+    # --- MONKEYPATCH START ---
+    # We need to prevent the library from listing files inside the folder (which fails due to permissions)
+    # and instead just return the folder itself so we can get its ID.
+    original_func = lib_upl.list_files_in_folder
+    
+    def no_op_list_files(folder_id, token):
+        # Return a dummy object representing the folder itself.
+        # We use a fake mimeType to prevent further recursion if any.
+        return [{
+            'id': folder_id, 
+            'name': 'Carpeta Seleccionada', 
+            'mimeType': 'application/octet-stream' 
+        }]
+
+    try:
+        lib_upl.list_files_in_folder = no_op_list_files
+        
+        # Use arguments matching 07_Repositorio.py
+        selected_folder = google_picker(
+            label="📂 Seleccionar Carpeta",
+            token=st.session_state.token['access_token'],
+            apiKey=api_key,
+            appId=app_id,
+            view_ids=["FOLDERS"],
+            allow_folders=True, # Critical for folder view
+            accept_multiple_files=False, # Use this instead of multiselect
+            key=picker_key
+        )
+    finally:
+        # Restore original function immediately
+        lib_upl.list_files_in_folder = original_func
+    # --- MONKEYPATCH END ---
 
     # 3. Handle Selection
     if selected_folder:
