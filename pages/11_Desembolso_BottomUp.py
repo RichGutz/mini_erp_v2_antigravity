@@ -194,20 +194,24 @@ if facturas_seleccionadas:
 
 st.divider()
 
-# ==============================================================================
-# SECCIÓN 3.5: SELECTOR DE CARPETAS (CRÍTICO - SIEMPRE VISIBLE)
-# ==============================================================================
 st.markdown("### 3.5 Selección de Carpeta Destino (Google Drive)")
-st.info("Componente técnico obligatorio: Debe estar visible permanentemente.")
-
-try:
-    folder = render_simple_folder_selector(key="picker_bu_final_v1", label="Seleccionar Carpeta Destino")
-    if folder:
-        st.success(f"✅ Carpeta Seleccionada: {folder.get('name')} (ID: {folder.get('id')})")
+with st.container(border=True):
+    st.write("🔍 DEBUG: Iniciando renderizado del Picker...")
+    if 'token' not in st.session_state:
+        st.error("❌ DEBUG: Token perdido!")
     else:
-        st.info("👆 Selecciona carpeta antes de procesar.")
-except Exception as e:
-    st.error(f"❌ Error al renderizar el selector: {e}")
+        st.write("✅ DEBUG: Token presente.")
+
+    try:
+        folder = render_simple_folder_selector(key="picker_bu_final_v1", label="Seleccionar Carpeta Destino")
+        if folder:
+            st.success(f"✅ Carpeta Seleccionada: {folder.get('name')} (ID: {folder.get('id')})")
+        else:
+            st.warning("👆 Selecciona carpeta (Esperando input...)")
+            
+    except Exception as e:
+        st.error(f"❌ Error al renderizar el selector: {e}")
+    st.write("🏁 DEBUG: Fin del bloque Picker.")
 
 st.divider()
 
