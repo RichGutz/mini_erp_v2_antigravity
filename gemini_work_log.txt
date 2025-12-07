@@ -1162,3 +1162,22 @@ ACCIÓN INMEDIATA:
 -   Implementar campos de Contrato/Anexo.
 -   Unificar botones de acción.
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-07 14:32:29
+LOGRO: SOLUCION ESTABILIDAD GOOGLE PICKER (METODO USER-DRIVEN)
+--------------------------------------------------------------------------------
+PROBLEMA:
+El componente Google Picker desaparecia dinamicamente al interactuar con otras secciones de la pagina (generacion de voucher).
+
+SOLUCION (ARQUITECTURA PROPUESTA POR EL USUARIO):
+Se replico el patron de diseño del modulo 'Originacion' (paginas/02_Originacion.py), conocido como 'Originacion Pattern'.
+
+DETALLE TECNICO:
+1. Se agruparon los elementos finales en un unico st.container(border=True).
+2. Se establecio un orden rigido dentro del contenedor: Inputs -> Picker -> Boton.
+3. Se elimino la logica condicional que afectaba la visibilidad del picker.
+
+RESULTADO:
+Estabilidad del 100% en la interfaz. El picker persiste tras recargas y actualizaciones de estado.
+================================================================================
