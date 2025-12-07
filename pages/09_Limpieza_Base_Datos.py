@@ -95,7 +95,7 @@ tablas_configuracion = [
     ('authorized_users', 'Usuarios autorizados del sistema'),
     ('modules', 'Módulos del sistema'),
     ('user_module_access', 'Permisos de acceso por usuario'),
-    ('EMISORES.DEUDORES', 'Catálogo de empresas (RUC y razones sociales)')
+    ('EMISORES.ACEPTANTES', 'Catálogo de empresas (RUC y razones sociales)')
 ]
 
 # Obtener cliente de Supabase
