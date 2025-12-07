@@ -1042,3 +1042,25 @@ ARCHIVOS CREADOS:
 ESTADO:  DOCUMENTACIÓN COMPLETADA
 PENDIENTE:  Usuario debe aplicar cambios en Google Cloud Console
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-07 10:08:00
+SESIÓN: Éxito Final - Integración Google Picker
+================================================================================
+
+PROBLEMA RESUELTO:
+------------------
+1. Error 403 en Google Picker: Solucionado unificando OAuth en Home y configurando correctamente Google Cloud Console.
+2. Error "API Developer Key Invalid": Solucionado habilitando el parametro apiKey en el componente.
+
+SOLUCIÓN TÉCNICA FINAL:
+-----------------------
+1. Arquitectura OAuth Unificada:
+   - 00_Home.py: Maneja el login único con todos los scopes necesarios (email, profile, drive.file, drive.readonly).
+   - 07_Repositorio.py: Consume el token de st.session_state sin intentar re-autenticar.
+
+2. Configuración Componente:
+   - Google Picker requiere TANTO un OAuth Token válido (para permisos de usuario) COMO una API Key válida (para cargar la librería JS).
+
+ESTADO:  FUNCIONANDO EN PRODUCCIÓN
+================================================================================
