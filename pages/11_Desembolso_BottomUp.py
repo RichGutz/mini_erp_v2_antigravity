@@ -11,6 +11,7 @@ if project_root not in sys.path:
 
 from src.data import supabase_repository as db
 from src.utils.google_integration import render_simple_folder_selector
+from src.utils.pdf_generators import generar_voucher_transferencia_pdf
 
 # --- Page Config ---
 st.set_page_config(
@@ -28,6 +29,12 @@ if 'facturas_seleccionadas_desembolso' not in st.session_state:
     st.session_state.facturas_seleccionadas_desembolso = {}
 if 'reload_data' not in st.session_state:
     st.session_state.reload_data = True
+
+# Nuevos estados para Voucher
+if 'voucher_generado' not in st.session_state:
+    st.session_state.voucher_generado = False
+if 'current_voucher_bytes' not in st.session_state:
+    st.session_state.current_voucher_bytes = None
 
 # --- Funciones de Ayuda ---
 def parse_invoice_number(proposal_id: str) -> str:
@@ -82,6 +89,12 @@ st.divider()
 # ==============================================================================
 st.markdown("### 2. Facturas Pendientes")
 
+# Contar seleccionadas (Definir antes de usar)
+facturas_seleccionadas = [
+    f for f in st.session_state.facturas_aprobadas
+    if st.session_state.facturas_seleccionadas_desembolso.get(f['proposal_id'], False)
+]
+
 if not st.session_state.facturas_aprobadas:
     st.info("✅ No hay facturas aprobadas pendientes de desembolso.")
 else:
@@ -95,27 +108,84 @@ else:
         col_check, col_factura, col_lote, col_emisor, col_aceptante, col_monto = st.columns([0.5, 1.5, 1.5, 2, 2, 1.5])
         
         with col_check:
+            # Update selection state
             st.session_state.facturas_seleccionadas_desembolso[factura['proposal_id']] = st.checkbox(
                 "",
                 value=st.session_state.facturas_seleccionadas_desembolso.get(factura['proposal_id'], False),
                 key=f"check_bu_{idx}",
                 label_visibility="collapsed"
             )
+            
         col_factura.markdown(f"`{parse_invoice_number(factura['proposal_id'])}`")
         col_lote.markdown(f"`{factura.get('identificador_lote', 'N/A')}`")
         col_emisor.markdown(factura.get('emisor_nombre', 'N/A'))
         col_aceptante.markdown(factura.get('aceptante_nombre', 'N/A'))
         col_monto.markdown(f"{factura.get('moneda_factura', 'PEN')} {get_monto_a_desembolsar(factura):,.2f}")
 
-    # Contar seleccionadas
+    # Re-evaluar seleccionadas tras renderizar checkboxes
     facturas_seleccionadas = [
         f for f in st.session_state.facturas_aprobadas
         if st.session_state.facturas_seleccionadas_desembolso.get(f['proposal_id'], False)
     ]
     
     st.write(f"📝 Facturas seleccionadas: {len(facturas_seleccionadas)}")
+
+st.divider()
+
+# ==============================================================================
+# SECCIÓN 3: GENERAR VOUCHER (Condicional)
+# ==============================================================================
+if facturas_seleccionadas:
+    st.markdown("### 3. Generar Voucher de Transferencia")
     
-    if facturas_seleccionadas:
-        st.success("✅ Hay facturas seleccionadas. (Aquí iría la lógica de Vouchers)")
+    # Calcular monto total
+    monto_total = sum(get_monto_a_desembolsar(f) for f in facturas_seleccionadas)
+    moneda = facturas_seleccionadas[0].get('moneda_factura', 'PEN')
+    
+    st.markdown(f"**Monto Total a Transferir:** {moneda} {monto_total:,.2f}")
+    
+    # Obtener datos del emisor
+    emisor_ruc = facturas_seleccionadas[0].get('emisor_ruc')
+    if emisor_ruc:
+        datos_emisor = db.get_signatory_data_by_ruc(str(emisor_ruc))
+        if datos_emisor:
+            # Botón para generar PDF
+            if st.button("📄 Generar Voucher PDF", type="secondary"):
+                try:
+                    facturas_para_pdf = [{
+                        'numero_factura': parse_invoice_number(f['proposal_id']),
+                        'emisor_nombre': f.get('emisor_nombre', 'N/A'),
+                        'monto': get_monto_a_desembolsar(f)
+                    } for f in facturas_seleccionadas]
+                    
+                    pdf_bytes = generar_voucher_transferencia_pdf(
+                        datos_emisor=datos_emisor,
+                        monto_total=monto_total,
+                        moneda=moneda,
+                        facturas=facturas_para_pdf,
+                        fecha_generacion=datetime.date.today()
+                    )
+                    
+                    if pdf_bytes:
+                        st.session_state.voucher_generado = True
+                        st.session_state.current_voucher_bytes = pdf_bytes
+                        st.success("✅ Voucher generado.")
+                    else:
+                        st.error("❌ Error generando PDF.")
+                except Exception as e:
+                    st.error(f"❌ Excepción: {e}")
+            
+            # Descargar si existe
+            if st.session_state.current_voucher_bytes:
+                 st.download_button(
+                    label="⬇️ Descargar Voucher Generado",
+                    data=st.session_state.current_voucher_bytes,
+                    file_name="voucher_transferencia.pdf",
+                    mime="application/pdf"
+                )
+        else:
+            st.warning("⚠️ No hay datos bancarios para este emisor.")
     else:
-        st.warning("⚠️ Selecciona facturas para continuar.")
+        st.error("❌ Emisor sin RUC.")
+else:
+    st.info("Selecciona facturas para ver la opción de generar voucher.")
