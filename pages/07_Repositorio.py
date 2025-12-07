@@ -71,7 +71,7 @@ if 'token' in st.session_state and st.session_state.token:
         selected_files = google_picker(
             label="🔍 Seleccionar archivos de Google Drive",
             token=access_token,
-            # apiKey=GOOGLE_API_KEY,  # Comentado - causa error developerKey
+            apiKey=GOOGLE_API_KEY,
             appId=GOOGLE_CLIENT_ID.split('-')[0],
             accept_multiple_files=True,
             allow_folders=True,  # Habilitar visualización de carpetas
