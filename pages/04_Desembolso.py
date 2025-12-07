@@ -316,7 +316,13 @@ else:
         st.markdown("#### Paso 3: Configurar Desembolso")
         
         # Folder Selection (Outside Form to allow interaction)
+        st.write(f"DEBUG: Token present: {'token' in st.session_state}")
+        if 'token' in st.session_state:
+             st.write(f"DEBUG: Token keys: {st.session_state.token.keys()}")
+        
+        st.write("DEBUG: Attempting to render picker...")
         selected_drive_folder = render_simple_folder_selector(key="desembolso_drive_folder", label="Seleccionar Carpeta Destino (Google Drive)")
+        st.write(f"DEBUG: Picker result: {selected_drive_folder}")
         
         # Checkbox para sustento único
         st.checkbox("APLICAR SUSTENTO DE PAGO ÚNICO", key="sustento_unico")
