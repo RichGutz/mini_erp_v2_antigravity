@@ -1561,3 +1561,243 @@ ESTADO: ✅ COMPLETADO (código implementado y commiteado)
 TESTING: ⏳ PENDIENTE (Usuario debe configurar carpeta y probar)
 ================================================================================
 
+================================================================================
+FECHA: 2025-12-08 13:00:00 - 13:47:00
+SESIÓN: Migración de Service Account y Resolución de Problemas de Picker
+================================================================================
+
+OBJETIVO PRINCIPAL:
+-------------------
+Cambiar el Google Picker del Drive antiguo (inandesfactorcapital@gmail.com) al 
+Drive institucional (rich@kaizencapital.pe) sin usar carpetas compartidas, 
+manteniendo centralización de archivos con Service Account.
+
+PROBLEMA INICIAL:
+-----------------
+El Picker mostraba carpetas del repositorio antiguo (inandesfactorcapital@gmail.com)
+que ya había sido eliminado. El usuario quería que el Picker mostrara SOLO carpetas
+del Drive institucional (rich@kaizencapital.pe).
+
+INTENTOS Y RESULTADOS:
+----------------------
+
+1. INTENTO: Revocar permisos del SA antiguo
+   - Acción: Usuario revocó acceso de carpetas compartidas con inandes-drive-service
+   - Resultado:  Picker seguía mostrando carpetas antiguas (problema de caché)
+
+2. INTENTO: Forzar refresh del token del SA
+   - Acción: Modificado get_service_account_token() para forzar refresh
+   - Resultado:  Picker seguía mostrando carpetas antiguas
+
+3. INTENTO: Keys únicas con timestamp para eliminar caché de Streamlit
+   - Acción: Agregado timestamp a picker_key para forzar recreación
+   - Resultado:  Causó blink constante del Picker
+
+4. INTENTO: Keys únicas con UUID por sesión
+   - Acción: Cambiado timestamp a UUID almacenado en session_state
+   - Resultado:  Eliminó blink,  Picker seguía mostrando carpetas antiguas
+
+5. INTENTO: Revertir Picker a usar token del usuario
+   - Acción: Cambiado Picker de sa_token a user_token
+   - Resultado:  Usuario rechazó (no quiere carpetas compartidas)
+
+6. INTENTO: Crear nuevo Service Account limpio
+   - Acción: Creado kaizen-drive-service@mini-erp-v2-antigravity.iam.gserviceaccount.com
+   - Credenciales: mini-erp-v2-antigravity-850849b1e68d.json
+   - Private Key ID: 850849b1e68d49419fe8188af4e7de4a72a2a230
+   - Resultado:  Service Account creado exitosamente
+
+7. INTENTO: Actualizar secrets.toml con nuevo SA
+   - Acción: Actualizado secrets en Streamlit Cloud
+   - Resultado:  Secrets actualizados
+
+8. INTENTO: Compartir carpeta con nuevo SA
+   - Acción: Compartido REPOSITORIO_INANDES (Shared Drive) con nuevo SA
+   - Resultado:  Carpeta compartida con permisos Manager
+
+9. INTENTO: Habilitar APIs necesarias
+   - Acción: Habilitado Google Drive API, Google Picker API, Gmail API
+   - Resultado:  APIs habilitadas
+
+10. INTENTO: Usar view_ids DOCS para mostrar Shared Drives
+    - Acción: Cambiado view_ids de FOLDERS a DOCS
+    - Resultado:  Error 403 (permisos insuficientes)
+
+11. INTENTO: Usar parámetro folder_id para iniciar en carpeta específica
+    - Acción: Agregado folder_id=REPOSITORIO_FOLDER_ID
+    - Resultado:  Parámetro no existe en streamlit-google-picker
+
+12. INTENTO: Mover carpeta de Shared Drive a Mi unidad
+    - Acción: Usuario creó carpeta REPOSITORIO_INANDES en Mi unidad de rich@kaizencapital.pe
+    - Folder ID: 1k5OVgh_eBBTc9Ai_MhpLr-Mw7yN6t9YN
+    - Resultado:  Picker mostró carpetas correctamente
+
+13. INTENTO: Subir archivos a Mi unidad con Service Account
+    - Acción: Intentar upload a carpeta en Mi unidad
+    - Resultado:  Error 403 "Service Accounts do not have storage quota"
+
+14. INTENTO: Habilitar Domain-Wide Delegation
+    - Acción: Configurado en Google Workspace Admin Console
+    - Client ID: 103644232405879401426
+    - Scope: https://www.googleapis.com/auth/drive
+    - Resultado:  Error 403 persiste (Google Workspace no permite SA en Mi unidad)
+
+DESCUBRIMIENTO CRÍTICO:
+-----------------------
+Google Workspace tiene restricciones diferentes a Gmail gratuito:
+-  Gmail gratuito: Service Accounts PUEDEN subir a "Mi unidad"
+-  Google Workspace: Service Accounts NO PUEDEN subir a "Mi unidad"
+-  Solución: Service Accounts SOLO pueden subir a Shared Drives
+
+DIFERENCIA CON IMPLEMENTACIÓN ANTERIOR:
+----------------------------------------
+La implementación anterior funcionaba porque:
+- inandesfactorcapital@gmail.com es cuenta GMAIL GRATUITA
+- Los Service Accounts SÍ pueden subir a "Mi unidad" de cuentas Gmail gratuitas
+- rich@kaizencapital.pe es cuenta GOOGLE WORKSPACE
+- Los Service Accounts NO pueden subir a "Mi unidad" de cuentas Workspace
+
+COMPONENTE streamlit-google-picker:
+------------------------------------
+Limitaciones descubiertas:
+- NO soporta parámetros para Shared Drives (folder_id, parent_folder_id)
+- NO soporta view_ids=DOCS sin permisos adicionales
+- SOLO funciona con FOLDERS en "Mi unidad"
+- Para Shared Drives se requiere implementación custom
+
+SOLUCIÓN PENDIENTE:
+-------------------
+Para que funcione con Google Workspace, se requiere:
+1. Usar Shared Drive (no "Mi unidad")
+2. Compartir Shared Drive completo con Service Account
+3. Mover carpeta REPOSITORIO_INANDES al Shared Drive
+4. Actualizar REPOSITORIO_FOLDER_ID con ID de carpeta en Shared Drive
+5. El Picker puede no mostrar Shared Drives automáticamente
+6. Upload funcionará con folder_id seleccionado manualmente
+
+ARCHIVOS MODIFICADOS:
+---------------------
+- src/utils/google_integration.py (múltiples cambios)
+  * Agregado REPOSITORIO_FOLDER_ID
+  * Modificado get_service_account_token() para forzar refresh
+  * Agregado UUID por sesión para keys del Picker
+  * Agregado botón de refresh manual
+  * Revertido entre user_token y sa_token múltiples veces
+
+COMMITS REALIZADOS:
+-------------------
+1. feat: Agregar soporte para Shared Drives en subida de archivos
+2. docs: Actualizar comentario de SHARED_DRIVE_ID
+3. fix: Eliminar parámetro includeItemsFromAllDrives
+4. fix: Forzar refresh del token del Service Account
+5. fix: Usar UUID en session_state en lugar de timestamp
+6. fix: Revertir Picker a usar token del usuario
+7. fix: Completar cambio en render_simple_folder_selector
+8. fix: Cambiar Picker a view_ids DOCS
+9. fix: Revertir a FOLDERS para evitar error 403
+10. fix: Corregir error user_token not defined
+11. fix: Revertir Picker a usar token del Service Account
+12. feat: Agregar parent_folder_id al Picker
+13. fix: Cambiar parent_folder_id a folder_id
+14. fix: Eliminar folder_id no soportado
+15. fix: Actualizar REPOSITORIO_FOLDER_ID a carpeta en Mi unidad
+
+ESTADO ACTUAL:
+--------------
+ Picker funciona y muestra carpetas de "Mi unidad"
+ Upload falla con error 403 (Service Accounts no pueden subir a Mi unidad de Workspace)
+ PENDIENTE: Migrar a Shared Drive para que upload funcione
+
+PRÓXIMOS PASOS:
+---------------
+1. Mover carpeta REPOSITORIO_INANDES a Shared Drive
+2. Compartir Shared Drive con kaizen-drive-service
+3. Actualizar REPOSITORIO_FOLDER_ID
+4. Probar upload (debería funcionar)
+5. Considerar solución alternativa si Picker no muestra Shared Drives
+
+LECCIONES APRENDIDAS:
+---------------------
+1. Google Workspace tiene restricciones más estrictas que Gmail gratuito
+2. Service Accounts en Workspace SOLO pueden escribir en Shared Drives
+3. streamlit-google-picker tiene limitaciones para Shared Drives
+4. Domain-Wide Delegation NO resuelve el problema de storage quota
+5. La arquitectura debe adaptarse a las limitaciones de Google Workspace
+
+================================================================================
+
+FECHA: 2025-12-08 14:40:00
+SESIÓN: Diagnóstico de Shared Drives y Estrategia Híbrida
+================================================================================
+
+15. INTENTO: Estrategia Híbrida (Picker=User, Upload=SA) para Shared Drives
+    - Acción: 
+        * Revertir Picker a usar `user_token` (para poder visualizar Shared Drives).
+        * Mantener Upload usando `sa_token` (para tener permisos de escritura en Shared Drive).
+        * Actualizar `00_Home.py` agregando scope `https://www.googleapis.com/auth/drive`.
+    - Resultado Actual:  Error 403 en la ventana del Picker ("We're sorry, but you do not have access to this page").
+
+ANÁLISIS DE FALLAS ACUMULADO:
+-----------------------------
+1. SA Token en Picker:
+   - Falla porque `streamlit-google-picker` no soporta parámetros avanzados para navegar Shared Drives "desde cero". Muestra vacío.
+
+2. SA Upload a "Mi Unidad" (Workspace):
+   - Falla con error 403 `storageQuotaExceeded`. Los SA no tienen "Mi Unidad" y no pueden subir a la "Mi Unidad" de un usuario Workspace (incluso con delegación básica).
+
+3. Domain-Wide Delegation:
+   - Aunque se configuró, la librería de Google Drive API requiere impersonar explícitamente al usuario (`credentials.with_subject(user_email)`). No basta con habilitarlo en la consola. Esto agregaría complejidad de masiva.
+
+4. User Token en Picker (Estado Actual):
+   - Debería funcionar para "ver".
+   - El error 403 sugiere:
+     a) El Token actual NO tiene los scopes nuevos (Usuario no hizo logout/login real).
+     b) La API Key usada en el Picker tiene restricciones de HTTP Referrer que bloquean `share.streamlit.io`.
+     c) Third-party cookies bloqueadas en el navegador.
+
+SIGUIENTES PASOS RECOMENDADOS:
+------------------------------
+1. Verificar restricciones de la API Key en Google Cloud Console (Credentials).
+   - Debe permitir `https://minierpv2antigravity-wwnqmavykpjtsogtphufpa.streamlit.app` (o `*` para probar).
+2. Forzar al usuario a re-autenticar para asegurar que el token tenga el scope `drive`.
+
+================================================================================
+
+16. INTENTO: Corregir API Key Referrer
+    - Acción: Usuario agregó `/*` a las restricciones de la API Key en Google Console.
+    - Hipótesis: El error 403 en UI era por bloqueo de dominio exacto vs subrutas.
+    - Estado: Esperando prueba final.
+================================================================================
+
+HALLAZGO CRÍTICO (DIAGNÓSTICO):
+-------------------------------
+El panel de diagnóstico reportó:
+Status: 400
+Error: invalid_token
+
+CONCLUSIÓN:
+El token OAuth almacenado en session_state es INVÁLIDO. No es un problema de permisos (scopes) ni de API Key, sino que el token simplemente NO SIRVE.
+Esto explica el 403: El Picker recibe una "llave rota".
+
+SOLUCIÓN:
+El usuario debe regenerar el token completamente (Logout/Login real).
+================================================================================
+
+FECHA: 2025-12-08 15:30:00
+FUSTRAMIENTO UI PICKER & CAMBIO DE ESTRATEGIA
+================================================================================
+PROBLEMA:
+El componente `streamlit-google-picker` (wrapper estándar) NO permite restringir la vista inicial o bloquear la navegación a "Mi Unidad".
+Esto viola el requisito de negocio: "Los usuarios SOLO deben ver y subir al Repositorio Institucional (REPOSITORIO_INANDES)".
+Ver el Drive personal es inaceptable por riesgo de error humano.
+
+INTENTOS FALLIDOS (Resumen):
+1. Picker con SA Token: Muestra vacío (SA no tiene UI visual).
+2. Picker con User Token: Muestra "Mi Unidad" por defecto. Requiere muchos clicks para llegar al Repo.
+3. Parametros `support_drives`: No soportados por la librería wrapper o inefectivos para "lockear" la vista.
+
+NUEVA DIRECCIÓN (SOLICITUD USUARIO):
+- Abandonar el componente Picker estándar si no se puede restringir.
+- "Anidar un navegador": Crear una interfaz nativa en Streamlit (Listas/Selectores) que use la API para listar EXCLUSIVAMENTE las carpetas dentro de `REPOSITORIO_INANDES`.
+- Objetivo: Navegación jerárquica controlada 100% por la app.
+================================================================================
