@@ -407,7 +407,7 @@ else:
                         curr_bar.empty()
                         
                         # Show Summary
-                        with st.expander("Resultados de Carga", expanded=errors_count > 0):
+                        with st.expander("Resultados de Carga (vDebug 2.0)", expanded=errors_count > 0):
                             for msg in results_msg:
                                 if "❌" in msg:
                                     st.error(msg)
