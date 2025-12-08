@@ -198,11 +198,28 @@ else:
     else:
         st.error("❌ Emisor sin RUC.")
 
+
     # ==============================================================================
-    # SECCIÓN 3: CONFIGURACIÓN, DRIVE Y EJECUCIÓN (Patrón Originación)
+    # SECCIÓN 3: SELECCIÓN DE CARPETA DESTINO (Google Drive)
+    # ==============================================================================
+    st.markdown("### 3. Selección de Carpeta Destino")
+    st.info("Selecciona la carpeta en Google Drive donde se guardarán los sustentos y el voucher.")
+    
+    try:
+        # Picker fuera del contenedor dinámico para máxima estabilidad
+        folder = render_simple_folder_selector(key="picker_section_3_isolated", label="Seleccionar Carpeta")
+        if folder:
+             st.success(f"✅ Carpeta Seleccionada: **{folder.get('name')}**")
+        else:
+             st.warning("👆 Por favor selecciona una carpeta.")
+    except Exception as e:
+        st.error(f"Error en Picker: {e}")
+
+    # ==============================================================================
+    # SECCIÓN 4: FORMALIZACIÓN Y DESEMBOLSO
     # ==============================================================================
     st.markdown("---")
-    st.subheader("🚀 Formalización y Desembolso")
+    st.subheader("🚀 4. Formalización y Ejecución")
     
     # CONTAINER PRINCIPAL - COPYING ORIGINACION STYLE
     with st.container(border=True):
@@ -263,14 +280,7 @@ else:
         st.markdown(f"**Total a Desembolsar:** {total_monto:,.2f}")
         st.markdown("---")
 
-        # 3.2 GOOGLE DRIVE PICKER (Dentro del Container, antes del botón)
-        st.markdown("#### Selección de Carpeta")
-        try:
-            folder = render_simple_folder_selector(key="picker_originacion_style", label="Seleccionar Carpeta Destino (Drive)")
-            if folder:
-                st.success(f"📂 Carpeta: {folder.get('name')}")
-        except Exception as e:
-            st.error(f"Picker Error: {e}")
+
 
         st.markdown("### Acciones Finales")
         
