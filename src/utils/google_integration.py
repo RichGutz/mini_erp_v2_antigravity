@@ -176,8 +176,8 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     selected_folder = None
     with patch_picker_flatten():
         selected_folder = google_picker(
-            label="📂 Repositorio Institucional (Service Account)",
-            token=sa_token,  # ✅ USA TOKEN DEL SERVICE ACCOUNT
+            label="📂 Seleccionar Carpeta en Repositorio",
+            token=user_token,  # ✅ Usuario navega
             apiKey=api_key,
             appId=app_id,
             view_ids=["FOLDERS"],
@@ -281,7 +281,7 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     with patch_picker_flatten():
         selected_folder = google_picker(
             label=label,
-            token=sa_token,  # ✅ USA TOKEN DEL SERVICE ACCOUNT
+            token=user_token,  # ✅ Usuario navega
             apiKey=api_key,
             appId=app_id,
             view_ids=["FOLDERS"],  # FOLDERS para carpetas
