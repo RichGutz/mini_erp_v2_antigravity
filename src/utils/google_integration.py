@@ -452,3 +452,95 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
 
     return None
 
+
+# --- NATIVE BROWSER V2 (Breadcrumbs + Grid) ---
+def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
+    """
+    Renderiza un navegador de carpetas nativo (Streamlit puro) usando list_folders_with_sa.
+    Mejoras V2: Breadcrumbs visuales, Layout en Grid (3 columnas), Estilo 'Tarjeta'.
+    Retorna el dict de la carpeta seleccionada {'id': '...', 'name': '...'} o None.
+    """
+    # Usar un contenedor con borde para darle estilo de "Componente Aislado"
+    # st.subheader(f"📂 {label}")
+    
+    # 1. Configuración de Session State
+    nav_key_id = f"nav_folder_id_{key}"
+    nav_key_name = f"nav_folder_name_{key}"
+    nav_key_history = f"nav_history_{key}" # Lista de tuplas (id, name)
+    sel_key = f"selected_folder_{key}"
+
+    # Inicialización
+    if nav_key_id not in st.session_state:
+        st.session_state[nav_key_id] = REPOSITORIO_FOLDER_ID
+        st.session_state[nav_key_name] = "Inicio"
+        st.session_state[nav_key_history] = []
+    
+    current_id = st.session_state[nav_key_id]
+    current_name = st.session_state[nav_key_name]
+    
+    # --- A. BREADCRUMBS (Ruta Visual) ---
+    path_text = " / ".join([h[1] for h in st.session_state[nav_key_history]] + [current_name])
+    st.caption(f"📍 Ruta actual: **{path_text}**")
+    
+    # --- B. ACCIONES PRINCIPALES ---
+    col_back, col_select = st.columns([1, 4])
+    with col_back:
+        if st.session_state[nav_key_history]:
+            if st.button("⬅️ Atrás", key=f"btn_back_{key}", use_container_width=True):
+                last_id, last_name = st.session_state[nav_key_history].pop()
+                st.session_state[nav_key_id] = last_id
+                st.session_state[nav_key_name] = last_name
+                st.rerun()
+        else:
+             st.button("🚫 Raíz", disabled=True, key=f"btn_root_{key}", use_container_width=True)
+             
+    with col_select:
+        # Botón para seleccionar la carpeta actual como destino
+        if st.button(f"✅ Seleccionar: [{current_name}]", key=f"btn_sel_{key}", type="primary", use_container_width=True):
+            st.session_state[sel_key] = {'id': current_id, 'name': current_name}
+            st.rerun()
+
+    st.markdown("---")
+
+    # --- C. VISTA DE CARPETAS (Explorador) ---
+    # Si ya hay selección, mostrarla arriba
+    if sel_key in st.session_state:
+        curr = st.session_state[sel_key]
+        st.success(f"🎯 Carpeta Destino Seleccionada: **{curr['name']}**")
+        if st.button("❌ Cancelar Selección", key=f"cancel_sel_{key}"):
+            del st.session_state[sel_key]
+            st.rerun()
+        return curr
+
+    # Listar contenido
+    with st.spinner(f"Cargando contenido de '{current_name}'..."):
+        try:
+            # Usar st.secrets["google_drive"] directamente si está disponible, 
+            # o pasar un argumento si se prefiere desacoplar. 
+            # Por simplicidad en V2 asumimos st.secrets disponible.
+            sa_creds = st.secrets["google_drive"]
+            subfolders = list_folders_with_sa(current_id, sa_creds)
+        except Exception as e:
+            st.error(f"Error accediendo a drive: {e}")
+            subfolders = []
+            
+    if not subfolders:
+        st.info("📭 Esta carpeta no tiene subcarpetas.")
+    else:
+        # GRID LAYOUT: 3 columnas
+        cols = st.columns(3)
+        for i, folder in enumerate(subfolders):
+            col = cols[i % 3]
+            with col:
+                # Usamos un contenedor con borde para que parezca una "tarjeta"
+                with st.container(border=True):
+                    st.write(f"📁 **{folder['name']}**")
+                    if st.button("Abrir ➡️", key=f"open_{folder['id']}_{key}", use_container_width=True):
+                        # Navegar
+                        st.session_state[nav_key_history].append((current_id, current_name))
+                        st.session_state[nav_key_id] = folder['id']
+                        st.session_state[nav_key_name] = folder['name']
+                        st.rerun()
+                        
+    return None
+

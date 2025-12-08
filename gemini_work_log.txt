@@ -1633,7 +1633,41 @@ PRÓXIMOS PASOS:
 ---------------
 - Migrar la lógica de negocio de Desembolso (tabla de facturas, estados) a `desembolso_bottom_up.py`.
 - Renombrar y oficializar el nuevo módulo de Desembolso.
-- Eliminar código muerto del antiguo Picker cuando la migración termine.
 
+================================================================================
+FECHA: 2025-12-08 16:30:00
+SESIÓN: Migración de Lógica Desembolso a Navegador Nativo
+================================================================================
+
+OBJETIVO:
+---------
+Integrar la lógica funcional completa del módulo de "Desembolso" (04_Desembolso.py) 
+con el nuevo componente de Navegador Nativo (v2) en la página prototipo.
+
+ACCIONES REALIZADAS:
+--------------------
+1. REFACTORIZACIÓN (Utils):
+   - Promovido el componente UI `render_folder_navigator_v2` a `src/utils/google_integration.py`.
+   - Ahora es accesible globalmente y reutilizable.
+
+2. MIGRACIÓN (Page):
+   - Reescribimos `pages/desembolso_bottom_up.py` completamente.
+   - ESTRUCTURA VISUAL (2 Columnas):
+     * Izquierda (2/3): Lógica de Negocio (Tabla Facturas, Voucher, Carga Sustentos).
+     * Derecha (1/3): Navegador Nativo (Browser del Repositorio).
+   - INTERACCIÓN:
+     * El botón final "Registrar Desembolso" conecta ambos mundos.
+     * Usa la carpeta seleccionada en la derecha como destino de los archivos generados en la izquierda.
+
+ESTADO:
+-------
+✅ Funcionalidad completa migrada a la página bottom-up.
+✅ UI refinada con estilo de "Tablas/Celdas Fusionadas".
+✅ Código listo para reemplazar al módulo original tras validación final.
+
+PRÓXIMOS PASOS:
+---------------
+- Renombrar `desembolso_bottom_up.py` a `04_Desembolso.py` (Reemplazo final).
+- Limpiar código legacy.
 ================================================================================
 
