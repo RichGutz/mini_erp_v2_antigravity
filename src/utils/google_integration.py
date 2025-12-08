@@ -149,12 +149,11 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
         st.error("Error de configuración: Faltan secretos de Google.")
         return
 
-    # 2. Obtener token del USUARIO para el Picker (navegación)
-    # IMPORTANTE: El Picker usa token del usuario para mostrar SU Drive
-    # El upload usa Service Account para centralizar archivos
-    user_token = st.session_state.get('token')
-    if not user_token:
-        st.warning("⚠️ Debes iniciar sesión con Google en el Home.")
+    # 2. Generar token del Service Account para el Picker
+    # IMPORTANTE: El Picker usa token del SA para mostrar SOLO carpetas del SA
+    sa_token = get_service_account_token()
+    if not sa_token:
+        st.error("❌ No se pudo generar token del Service Account para el Picker.")
         return
     
     # Botón para forzar refresh del Picker (limpiar caché)
@@ -177,11 +176,11 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     selected_folder = None
     with patch_picker_flatten():
         selected_folder = google_picker(
-            label="📂 Seleccionar Carpeta (incluye Shared Drives)",
-            token=user_token,  # ✅ USA TOKEN DEL USUARIO (navegación)
+            label="📂 Repositorio Institucional (Service Account)",
+            token=sa_token,  # ✅ USA TOKEN DEL SERVICE ACCOUNT
             apiKey=api_key,
             appId=app_id,
-            view_ids=["FOLDERS"],  # FOLDERS para carpetas
+            view_ids=["FOLDERS"],
             allow_folders=True,
             accept_multiple_files=False,
             key=picker_key  # Key única por sesión
@@ -256,10 +255,10 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
         st.error("Error de configuración de Google Secrets.")
         return None
 
-    # Obtener token del USUARIO para el Picker (navegación)
-    user_token = st.session_state.get('token')
-    if not user_token:
-        st.warning("⚠️ Debes iniciar sesión con Google en el Home.")
+    # Generar token del Service Account para el Picker
+    sa_token = get_service_account_token()
+    if not sa_token:
+        st.error("❌ No se pudo generar token del Service Account para el Picker.")
         return None
 
     # Botón para forzar refresh del Picker (limpiar caché)
@@ -282,7 +281,7 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     with patch_picker_flatten():
         selected_folder = google_picker(
             label=label,
-            token=user_token,  # ✅ USA TOKEN DEL USUARIO (navegación)
+            token=sa_token,  # ✅ USA TOKEN DEL SERVICE ACCOUNT
             apiKey=api_key,
             appId=app_id,
             view_ids=["FOLDERS"],  # FOLDERS para carpetas
