@@ -314,6 +314,9 @@ def upload_file_with_sa(file_bytes, file_name, folder_id, sa_credentials):
     :param sa_credentials: Path to JSON file (str) OR dictionary with credentials (dict)
     """
     try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        
         # Load credentials
         if isinstance(sa_credentials, dict):
             # Clonar para no modificar el original de st.secrets (que podría ser inmutable)
