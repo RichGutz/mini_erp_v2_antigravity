@@ -318,7 +318,8 @@ def upload_file_with_sa(file_bytes, file_name, folder_id, sa_credentials):
         from googleapiclient.discovery import build
         
         # Load credentials
-        if isinstance(sa_credentials, dict):
+        # Check if it's NOT a string (path). If so, treat as dict/AttrDict.
+        if not isinstance(sa_credentials, str):
             # Clonar para no modificar el original de st.secrets (que podría ser inmutable)
             info = dict(sa_credentials)
             if 'private_key' in info:
