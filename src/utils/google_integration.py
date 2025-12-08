@@ -4,6 +4,7 @@ import json
 from streamlit_google_picker import google_picker
 import streamlit_google_picker.uploaded_file as lib_upl # Import for monkeypatching
 import uuid  # Para generar keys únicas por sesión
+import io
 
 # --- CONFIGURACIÓN SHARED DRIVE ---
 # ID de la carpeta raíz del repositorio en el SHARED DRIVE
@@ -302,6 +303,8 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
                                 st.error(f"❌ Error al subir: {result}")
             else:
                 st.warning("No se seleccionó ninguna carpeta.")
+        except Exception as e:
+            st.error(f"Error procesando la selección del picker: {e}")
 
 from googleapiclient.http import MediaIoBaseUpload
 
