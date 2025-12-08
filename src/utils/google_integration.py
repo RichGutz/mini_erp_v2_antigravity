@@ -4,6 +4,11 @@ import json
 from streamlit_google_picker import google_picker
 import streamlit_google_picker.uploaded_file as lib_upl # Import for monkeypatching
 
+# --- CONFIGURACIÓN SHARED DRIVE ---
+# ID del Shared Drive institucional donde se almacenan todos los documentos del ERP
+SHARED_DRIVE_ID = "0AAeC4FtltHyBUk9PVA"
+# -------------------------------------
+
 # --- SHARED MONKEYPATCH ---
 from contextlib import contextmanager
 
@@ -349,7 +354,9 @@ def upload_file_with_sa(file_bytes, file_name, folder_id, sa_credentials):
         file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id'
+            fields='id',
+            supportsAllDrives=True,  # ✅ Soporte para Shared Drives
+            includeItemsFromAllDrives=True  # ✅ Permite acceso a items en Shared Drives
         ).execute()
         
         return True, file.get('id')
