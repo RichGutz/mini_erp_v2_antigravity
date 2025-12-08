@@ -305,10 +305,19 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
 
     # --- DIAGNÓSTICO EN UI (MEJORADO - SIMPLE SELECTOR) ---
     st.info("ℹ️ MODO HÍBRIDO: Usando tu cuenta para ver Repositorios Institucionales (Shared Drives).")
-    with st.expander("🔍 HERRAMIENTA DE DIAGNÓSTICO", expanded=True):
+    with st.expander("🔍 HERRAMIENTA DE DIAGNÓSTICO (PARAMETROS INTERNOS)", expanded=True):
         st.write(f"**Usuario Activo:** {st.session_state.get('user_info', {}).get('email', 'Desconocido')}")
-        st.write(f"**Token Usado en Picker:** User Token (Permite ver Shared Drives)")
+        st.write(f"**Estrategia:** Híbrida (User ve, SA escribe)")
         
+        # PARAMETROS QUE SE ENVIAN AL PICKER
+        st.write("**Parámetros enviados al componente Picker:**")
+        st.json({
+            "token_owner": "Usuario (Tú)",
+            "view_ids": ["FOLDERS (Muestra Mi Unidad + Shared Drives)"],
+            "allow_folders": True,
+            "multiselect": False
+        })
+
         if user_token:
             try:
                 token_info_url = f"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={user_token}"
@@ -323,6 +332,8 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
                     st.error("❌ Token Inválido")
             except:
                 st.warning("⚠️ No se pudo validar token")
+    # --------------------------------
+    
     # --------------------------------
 
     # Botón para forzar refresh del Picker (limpiar caché)
