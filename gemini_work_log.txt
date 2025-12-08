@@ -1429,3 +1429,135 @@ ESTADO: ✅ COMPLETADO
 TESTING: ⏳ PENDIENTE (Usuario debe pegar secrets en Streamlit Cloud y local)
 ================================================================================
 
+================================================================================
+FECHA: 2025-12-08 09:37:00
+SESIÓN: Implementación de Service Account para Uploads Centralizados
+================================================================================
+
+CONTEXTO:
+---------
+Resolución del Problema #1 documentado en el TXT original: El ERP será usado por
+múltiples usuarios, pero todos los documentos generados deben guardarse en un 
+repositorio centralizado usando el Service Account, independientemente de qué 
+usuario haga login.
+
+PROBLEMA IDENTIFICADO:
+----------------------
+El flujo actual de uploads usaba el access_token del usuario logueado, lo que 
+causaba que los archivos se guardaran en el Drive personal de cada usuario:
+
+Flujo anterior:
+1. Usuario hace login con su cuenta (ej: rgutil@gmail.com)
+2. Google Picker muestra carpetas de rgutil@gmail.com
+3. Upload usa access_token → Archivos van al Drive del usuario ❌
+
+Resultado: Los documentos se dispersaban en múltiples Drives de usuarios, sin
+centralización ni control.
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+Modificado el flujo para separar navegación (Picker) de upload (Service Account):
+
+Nuevo flujo:
+1. Usuario hace login con su cuenta (para tracking/audit)
+2. Google Picker usa token del usuario (solo para navegación/UX)
+3. Upload usa Service Account → Archivos van al Drive centralizado del ERP ✅
+
+CAMBIOS EN EL CÓDIGO:
+---------------------
+
+1. src/utils/google_integration.py
+   * Función: render_drive_picker_uploader() (líneas 81-154)
+   * Cambio principal:
+     - ANTES: upload_file_to_drive() con access_token del usuario
+     - AHORA: upload_file_with_sa() con credenciales del Service Account
+   
+   Modificaciones específicas:
+   - Línea 83: Agregado docstring explicando separación Picker/Upload
+   - Línea 137: Cambiado mensaje spinner a "...con Service Account"
+   - Líneas 139-147: Agregado try-catch para obtener credenciales SA
+   - Líneas 149-158: Cambiado a usar upload_file_with_sa()
+   - Línea 161: Agregado caption con File ID del archivo subido
+
+ARCHIVOS CREADOS:
+-----------------
+
+1. docs/CONFIGURAR_SERVICE_ACCOUNT.md (NUEVO ARCHIVO)
+   Guía completa de usuario con:
+   - Service Account email que debe usarse
+   - Paso a paso para compartir carpetas con el SA
+   - Verificación de permisos correctos
+   - Pruebas de upload desde el ERP
+   - Resolución de problemas comunes
+   - Estructura recomendada de carpetas
+   - Mejores prácticas de seguridad
+
+SERVICE ACCOUNT:
+----------------
+Email: inandes-drive-service@mini-erp-v2-antigravity.iam.gserviceaccount.com
+Credenciales: Ya configuradas en secrets.toml sección [google_drive]
+Private Key ID: de511e50b7c9b8f79afa76e4b884e9a76c9dea35 (nuevas credenciales)
+
+VENTAJAS DE LA SOLUCIÓN:
+------------------------
+✅ Todos los documentos centralizados en un solo Drive
+✅ No depende de la cuenta del usuario logueado
+✅ Mantiene UX del Picker (navegación familiar para el usuario)
+✅ Service Account como "repositorio oficial del ERP"
+✅ Función upload_file_with_sa() ya existía (líneas 240-291)
+✅ Sin necesidad de instalar nuevas dependencias
+
+CONFIGURACIÓN REQUERIDA:
+-------------------------
+El usuario debe compartir las carpetas destino con el Service Account:
+
+1. Abrir Google Drive
+2. Click derecho en carpeta → "Compartir"
+3. Agregar email: inandes-drive-service@mini-erp-v2-antigravity.iam.gserviceaccount.com
+4. Permisos: "Editor" (permite crear y modificar archivos)
+5. Guardar
+
+NOTA: Las subcarpetas heredan permisos automáticamente, solo se comparte la raíz.
+
+FLUJO DE PRUEBA:
+----------------
+1. Usuario comparte carpeta con Service Account
+2. Usuario se loguea en el ERP
+3. Usuario va a módulo Originación
+4. Genera perfil de operación
+5. Click en Picker → selecciona carpeta compartida
+6. Confirma upload
+7. Resultado esperado:
+   - Mensaje: "Subiendo archivo a Google Drive con Service Account..."
+   - Éxito: "✅ ¡Archivo guardado exitosamente en Drive!"
+   - Caption: "📎 File ID: [id]"
+   - Verificación en Drive: Propietario = Service Account
+
+COMMITS REALIZADOS:
+-------------------
+Commit d28f509 - feat: implementar Service Account para uploads centralizados
+  2 archivos modificados:
+  - src/utils/google_integration.py
+  - docs/CONFIGURAR_SERVICE_ACCOUNT.md (nuevo)
+
+Push: 24a60a6..d28f509 main -> main
+
+IMPACTO:
+--------
+✅ Resuelve Problema #1 del TXT original
+✅ Centralización completa de documentos del ERP
+✅ Independiente del usuario que hace login
+✅ Guía de usuario completa para configuración
+✅ Sin breaking changes (función SA ya existía)
+
+PRÓXIMOS PASOS PARA EL USUARIO:
+--------------------------------
+1. Compartir carpeta destino con Service Account (ver guía)
+2. Probar flujo completo de upload en módulo Originación
+3. Verificar que el propietario del archivo es el Service Account
+4. Configurar estructura de carpetas recomendada (ver guía)
+
+ESTADO: ✅ COMPLETADO (código implementado y commiteado)
+TESTING: ⏳ PENDIENTE (Usuario debe configurar carpeta y probar)
+================================================================================
+

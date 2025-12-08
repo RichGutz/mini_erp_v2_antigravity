@@ -358,8 +358,7 @@ def upload_file_with_sa(file_bytes, file_name, folder_id, sa_credentials):
             body=file_metadata,
             media_body=media,
             fields='id',
-            supportsAllDrives=True,  # ✅ Soporte para Shared Drives
-            includeItemsFromAllDrives=True  # ✅ Permite acceso a items en Shared Drives
+            supportsAllDrives=True  # ✅ Soporte para Shared Drives
         ).execute()
         
         return True, file.get('id')
