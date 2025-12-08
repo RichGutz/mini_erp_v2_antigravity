@@ -12,11 +12,15 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from src.data import supabase_repository as db
-from src.utils.google_integration import render_simple_folder_selector, upload_file_to_drive
+
+from src.utils.google_integration import render_simple_folder_selector, upload_file_to_drive, upload_file_with_sa
 from src.utils.pdf_generators import generar_voucher_transferencia_pdf
 
 # --- Estrategia Unificada para la URL del Backend ---
 API_BASE_URL = os.getenv("BACKEND_API_URL")
+
+# --- Configuración Service Account ---
+SA_KEY_PATH = "secrets oauth/mini-erp-v2-antigravity-cc079f4da448.json"
 if not API_BASE_URL:
     try:
         API_BASE_URL = st.secrets["backend_api"]["url"]
@@ -77,15 +81,20 @@ def get_monto_a_desembolsar(factura: dict) -> float:
         return recalc_data.get('desglose_final_detallado', {}).get('abono', {}).get('monto', 0.0)
     except (json.JSONDecodeError, AttributeError, TypeError):
         return 0.0
-    except (json.JSONDecodeError, AttributeError, TypeError):
         return 0.0
 
-def upload_helper(file_bytes, file_name, folder_id, access_token):
+def upload_helper(file_bytes, file_name, folder_id, sa_key_path):
     try:
         if not file_bytes:
             return False, f"Sin contenido: {file_name}"
-        upload_file_to_drive(file_bytes, file_name, folder_id, access_token)
-        return True, f"✅ Subido: {file_name}"
+        
+        # USA SERVICE ACCOUNT (opcion 2)
+        success, res_id = upload_file_with_sa(file_bytes, file_name, folder_id, sa_key_path)
+        
+        if success:
+             return True, f"✅ Subido (SA): {file_name}"
+        else:
+             return False, f"❌ Error {file_name}: {res_id}" 
     except Exception as e:
         return False, f"❌ Error {file_name}: {str(e)}"
 
@@ -335,10 +344,10 @@ else:
                 except Exception as e:
                     st.error(f"❌ Error API: {e}")
                 
-                 # B) Upload Files (PARALLEL OPTIMIZATION)
+                 # B) Upload Files (PARALLEL OPTIMIZATION with SA)
                 if api_success:
                     folder_id = folder['id']
-                    access_token = st.session_state.token['access_token']
+                    # access_token ya no es necesario para la subida con SA
                     upload_tasks = []
                     
                     # 1. Prepare Voucher Task
@@ -374,7 +383,7 @@ else:
                         
                         with ThreadPoolExecutor(max_workers=5) as executor:
                             future_to_file = {
-                                executor.submit(upload_helper, b, n, folder_id, access_token): n 
+                                executor.submit(upload_helper, b, n, folder_id, SA_KEY_PATH): n 
                                 for b, n in upload_tasks
                             }
                             

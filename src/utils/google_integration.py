@@ -229,4 +229,44 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
                  st.rerun()
          return curr
          
+
     return None
+
+import io
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+
+def upload_file_with_sa(file_bytes, file_name, folder_id, sa_key_path):
+    """
+    Uploads a file to Google Drive using a Service Account.
+    """
+    try:
+        # Load credentials
+        creds = service_account.Credentials.from_service_account_file(
+            sa_key_path, 
+            scopes=['https://www.googleapis.com/auth/drive']
+        )
+        
+        # Build Service
+        service = build('drive', 'v3', credentials=creds)
+        
+        # File Metadata
+        file_metadata = {
+            'name': file_name,
+            'parents': [folder_id]
+        }
+        
+        # Media Upload
+        media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype='application/pdf')
+        
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        
+        return True, file.get('id')
+        
+    except Exception as e:
+        return False, str(e)
