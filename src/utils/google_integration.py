@@ -51,6 +51,39 @@ def patch_picker_flatten():
         lib_upl.flatten_picker_result = original_flatten
 # --------------------------
 
+# --- HELPER: Listar Carpetas con Service Account (Backend del Browser Nativo) ---
+def list_folders_with_sa(parent_id, sa_creds):
+    """
+    Lista las subcarpetas dentro de parent_id usando credenciales de Service Account.
+    Retorna lista de dicts: [{'id': '...', 'name': '...'}]
+    """
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+
+        creds = service_account.Credentials.from_service_account_info(
+            sa_creds, scopes=['https://www.googleapis.com/auth/drive']
+        )
+        service = build('drive', 'v3', credentials=creds)
+
+        # Query solo carpetas y que no estén en la papelera
+        query = f"'{parent_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        
+        results = service.files().list(
+            q=query,
+            pageSize=50,
+            fields="nextPageToken, files(id, name)",
+            includeItemsFromAllDrives=True, # Necesario para Shared Drives
+            supportsAllDrives=True
+        ).execute()
+        
+        return results.get('files', [])
+    except Exception as e:
+        st.error(f"Error listando carpetas: {e}")
+        return []
+
+# ---------------------------------------------------------
+
 def get_service_account_token():
     """
     Genera un access_token FRESCO del Service Account para usar en el Google Picker.
@@ -270,146 +303,6 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
             else:
                 st.warning("No se seleccionó ninguna carpeta.")
 
-        except Exception as e:
-            st.error(f"Error procesando la selección del Picker: {e}")
-
-def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
-    """
-    Renders a Google Picker just to select a folder.
-    Returns the selected folder info (dict) or None.
-    
-    IMPORTANTE: Usa token del Service Account para mostrar SOLO Drive del SA.
-    """
-    st.markdown(f"**{label}**")
-
-    # Check authentication del usuario (para tracking/audit)
-    if 'token' not in st.session_state or not st.session_state.token:
-        st.warning("⚠️ Debes iniciar sesión con Google en el Home.")
-        return None
-
-    # Google Picker Config
-    try:
-        picker_secrets = st.secrets["google"]
-        client_secrets = st.secrets["google_oauth"]
-        api_key = picker_secrets.get("api_key") or st.secrets.get("GOOGLE_API_KEY")
-        client_id = client_secrets.get("client_id") or st.secrets.get("GOOGLE_CLIENT_ID")
-    except Exception:
-        st.error("Error de configuración de Google Secrets.")
-        return None
-
-    # Obtener token del USUARIO para el Picker
-    user_token = st.session_state.get('token')
-    if not user_token:
-        st.warning("⚠️ Inicia sesión para ver carpetas.")
-        return None
-
-    # --- DIAGNÓSTICO EN UI (MEJORADO - SIMPLE SELECTOR) ---
-    st.info("ℹ️ MODO HÍBRIDO: Usando tu cuenta para ver Repositorios Institucionales (Shared Drives).")
-    with st.expander("🔍 HERRAMIENTA DE DIAGNÓSTICO (PARAMETROS INTERNOS)", expanded=True):
-        st.write(f"**Usuario Activo:** {st.session_state.get('user_info', {}).get('email', 'Desconocido')}")
-        st.write(f"**Estrategia:** Híbrida (User ve, SA escribe)")
-        
-        # PARAMETROS QUE SE ENVIAN AL PICKER
-        st.write("**Parámetros enviados al componente Picker:**")
-        st.json({
-            "token_owner": "Usuario (Tú)",
-            "view_ids": ["FOLDERS", "DOCS"], # DOCS ayuda a veces a ver root
-            "support_drives": True, # CRÍTICO: Habilita Shared Drives
-            "enable_drives": True,   # CRÍTICO: Habilita Shared Drives
-            "multiselect": False
-        })
-        
-        # ... (rest of diagnosis code) ...
-
-    # IMPORTANTE: Key única por sesión para evitar caché entre sesiones pero estable en la misma sesión
-    if 'simple_picker_session_id' not in st.session_state:
-        st.session_state.simple_picker_session_id = str(uuid.uuid4())
-    
-    picker_key = f"simple_picker_{key}_{st.session_state.simple_picker_session_id}"
-    app_id = client_id.split('-')[0] if client_id else None
-
-    selected_folder = None
-    with patch_picker_flatten():
-        selected_folder = google_picker(
-            label=label,
-            token=user_token,  # ✅ Usuario navega
-            apiKey=api_key,
-            appId=app_id,
-            view_ids=["FOLDERS", "DOCS"],  # DOCS puede ayudar a la visibilidad general
-            allow_folders=True, 
-            accept_multiple_files=False,
-            # support_drives y enable_drives NO soportados por esta librería
-            key=picker_key
-        )
-
-    # Handle Selection
-    if selected_folder:
-        try:
-            if len(selected_folder) > 0:
-                doc = selected_folder[0]
-                
-                folder_id = None
-                folder_name = None
-                
-                if hasattr(doc, 'get'):
-                    folder_id = doc.get("id")
-                    folder_name = doc.get("name")
-                elif hasattr(doc, 'id'):
-                     folder_id = doc.id
-                     folder_name = getattr(doc, 'name', 'Carpeta')
-                else:
-                    return None
-
-                if folder_id:
-                    # VALIDACIÓN DE REGLA DE NEGOCIO:
-                    # Verificar si la carpeta seleccionada es la correcta o hija de ella (pendiente logica recursiva)
-                    # Por ahora, validamos visualmente y permitimos.
-                    # El usuario quiere RESTRICCIÓN.
-                    
-                    st.info(f"📁 Seleccionado: **{folder_name}**")
-                    
-                    # Idealmente aquí verificaríamos parents, pero requiere llamada API extra.
-                    return {"id": folder_id, "name": folder_name}
-            else:
-                st.warning("No se seleccionó ninguna carpeta.")
-                return None
-                
-                if hasattr(doc, 'get'):
-                    folder_id = doc.get("id")
-                    folder_name = doc.get("name")
-                elif hasattr(doc, 'id'):
-                     folder_id = doc.id
-                     folder_name = getattr(doc, 'name', 'Carpeta')
-                
-                if folder_id:
-                    st.session_state[key] = {
-                        'id': folder_id,
-                        'name': folder_name
-                    }
-                    st.success(f"📂 Carpeta Destino: **{folder_name}**")
-                    return st.session_state[key]
-            
-        except Exception as e:
-            st.error(f"Error procesando selección: {e}")
-            
-    # If already selected, show it
-    if key in st.session_state:
-         curr = st.session_state[key]
-         col_info, col_change = st.columns([4, 1])
-         with col_info:
-             st.success(f"📂 Carpeta Destino: **{curr['name']}**")
-         with col_change:
-             if st.button("🔄 Cambiar", key=f"change_{key}"):
-                 del st.session_state[key]
-                 st.rerun()
-         return curr
-         
-
-    return None
-
-import io
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 def upload_file_with_sa(file_bytes, file_name, folder_id, sa_credentials):
