@@ -92,7 +92,7 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     return None
 
 # --- LAYOUT DE 2 COLUMNAS (Lado a Lado) ---
-col_left, col_right = st.columns([3, 2], gap="large")
+col_left, col_right = st.columns([2, 1], gap="large")
 
 with col_left:
     # --- 1. Selector de Carpeta (Nativo) ---
