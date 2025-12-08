@@ -149,11 +149,12 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
         st.error("Error de configuración: Faltan secretos de Google.")
         return
 
-    # 2. Generar token FRESCO del Service Account para el Picker
-    # IMPORTANTE: Se genera un token nuevo cada vez para evitar caché
-    sa_token = get_service_account_token()
-    if not sa_token:
-        st.error("❌ No se pudo generar token del Service Account para el Picker.")
+    # 2. Obtener token del USUARIO para el Picker (navegación)
+    # IMPORTANTE: El Picker usa token del usuario para mostrar SU Drive
+    # El upload usa Service Account para centralizar archivos
+    user_token = st.session_state.get('token')
+    if not user_token:
+        st.warning("⚠️ Debes iniciar sesión con Google en el Home.")
         return
     
     # Botón para forzar refresh del Picker (limpiar caché)
@@ -165,7 +166,7 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
                 del st.session_state.picker_session_id
             st.rerun()
     
-    # 3. Render Picker (usa token del SA para mostrar Drive del SA)
+    # 3. Render Picker (usa token del USUARIO para mostrar su Drive)
     # IMPORTANTE: Key única por sesión para evitar caché entre sesiones pero estable en la misma sesión
     if 'picker_session_id' not in st.session_state:
         st.session_state.picker_session_id = str(uuid.uuid4())
@@ -176,8 +177,8 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     selected_folder = None
     with patch_picker_flatten():
         selected_folder = google_picker(
-            label="📂 Repositorio Institucional (Drive del ERP)",
-            token=sa_token,  # ✅ CAMBIADO: Usa token del SA
+            label="📂 Seleccionar Carpeta en Drive",
+            token=user_token,  # ✅ USA TOKEN DEL USUARIO (navegación)
             apiKey=api_key,
             appId=app_id,
             view_ids=["FOLDERS"],
