@@ -359,3 +359,89 @@ def upload_file_with_sa(file_bytes, file_name, folder_id, sa_credentials):
              debug_msg += f" | KeyLen: {len(pk)} | HasRealNewLine: {'\\n' in pk} | HasEscapedNewLine: {'\\\\n' in pk} | Start: {pk[:10]}..."
         return False, debug_msg
 
+
+def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
+    """
+    Navegador Nativo de Carpetas Institucional.
+    Reemplaza al Google Picker para garantizar restricción de vista.
+    Usa el Service Account para listar carpetas.
+    """
+    st.markdown(f"**{label}**")
+    
+    # 1. Configuración de Session State para navegación
+    nav_key_id = f"nav_folder_id_{key}"
+    nav_key_name = f"nav_folder_name_{key}"
+    nav_key_history = f"nav_history_{key}" # Lista de tuplas (id, name)
+    sel_key = f"selected_folder_{key}"
+
+    # Inicialización
+    if nav_key_id not in st.session_state:
+        st.session_state[nav_key_id] = REPOSITORIO_FOLDER_ID
+        st.session_state[nav_key_name] = "📁 REPOSITORIO_INANDES (Raíz)"
+        st.session_state[nav_key_history] = []
+    
+    # Si ya se seleccionó una carpeta definitiva
+    if sel_key in st.session_state:
+        curr = st.session_state[sel_key]
+        col_info, col_change = st.columns([4, 1])
+        with col_info:
+            st.success(f"✅ Destino Seleccionado: **{curr['name']}**")
+        with col_change:
+            if st.button("🔄 Cambiar", key=f"change_{key}"):
+                del st.session_state[sel_key]
+                st.rerun()
+        return curr
+
+    # 2. UI del Navegador
+    current_id = st.session_state[nav_key_id]
+    current_name = st.session_state[nav_key_name]
+    
+    # Header de Navegación
+    st.info(f"📍 Estás en: **{current_name}**")
+    
+    # Botones de Acción (Atrás / Seleccionar Actual)
+    col_back, col_select = st.columns([1, 3])
+    with col_back:
+        if st.session_state[nav_key_history]:
+            if st.button("⬅️ Subir Nivel", key=f"btn_back_{key}"):
+                # Pop del historial
+                last_id, last_name = st.session_state[nav_key_history].pop()
+                st.session_state[nav_key_id] = last_id
+                st.session_state[nav_key_name] = last_name
+                st.rerun()
+        else:
+            st.button("⬅️ Atrás", disabled=True, key=f"btn_back_disabled_{key}")
+
+    with col_select:
+        if st.button(f"✅ Seleccionar esta carpeta", key=f"btn_sel_curr_{key}", type="primary", use_container_width=True):
+            st.session_state[sel_key] = {'id': current_id, 'name': current_name}
+            st.rerun()
+
+    st.markdown("---")
+    st.markdown("📂 **Subcarpetas Disponibles:**")
+
+    # 3. Listar Contenido (Backend SA)
+    try:
+        sa_creds = st.secrets["google_drive"]
+        subfolders = list_folders_with_sa(current_id, sa_creds)
+    except Exception as e:
+        st.error(f"Error accediendo al repositorio: {e}")
+        subfolders = []
+
+    if not subfolders:
+        st.caption("*(Carpeta vacía o sin subcarpetas)*")
+    else:
+        # Grid de carpetas: Usamos columnas para que sea más compacto
+        for folder in subfolders:
+            f_name = folder['name']
+            f_id = folder['id']
+            
+            if st.button(f"📁 {f_name}", key=f"nav_to_{f_id}_{key}", use_container_width=True):
+                # Navegar hacia dentro
+                st.session_state[nav_key_history].append((current_id, current_name))
+                st.session_state[nav_key_id] = f_id
+                st.session_state[nav_key_name] = f_name
+                st.rerun()
+
+    return None
+
