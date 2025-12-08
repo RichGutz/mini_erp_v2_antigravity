@@ -158,7 +158,8 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
         
     # --- DIAGNÓSTICO EN UI (DEBUG) ---
     # Muestra información crítica para depurar errores 403 en el Picker
-    with st.expander("🔍 Diagnóstico Picker (Solo Debug)", expanded=False):
+    st.error("🔥 MODO DEBUG: Si no ves esto, refresca la página.")
+    with st.expander("🔍 HERRAMIENTA DE DIAGNÓSTICO (ÁBREME)", expanded=True):
         st.write("**Configuración Local:**")
         st.code(f"App ID: {client_id.split('-')[0] if client_id else 'None'}")
         st.code(f"API Key (parcial): {api_key[:10]}..." if api_key else "None")
