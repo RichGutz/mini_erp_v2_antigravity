@@ -16,7 +16,7 @@ from src.services import pdf_parser
 from src.data import supabase_repository as db
 from src.utils import pdf_generators
 from src.utils.pdf_generators import generar_anexo_liquidacion_pdf
-from src.utils.google_integration import render_drive_picker_uploader, render_simple_folder_selector, upload_file_to_drive
+from src.utils.google_integration import render_folder_navigator_v2, upload_file_with_sa, render_simple_folder_selector, upload_file_to_drive
 
 
 # --- Estrategia Unificada para la URL del Backend ---
@@ -40,6 +40,14 @@ st.set_page_config(
     page_title="Módulo de Originación INANDES",
     page_icon="📊",
 )
+
+# --- Configuración Service Account ---
+try:
+    # Convertir AttrDict a dict normal para upload_file_with_sa
+    SA_CREDENTIALS = dict(st.secrets["google_drive"])
+except Exception as e:
+    st.error(f"❌ Error: No se encontraron credenciales del Service Account en secrets.toml: {e}")
+    st.stop()
 
 # --- Funciones de Ayuda y Callbacks ---
 def update_date_calculations(invoice, changed_field=None, idx=None):
@@ -861,8 +869,14 @@ if st.session_state.invoices_data:
             annex_input = st.text_input("Nro. Anexo", key="input_annex_number", placeholder="Ej: 1")
             
         # Folder Selection
-        selected_folder_info = render_simple_folder_selector(key="accounting_folder_selection", label="Seleccionar Carpeta Destino (Drive)")
+        st.write("Seleccionar Carpeta Destino (Drive)")
+        selected_folder_info = render_folder_navigator_v2(key="originacion_folder_navigator")
         
+        if selected_folder_info:
+             st.info(f"📂 **Destino Seleccionado:** `{selected_folder_info['name']}`")
+        else:
+             st.warning("👈 Navega y selecciona una carpeta destino para habilitar el botón final.")
+
         st.markdown("### Acciones Finales")
         if st.button("💾 Guardar Propuesta y Subir Archivos", type="primary", use_container_width=True):
             # Validations
@@ -925,11 +939,11 @@ if st.session_state.invoices_data:
                         drive_errors = []
                         if 'last_generated_perfil_pdf' in st.session_state:
                             pdf = st.session_state['last_generated_perfil_pdf']
-                            ok_upl, res_upl = upload_file_to_drive(
+                            ok_upl, res_upl = upload_file_with_sa(
                                 pdf['bytes'], 
                                 pdf['filename'], 
                                 selected_folder_info['id'], 
-                                st.session_state.token['access_token']
+                                SA_CREDENTIALS
                             )
                             if ok_upl:
                                 st.success(f"✅ Perfil subido a Drive: {pdf['filename']}")
@@ -938,11 +952,11 @@ if st.session_state.invoices_data:
 
                         if 'last_generated_liquidacion_pdf' in st.session_state:
                             pdf = st.session_state['last_generated_liquidacion_pdf']
-                            ok_upl, res_upl = upload_file_to_drive(
+                            ok_upl, res_upl = upload_file_with_sa(
                                 pdf['bytes'], 
                                 pdf['filename'], 
                                 selected_folder_info['id'], 
-                                st.session_state.token['access_token']
+                                SA_CREDENTIALS
                             )
                             if ok_upl:
                                 st.success(f"✅ Liquidación subida a Drive: {pdf['filename']}")

@@ -1675,3 +1675,18 @@ PRÓXIMOS PASOS:
 - Limpiar código legacy.
 ================================================================================
 
+
+================================================================================
+FECHA: 2025-12-08 17:55:00
+SESIÓN: Estandarización de Subida a Drive en Originación
+================================================================================
+
+PLAN DE TRABAJO:
+----------------
+Estandarizar el módulo de 'Originación' replicando la 'Sección 4' del módulo de
+'Desembolso'. El objetivo es unificar el proceso de subida a Google Drive,
+asegurando que ambos módulos utilicen el mismo componente de navegación y
+selección de carpetas para una gestión de archivos consistente y robusta.
+
+ESTADO:  COMPLETADO
+
