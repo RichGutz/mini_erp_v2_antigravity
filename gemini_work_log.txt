@@ -1690,3 +1690,22 @@ selección de carpetas para una gestión de archivos consistente y robusta.
 
 ESTADO:  COMPLETADO
 
+
+================================================================================
+FECHA: 2025-12-08 18:00:00
+SESIÓN: Inclusión de PDFs Originales en Subida a Drive
+================================================================================
+
+REQUERIMIENTO:
+--------------
+Incluir los PDFs originales (cargados para parsing) en el proceso de subida a
+Google Drive en el módulo de Originación.
+
+PLAN DE TRABAJO:
+----------------
+1. Acceder a la variable 'uploaded_pdf_files' en el bloque de 'Acciones Finales'.
+2. Iterar sobre estos archivos y utilizar 'upload_file_with_sa' para subirlos
+   a la carpeta seleccionada.
+
+ESTADO:  COMPLETADO
+

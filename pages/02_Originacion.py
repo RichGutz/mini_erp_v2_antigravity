@@ -303,11 +303,19 @@ with st.expander("", expanded=True):
             st.session_state.invoices_data = []
             st.session_state.last_uploaded_pdf_files_ids = current_file_ids
             st.session_state.pdf_datos_cargados = False
+            st.session_state.original_uploads_cache = [] # Cache for Drive Upload
 
         if not st.session_state.pdf_datos_cargados:
             for uploaded_file in uploaded_pdf_files:
+                # Cache content strictly once
+                file_bytes_content = uploaded_file.getvalue()
+                st.session_state.original_uploads_cache.append({
+                    'name': uploaded_file.name,
+                    'bytes': file_bytes_content
+                })
+
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                    tmp.write(uploaded_file.getvalue())
+                    tmp.write(file_bytes_content)
                     temp_file_path = tmp.name
 
                 with st.spinner(f"Procesando {uploaded_file.name}..."):
@@ -962,6 +970,34 @@ if st.session_state.invoices_data:
                                 st.success(f"✅ Liquidación subida a Drive: {pdf['filename']}")
                             else:
                                 drive_errors.append(f"Liquidación: {res_upl}")
+                                
+
+
+                        # 3. Upload Original PDFs (Parsed Source Files)
+
+
+                        # 3. Upload Original PDFs (From Session Cache)
+                        if 'original_uploads_cache' in st.session_state and st.session_state.original_uploads_cache:
+                            cached_files = st.session_state.original_uploads_cache
+                            st.write(f"ℹ️ Detectados {len(cached_files)} archivos originales en caché memoria.")
+                            
+                            for cached_file in cached_files:
+                                try:
+                                    file_bytes = cached_file['bytes']
+                                    file_name = cached_file['name']
+                                    
+                                    ok_upl, res_upl = upload_file_with_sa(
+                                        file_bytes, 
+                                        file_name, 
+                                        selected_folder_info['id'], 
+                                        SA_CREDENTIALS
+                                    )
+                                    if ok_upl:
+                                        st.success(f"✅ Factura Original subida: {file_name}")
+                                    else:
+                                        st.warning(f"⚠️ No se pudo subir original {file_name}: {res_upl}")
+                                except Exception as e_orig:
+                                    st.warning(f"⚠️ Excepción subiendo original {cached_file.get('name', 'N/A')}: {e_orig}")
                                 
                         if not drive_errors:
                             st.balloons()
