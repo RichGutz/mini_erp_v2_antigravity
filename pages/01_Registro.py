@@ -181,9 +181,9 @@ def mostrar_formulario_crear():
         with col1:
             institucion_financiera = st.selectbox("Institución Financiera", bancos_peru)
         with col2:
-            numero_cuenta = st.text_input("Número de Cuenta")
+            numero_cuenta = st.text_input("Número de Cuenta (PEN)")
         with col3:
-            cci = st.text_input("Número de CCI", max_chars=20)
+            cci = st.text_input("Número de CCI (PEN)", max_chars=20)
         
         submitted = st.form_submit_button("Crear Registro", type="primary")
         
@@ -206,8 +206,8 @@ def mostrar_formulario_crear():
                     'Garante/Fiador solidario 2': garante_2 or None,
                     'DNI Garante/Fiador solidario 2': dni_garante_2 or None,
                     'Institucion Financiera': institucion_financiera or None,
-                    'Numero de Cuenta': numero_cuenta or None,
-                    'CCI': cci or None,
+                    'Numero de Cuenta PEN': numero_cuenta or None,
+                    'Numero de CCI PEN': cci or None,
                     'Correo Electronico 1': correo_1 or None,
                     'Correo Electronico 2': correo_2 or None
                 }
@@ -317,9 +317,9 @@ def mostrar_formulario_editar():
         with col1:
             institucion_financiera = st.selectbox("Institución Financiera", bancos_peru, index=index_banco)
         with col2:
-            numero_cuenta = st.text_input("Número de Cuenta", value=registro.get('Numero de Cuenta', '') or '')
+            numero_cuenta = st.text_input("Número de Cuenta (PEN)", value=registro.get('Numero de Cuenta PEN', '') or '')
         with col3:
-            cci = st.text_input("Número de CCI", value=registro.get('CCI', '') or '', max_chars=20)
+            cci = st.text_input("Número de CCI (PEN)", value=registro.get('Numero de CCI PEN', '') or '', max_chars=20)
         
         submitted = st.form_submit_button("Guardar Cambios", type="primary")
         
@@ -338,8 +338,8 @@ def mostrar_formulario_editar():
                     'Garante/Fiador solidario 2': garante_2 or None,
                     'DNI Garante/Fiador solidario 2': dni_garante_2 or None,
                     'Institucion Financiera': institucion_financiera or None,
-                    'Numero de Cuenta': numero_cuenta or None,
-                    'CCI': cci or None,
+                    'Numero de Cuenta PEN': numero_cuenta or None,
+                    'Numero de CCI PEN': cci or None,
                     'Correo Electronico 1': correo_1 or None,
                     'Correo Electronico 2': correo_2 or None
                 }
