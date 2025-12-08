@@ -56,7 +56,7 @@ if 'user_info' not in st.session_state:
         name="Continue with Google",
         icon="https://www.google.com.tw/favicon.ico",
         redirect_uri=redirect_uri,
-        scope="openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly",
+        scope="openid email profile https://www.googleapis.com/auth/drive",
         key="google",
         use_container_width=True,
         pkce='S256',
