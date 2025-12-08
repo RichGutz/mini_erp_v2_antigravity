@@ -13,4 +13,6 @@ uvicorn
 pydantic
 streamlit-google-picker
 plotly
+google-auth
+google-api-python-client
 # Forzar-Reconstruccion-Completa-V20250901
