@@ -177,11 +177,11 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     selected_folder = None
     with patch_picker_flatten():
         selected_folder = google_picker(
-            label="📂 Seleccionar Carpeta en Drive",
+            label="📂 Seleccionar Carpeta (Mi unidad o Shared Drives)",
             token=user_token,  # ✅ USA TOKEN DEL USUARIO (navegación)
             apiKey=api_key,
             appId=app_id,
-            view_ids=["FOLDERS"],
+            view_ids=["DOCS"],  # DOCS muestra Mi unidad + Shared Drives
             allow_folders=True,
             accept_multiple_files=False,
             key=picker_key  # Key única por sesión
