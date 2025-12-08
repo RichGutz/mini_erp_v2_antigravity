@@ -199,27 +199,13 @@ else:
         st.error("❌ Emisor sin RUC.")
 
 
-    # ==============================================================================
-    # SECCIÓN 3: SELECCIÓN DE CARPETA DESTINO (Google Drive)
-    # ==============================================================================
-    st.markdown("### 3. Selección de Carpeta Destino")
-    st.info("Selecciona la carpeta en Google Drive donde se guardarán los sustentos y el voucher.")
-    
-    try:
-        # Picker fuera del contenedor dinámico para máxima estabilidad
-        folder = render_simple_folder_selector(key="picker_section_3_isolated", label="Seleccionar Carpeta")
-        if folder:
-             st.success(f"✅ Carpeta Seleccionada: **{folder.get('name')}**")
-        else:
-             st.warning("👆 Por favor selecciona una carpeta.")
-    except Exception as e:
-        st.error(f"Error en Picker: {e}")
+
 
     # ==============================================================================
     # SECCIÓN 4: FORMALIZACIÓN Y DESEMBOLSO
     # ==============================================================================
     st.markdown("---")
-    st.subheader("🚀 4. Formalización y Ejecución")
+    st.subheader("⚙️ 3. Formalización")
     
     # CONTAINER PRINCIPAL - COPYING ORIGINACION STYLE
     with st.container(border=True):
@@ -282,6 +268,22 @@ else:
 
 
 
+        st.markdown("---")
+        st.markdown("### 4. Selección de Carpeta Destino")
+        st.info("Selecciona la carpeta en Google Drive donde se guardarán los sustentos y el voucher.")
+        
+        folder = None
+        try:
+            # Picker movido al paso 4
+            folder = render_simple_folder_selector(key="picker_section_4_moved", label="Seleccionar Carpeta")
+            if folder:
+                    st.success(f"✅ Carpeta Seleccionada: **{folder.get('name')}**")
+            else:
+                    st.warning("👆 Por favor selecciona una carpeta.")
+        except Exception as e:
+            st.error(f"Error en Picker: {e}")
+
+        st.markdown("---")
         st.markdown("### Acciones Finales")
         
         # 3.3 BOTÓN DE EJECUCIÓN
