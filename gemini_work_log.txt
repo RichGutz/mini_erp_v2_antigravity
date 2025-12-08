@@ -1662,7 +1662,11 @@ ACCIONES REALIZADAS:
 ESTADO:
 -------
 ✅ Funcionalidad completa migrada a la página bottom-up.
-✅ UI refinada con estilo de "Tablas/Celdas Fusionadas".
+✅ Layout cambiado a ESTILO VERTICAL (4 Pasos) por solicitud del usuario.
+   1. Tabla Facturas
+   2. Voucher
+   3. Formalización
+   4. Navegador (Selección Final)
 ✅ Código listo para reemplazar al módulo original tras validación final.
 
 PRÓXIMOS PASOS:
