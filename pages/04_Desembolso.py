@@ -20,7 +20,13 @@ from src.utils.pdf_generators import generar_voucher_transferencia_pdf
 API_BASE_URL = os.getenv("BACKEND_API_URL")
 
 # --- Configuración Service Account ---
-SA_KEY_PATH = "secrets oauth/mini-erp-v2-antigravity-cc079f4da448.json"
+try:
+    # Intenta cargar desde secrets (Producción)
+    SA_CREDENTIALS = st.secrets["service_account"]
+except Exception:
+    # Fallback a archivo (Local)
+    SA_CREDENTIALS = "secrets oauth/mini-erp-v2-antigravity-cc079f4da448.json"
+
 if not API_BASE_URL:
     try:
         API_BASE_URL = st.secrets["backend_api"]["url"]
@@ -83,13 +89,15 @@ def get_monto_a_desembolsar(factura: dict) -> float:
         return 0.0
         return 0.0
 
-def upload_helper(file_bytes, file_name, folder_id, sa_key_path):
+        return 0.0
+
+def upload_helper(file_bytes, file_name, folder_id, sa_creds):
     try:
         if not file_bytes:
             return False, f"Sin contenido: {file_name}"
         
         # USA SERVICE ACCOUNT (opcion 2)
-        success, res_id = upload_file_with_sa(file_bytes, file_name, folder_id, sa_key_path)
+        success, res_id = upload_file_with_sa(file_bytes, file_name, folder_id, sa_creds)
         
         if success:
              return True, f"✅ Subido (SA): {file_name}"
@@ -383,7 +391,7 @@ else:
                         
                         with ThreadPoolExecutor(max_workers=5) as executor:
                             future_to_file = {
-                                executor.submit(upload_helper, b, n, folder_id, SA_KEY_PATH): n 
+                                executor.submit(upload_helper, b, n, folder_id, SA_CREDENTIALS): n 
                                 for b, n in upload_tasks
                             }
                             

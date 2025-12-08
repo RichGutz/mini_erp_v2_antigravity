@@ -237,16 +237,23 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
-def upload_file_with_sa(file_bytes, file_name, folder_id, sa_key_path):
+def upload_file_with_sa(file_bytes, file_name, folder_id, sa_credentials):
     """
     Uploads a file to Google Drive using a Service Account.
+    :param sa_credentials: Path to JSON file (str) OR dictionary with credentials (dict)
     """
     try:
         # Load credentials
-        creds = service_account.Credentials.from_service_account_file(
-            sa_key_path, 
-            scopes=['https://www.googleapis.com/auth/drive']
-        )
+        if isinstance(sa_credentials, dict):
+            creds = service_account.Credentials.from_service_account_info(
+                sa_credentials, 
+                scopes=['https://www.googleapis.com/auth/drive']
+            )
+        else:
+            creds = service_account.Credentials.from_service_account_file(
+                sa_credentials, 
+                scopes=['https://www.googleapis.com/auth/drive']
+            )
         
         # Build Service
         service = build('drive', 'v3', credentials=creds)
