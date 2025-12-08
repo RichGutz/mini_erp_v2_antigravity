@@ -1712,3 +1712,6 @@ ESTADO:  COMPLETADO
 
 [2025-12-08 18:39] ESTANDARIZACIÓN LIQUIDACIÓN: Cambios aplicados y code-frozen. Commit/Push pendiente.
 
+
+[2025-12-08 18:51] REGISTRO: Agregados campos 'Correo Electronico 1' y 'Correo Electronico 2' al módulo de Registro de Clientes. Commit/Push ejecutado.
+

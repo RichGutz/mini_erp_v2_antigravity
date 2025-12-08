@@ -138,7 +138,16 @@ def mostrar_formulario_crear():
             garante_2 = st.text_input("Garante/Fiador solidario 2")
         with col2:
             dni_garante_1 = st.text_input("DNI Garante/Fiador solidario 1", max_chars=8)
+            dni_garante_1 = st.text_input("DNI Garante/Fiador solidario 1", max_chars=8)
             dni_garante_2 = st.text_input("DNI Garante/Fiador solidario 2", max_chars=8)
+        
+        # Datos de Contacto
+        st.subheader("Datos de Contacto (Emails)")
+        col1, col2 = st.columns(2)
+        with col1:
+            correo_1 = st.text_input("Correo Electrónico 1", help="Email principal para notificaciones")
+        with col2:
+            correo_2 = st.text_input("Correo Electrónico 2", help="Email secundario (cc)")
         
         # Datos bancarios
         st.subheader("Datos Bancarios")
@@ -198,7 +207,9 @@ def mostrar_formulario_crear():
                     'DNI Garante/Fiador solidario 2': dni_garante_2 or None,
                     'Institucion Financiera': institucion_financiera or None,
                     'Numero de Cuenta': numero_cuenta or None,
-                    'CCI': cci or None
+                    'CCI': cci or None,
+                    'Correo Electronico 1': correo_1 or None,
+                    'Correo Electronico 2': correo_2 or None
                 }
                 
                 success, message = db.create_emisor_deudor(data)
@@ -258,6 +269,14 @@ def mostrar_formulario_editar():
         with col2:
             dni_garante_1 = st.text_input("DNI Garante/Fiador solidario 1", value=registro.get('DNI Garante/Fiador solidario 1', '') or '', max_chars=8)
             dni_garante_2 = st.text_input("DNI Garante/Fiador solidario 2", value=registro.get('DNI Garante/Fiador solidario 2', '') or '', max_chars=8)
+        
+        # Datos de Contacto
+        st.subheader("Datos de Contacto (Emails)")
+        col1, col2 = st.columns(2)
+        with col1:
+            correo_1 = st.text_input("Correo Electrónico 1", value=registro.get('Correo Electronico 1', '') or '', help="Email principal para notificaciones")
+        with col2:
+            correo_2 = st.text_input("Correo Electrónico 2", value=registro.get('Correo Electronico 2', '') or '', help="Email secundario (cc)")
         
         # Datos bancarios
         st.subheader("Datos Bancarios")
@@ -320,7 +339,9 @@ def mostrar_formulario_editar():
                     'DNI Garante/Fiador solidario 2': dni_garante_2 or None,
                     'Institucion Financiera': institucion_financiera or None,
                     'Numero de Cuenta': numero_cuenta or None,
-                    'CCI': cci or None
+                    'CCI': cci or None,
+                    'Correo Electronico 1': correo_1 or None,
+                    'Correo Electronico 2': correo_2 or None
                 }
                 
                 success, message = db.update_emisor_deudor(registro['RUC'], data)
