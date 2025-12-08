@@ -12,8 +12,8 @@ import uuid  # Para generar keys únicas por sesión
 # Si el SA tiene acceso a múltiples Drives, el Picker mostrará todos.
 SHARED_DRIVE_ID = "0AAeC4FtltHyBUk9PVA"
 
-# ID de la carpeta raíz del repositorio institucional
-REPOSITORIO_FOLDER_ID = "1Jv1r9kixL982gL-RCyPnhOY3W-qI0CLq"
+# ID de la carpeta raíz del repositorio institucional (en Mi unidad de rich@kaizencapital.pe)
+REPOSITORIO_FOLDER_ID = "1k5OVgh_eBBTc9Ai_MhpLr-Mw7yN6t9YN"
 # -------------------------------------
 
 # --- SHARED MONKEYPATCH ---
