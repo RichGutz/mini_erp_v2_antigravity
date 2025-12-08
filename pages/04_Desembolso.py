@@ -208,34 +208,59 @@ else:
     with st.container(border=True):
         st.info("Paso Final: Configure los parámetros y seleccione la carpeta de destino.")
         
-        # 3.1 INPUTS CONFIGURACION
-        col_meta1, col_meta2 = st.columns(2)
-        with col_meta1:
+        # 3.1 CONFIGURACIÓN GLOBAL
+        col_g1, col_g2 = st.columns(2)
+        with col_g1:
             st.session_state.global_desembolso_vars['fecha_desembolso'] = st.date_input(
-                "Fecha de Desembolso (Real)", 
+                "Fecha de Desembolso (para todas)", 
                 st.session_state.global_desembolso_vars['fecha_desembolso']
             )
-            # Montos individuales si no es sustento unico
-            st.markdown("##### Montos por Factura")
-            for i, factura in enumerate(facturas_seleccionadas):
-                 pid = factura['proposal_id']
-                 monto_key = f"monto_desembolso_{pid}"
-                 if monto_key not in st.session_state:
-                     st.session_state[monto_key] = get_monto_a_desembolsar(factura)
-                 st.number_input(f"Monto ({parse_invoice_number(pid)})", key=monto_key, format="%.2f")
-
-        with col_meta2:
-            st.checkbox("Sustento de Pago Único", key="sustento_unico")
+        with col_g2:
+            st.checkbox("APLICAR SUSTENTO DE PAGO ÚNICO", key="sustento_unico")
             if st.session_state.sustento_unico:
                 st.session_state.consolidated_proof_file = st.file_uploader(
-                    "Sustento Consolidado", type=["pdf", "png", "jpg"], key="consolidated_uploader"
+                    "Subir Evidencia Consolidada", type=["pdf", "png", "jpg"], key="consolidated_uploader"
                 )
-            else:
-                for i, factura in enumerate(facturas_seleccionadas):
-                    pid = factura['proposal_id']
-                    st.session_state.individual_proof_files[pid] = st.file_uploader(
-                        f"Sustento {parse_invoice_number(pid)}", key=f"uploader_{pid}"
+
+        st.markdown("---")
+        st.markdown("##### Detalle por Factura")
+
+        # 3.2 DETALLE POR FACTURA (Restaurado)
+        total_monto = 0.0
+        for i, factura in enumerate(facturas_seleccionadas):
+            pid = factura['proposal_id']
+            
+            # Container per invoice to group visual elements
+            with st.container(border=True):
+                c1, c2 = st.columns([1, 1])
+                
+                with c1:
+                    st.markdown(f"**Factura:** `{parse_invoice_number(pid)}`")
+                    st.caption(f"Emisor: {factura.get('emisor_nombre', 'N/A')}")
+                    
+                    monto_key = f"monto_desembolso_{pid}"
+                    if monto_key not in st.session_state:
+                         st.session_state[monto_key] = get_monto_a_desembolsar(factura)
+                    
+                    st.session_state[monto_key] = st.number_input(
+                        "Monto a Depositar",
+                        key=monto_key,
+                        format="%.2f"
                     )
+                    total_monto += st.session_state[monto_key]
+                
+                with c2:
+                    if not st.session_state.sustento_unico:
+                        st.session_state.individual_proof_files[pid] = st.file_uploader(
+                            "Subir Sustento",
+                            type=["pdf", "png", "jpg"],
+                            key=f"uploader_{pid}"
+                        )
+                    else:
+                        st.info("ℹ️ Sustento Global Activo")
+        
+        st.markdown(f"**Total a Desembolsar:** {total_monto:,.2f}")
+        st.markdown("---")
 
         # 3.2 GOOGLE DRIVE PICKER (Dentro del Container, antes del botón)
         st.markdown("#### Selección de Carpeta")
