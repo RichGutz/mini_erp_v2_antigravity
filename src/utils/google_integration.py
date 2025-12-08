@@ -5,7 +5,10 @@ from streamlit_google_picker import google_picker
 import streamlit_google_picker.uploaded_file as lib_upl # Import for monkeypatching
 
 # --- CONFIGURACIÓN SHARED DRIVE ---
-# ID del Shared Drive institucional donde se almacenan todos los documentos del ERP
+# ID del Shared Drive institucional de rich@kaizencapital.pe
+# IMPORTANTE: El Service Account debe tener acceso SOLO a este Shared Drive
+# para que el Picker muestre únicamente el repositorio institucional.
+# Si el SA tiene acceso a múltiples Drives, el Picker mostrará todos.
 SHARED_DRIVE_ID = "0AAeC4FtltHyBUk9PVA"
 # -------------------------------------
 
