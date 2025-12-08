@@ -155,6 +155,48 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     if not user_token:
         st.warning("⚠️ Para ver el Repositorio Institucional, inicia sesión con Google.")
         return
+        
+    # --- DIAGNÓSTICO EN UI (MEJORADO) ---
+    st.info("ℹ️ MODO HÍBRIDO: Picker usa TU cuenta para ver Shared Drives. Upload usa Service Account.")
+    with st.expander("🔍 HERRAMIENTA DE DIAGNÓSTICO (ESTADO PIKER)", expanded=True):
+        col_d1, col_d2 = st.columns(2)
+        with col_d1:
+            st.write("**1. Sesión de Usuario:**")
+            user_info = st.session_state.get('user_info', {})
+            st.code(f"Usuario: {user_info.get('email', 'N/A')}")
+            st.caption("Este usuario se usa para NAVEGAR y SOLICITAR permisos de vista.")
+
+        with col_d2:
+            st.write("**2. Token en Picker:**")
+            st.code(f"Tipo: User Token (Bearer)")
+            if user_token:
+                st.success("✅ Token Presente")
+            else:
+                st.error("❌ Sin Token")
+        
+        st.write("**3. Validación de Permisos (Scopes):**")
+        if user_token:
+            try:
+                # Consultar scopes reales a Google
+                token_info_url = f"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={user_token}"
+                resp = requests.get(token_info_url)
+                if resp.status_code == 200:
+                    info = resp.json()
+                    st.json(info) # Mostrar info cruda para transparencia
+                    
+                    scopes = info.get('scope', '').split(' ')
+                    has_drive = 'https://www.googleapis.com/auth/drive' in scopes
+                    
+                    if has_drive:
+                        st.success("✅ Scope '.../auth/drive' ACTIVO (Permite ver Shared Drives)")
+                    else:
+                        st.error("❌ FALTA Scope '.../auth/drive'. Necesitarás re-autenticar.")
+                else:
+                    st.error(f"❌ Token inválido (Error {resp.status_code})")
+                    st.json(resp.json())
+            except Exception as e:
+                st.error(f"Error validando: {e}")
+    # --------------------------------
     
     # Botón para forzar refresh del Picker (limpiar caché)
     col1, col2 = st.columns([3, 1])
@@ -260,6 +302,28 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     if not user_token:
         st.warning("⚠️ Inicia sesión para ver carpetas.")
         return None
+
+    # --- DIAGNÓSTICO EN UI (MEJORADO - SIMPLE SELECTOR) ---
+    st.info("ℹ️ MODO HÍBRIDO: Usando tu cuenta para ver Repositorios Institucionales (Shared Drives).")
+    with st.expander("🔍 HERRAMIENTA DE DIAGNÓSTICO", expanded=True):
+        st.write(f"**Usuario Activo:** {st.session_state.get('user_info', {}).get('email', 'Desconocido')}")
+        st.write(f"**Token Usado en Picker:** User Token (Permite ver Shared Drives)")
+        
+        if user_token:
+            try:
+                token_info_url = f"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={user_token}"
+                resp = requests.get(token_info_url)
+                if resp.status_code == 200:
+                    scopes = resp.json().get('scope', '')
+                    if 'https://www.googleapis.com/auth/drive' in scopes:
+                        st.success("✅ Permisos Correctos (Full Drive)")
+                    else:
+                        st.error("❌ Faltan Permisos (Re-login requerido)")
+                else:
+                    st.error("❌ Token Inválido")
+            except:
+                st.warning("⚠️ No se pudo validar token")
+    # --------------------------------
 
     # Botón para forzar refresh del Picker (limpiar caché)
     col1, col2 = st.columns([3, 1])
