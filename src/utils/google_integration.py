@@ -44,6 +44,38 @@ def patch_picker_flatten():
         lib_upl.flatten_picker_result = original_flatten
 # --------------------------
 
+def get_service_account_token():
+    """
+    Genera un access_token temporal del Service Account para usar en el Google Picker.
+    Esto permite que el Picker muestre SOLO carpetas del Drive del SA (no del usuario).
+    """
+    try:
+        from google.oauth2 import service_account
+        import google.auth.transport.requests
+        
+        # Obtener credenciales del Service Account
+        sa_creds_dict = dict(st.secrets["google_drive"])
+        
+        # Fix de private_key si viene con \\n en lugar de \n
+        if 'private_key' in sa_creds_dict:
+            sa_creds_dict['private_key'] = sa_creds_dict['private_key'].replace('\\\\n', '\n')
+        
+        # Crear credenciales con scope de Drive
+        creds = service_account.Credentials.from_service_account_info(
+            sa_creds_dict,
+            scopes=['https://www.googleapis.com/auth/drive']
+        )
+        
+        # Refrescar para obtener access_token
+        creds.refresh(google.auth.transport.requests.Request())
+        
+        return creds.token
+        
+    except Exception as e:
+        st.error(f"Error generando token del Service Account: {e}")
+        return None
+# --------------------------
+
 def upload_file_to_drive(file_data, file_name, folder_id, access_token):
     """
     Uploads a file (bytes) to a specific Google Drive folder using the Drive API v3 (REST).
@@ -82,13 +114,15 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     """
     Renders a Google Picker to select a folder, then uploads the file_data to that folder.
     
-    IMPORTANTE: El Picker usa el token del usuario para navegación (UX),
-    pero el upload usa el Service Account para centralizar todos los documentos.
+    IMPORTANTE: El Picker Y el Upload usan el Service Account.
+    - Picker muestra SOLO carpetas del Drive del SA (documentos confidenciales)
+    - Usuario navega dentro del Drive del SA únicamente
+    - Upload usa credenciales del SA (centralizado)
     """
     st.markdown("---")
     st.write(f"##### {label}")
 
-    # Check authentication (para el Picker)
+    # Check authentication del usuario (para tracking/audit)
     if 'token' not in st.session_state or not st.session_state.token:
         st.warning("⚠️ Debes iniciar sesión con Google en el Home para usar esta función.")
         return
@@ -103,15 +137,21 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
         st.error("Error de configuración: Faltan secretos de Google.")
         return
 
-    # 2. Render Picker (usa token del usuario para navegación)
+    # 2. Generar token del Service Account para el Picker
+    sa_token = get_service_account_token()
+    if not sa_token:
+        st.error("❌ No se pudo generar token del Service Account para el Picker.")
+        return
+    
+    # 3. Render Picker (usa token del SA para mostrar Drive del SA)
     picker_key = f"picker_{key}"
     app_id = client_id.split('-')[0] if client_id else None
     
     selected_folder = None
     with patch_picker_flatten():
         selected_folder = google_picker(
-            label="📂 Guardar en Drive (Seleccionar Carpeta)",
-            token=st.session_state.token['access_token'],
+            label="📂 Repositorio Institucional (Drive del ERP)",
+            token=sa_token,  # ✅ CAMBIADO: Usa token del SA
             apiKey=api_key,
             appId=app_id,
             view_ids=["FOLDERS"],
@@ -120,7 +160,7 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
             key=picker_key
         )
 
-    # 3. Handle Selection & Upload (con Service Account)
+    # 4. Handle Selection & Upload (con Service Account)
     if selected_folder:
         try:
             if len(selected_folder) > 0:

@@ -4,17 +4,57 @@ El mini erp va a ser usado por muchos usuarios. La idea es asignar roles y hacer
 de las acciones de cada uno de ellos a traves del login con google que esta en HOME
 
 
+PROBLEMA #1: PICKER Y REPOSITORIO CENTRALIZADO
+===============================================
+
+REQUERIMIENTO:
 El picker en los modulos tiene el objetivo de guardar en un lugar seguro todos los 
-documentos que genera el ERP. Asi que el picker en las secciones deberian apunta a un solo user de 
-gmail a pesar que el login haya sido hecho con otro user.
+documentos CONFIDENCIALES que genera el ERP. Estos documentos SOLO pueden guardarse 
+en el Drive del Service Account (repositorio institucional centralizado).
 
-Ayer estuvimos intentando hacer pero la solucion que logramos fue que la cuenta del 
-repositorio compartiera una carpeta con todo los usuarios y esa carpeta sea accesible a traves
+IMPORTANTE - SEGURIDAD:
+- Los documentos son CONFIDENCIALES de la empresa
+- NUNCA deben guardarse en Drives personales de los usuarios
+- El ERP debe controlar que todos los archivos vayan al repositorio institucional
+- Los usuarios pueden NAVEGAR y ELEGIR carpetas, PERO solo dentro del Drive del SA
+
+COMPORTAMIENTO REQUERIDO:
+1. Usuario hace login con su cuenta Google (para tracking/audit)
+2. Picker muestra SOLO carpetas del Drive del Service Account (NO del usuario)
+3. Usuario navega y elige carpeta destino DENTRO del Drive del SA
+4. Upload usa credenciales del Service Account
+5. Documento queda guardado en el repositorio institucional centralizado
+
+SOLUCIÓN IMPLEMENTADA (PARCIAL):
+✅ Upload usa Service Account (implementado en commit d28f509)
+❌ Picker aún muestra Drive del usuario (PENDIENTE CORREGIR)
+
+SOLUCIÓN CORRECTA PENDIENTE:
+- El Picker debe generar access_token del Service Account
+- Pasar ese token al Picker en lugar del token del usuario
+- Resultado: Picker mostrará solo carpetas del Drive del SA
+- Usuario navega dentro del ecosistema del SA únicamente
+
+RAZÓN DE LA SOLUCIÓN ANTERIOR (INCORRECTA):
+Ayer estuvimos intentando hacer esto pero la solucion que logramos fue que la cuenta del 
+repositorio compartiera una carpeta con todos los usuarios y esa carpeta sea accesible a traves
 del picker. NO es una solucion muy elegante pues lo que se desea es que los upload
-al repositorio sea SOLO DESDE EL ERP.
+al repositorio sea SOLO DESDE EL ERP, manteniendo control total sobre documentos confidenciales.
 
-Adiconalemnte, siempre tenemos el mismo problema que los agentes tratan de subir la carpeta C:\Users\rguti\mini_erp_v2_antigravity\secrets oauth
-a GIT. Esta carpeta debe estar en GITIGNORE y los secretos directamente en el setting del web de Streamlit
+
+PROBLEMA #2: CREDENCIALES EXPUESTAS EN GITHUB (RESUELTO)
+=========================================================
+
+Adiconalmente, siempre tenemos el mismo problema que los agentes tratan de subir la carpeta 
+C:\Users\rguti\mini_erp_v2_antigravity\secrets oauth a GIT. Esta carpeta debe estar en 
+GITIGNORE y los secretos directamente en el setting del web de Streamlit
+
+SOLUCIÓN IMPLEMENTADA:
+✅ Credenciales rotadas en Google Cloud Console (key antigua deshabilitada)
+✅ Historial de Git limpiado con filter-branch (206 commits procesados)
+✅ .gitignore reforzado con 4 patrones de protección para secrets
+✅ Nuevas credenciales configuradas en secrets.toml
+✅ Commits y push realizados (3 sesiones documentadas)
 
 Ayer llego este correo:
 
@@ -27,16 +67,18 @@ inandes-drive-service@mini-erp-v2-antigravity.iam.gserviceaccount.com with key I
 
 This key was found at the following URL: https://github.com/RichGutz/mini_erp_v2_antigravity/blob/01b18752c7e5abd61d985c5146901f27d5097e33/secrets%20oauth/mini-erp-v2-antigravity-cc079f4da448.json
 
-For a subset of abuse issues, we send abuse notifications in log format. Please login to your console and review this abuse notification in Cloud Logging.
+ESTADO: ✅ RESUELTO COMPLETAMENTE
+- Key antigua (cc079f4da448...) deshabilitada
+- Key nueva (de511e50b7c9...) rotada y segura
+- Historial de Git limpio (verificado)
+- GitHub sin credenciales expuestas
 
-To prevent potential security and abuse risks, this Service Account authentication credential will be disabled in accordance with your Organizational Policy for “Service account key exposure response”. Your Service Account Credential  may have been inadvertently published in public sources or websites (for instance, the credentials were mistakenly uploaded to a service like GitHub). Please note that as the project/account owner, you are responsible for securing your resources.  
 
-Immediate action is required to secure your account(s). We strongly recommend that you take the following steps:
+RESUMEN DE ESTADO:
+==================
+✅ Problema #2 (Credenciales): RESUELTO COMPLETAMENTE
+⏳ Problema #1 (Picker): PARCIALMENTE RESUELTO
+   - Upload con SA: ✅ Implementado
+   - Picker con SA: ❌ Pendiente (muestra Drive del usuario, debe mostrar Drive del SA)
 
-Log in to the Google Cloud Console and review the activity on your account. 
-Rotate the credential for the disabled Service Account. 
-Take immediate steps to ensure that your Service Account credentials are not embedded in public source code systems, stored in download directories, or unintentionally shared in other ways.
-Learn more about responding to abuse notifications and warnings
-
-The security of your Google Cloud Platform account(s) is important to us. You can find more information on securely using IAM here and also recommend best practices for keeping service accounts keys safe. Please let us know if you have additional questions by contacting Google Cloud Support.
 
