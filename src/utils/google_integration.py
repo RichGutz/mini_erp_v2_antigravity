@@ -282,4 +282,11 @@ def upload_file_with_sa(file_bytes, file_name, folder_id, sa_credentials):
         return True, file.get('id')
         
     except Exception as e:
+        # Debugging Info (Safe)
+        if hasattr(st, 'write'):
+             st.error(f"❌ Error Auth SA: {e}")
+             if isinstance(sa_credentials, dict) and 'private_key' in sa_credentials:
+                 pk = sa_credentials['private_key']
+                 st.code(f"Key Preview: {pk[:30]} ... {pk[-30:]}\nLen: {len(pk)}\nHas \\n literals: {'\\\\n' in pk}\nHas real newlines: {'\\n' in pk}", language="text")
         return False, str(e)
+
