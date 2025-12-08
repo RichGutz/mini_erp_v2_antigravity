@@ -81,11 +81,14 @@ def upload_file_to_drive(file_data, file_name, folder_id, access_token):
 def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Google Drive"):
     """
     Renders a Google Picker to select a folder, then uploads the file_data to that folder.
+    
+    IMPORTANTE: El Picker usa el token del usuario para navegación (UX),
+    pero el upload usa el Service Account para centralizar todos los documentos.
     """
     st.markdown("---")
     st.write(f"##### {label}")
 
-    # Check authentication
+    # Check authentication (para el Picker)
     if 'token' not in st.session_state or not st.session_state.token:
         st.warning("⚠️ Debes iniciar sesión con Google en el Home para usar esta función.")
         return
@@ -100,7 +103,7 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
         st.error("Error de configuración: Faltan secretos de Google.")
         return
 
-    # 2. Render Picker
+    # 2. Render Picker (usa token del usuario para navegación)
     picker_key = f"picker_{key}"
     app_id = client_id.split('-')[0] if client_id else None
     
@@ -117,7 +120,7 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
             key=picker_key
         )
 
-    # 3. Handle Selection & Upload
+    # 3. Handle Selection & Upload (con Service Account)
     if selected_folder:
         try:
             if len(selected_folder) > 0:
@@ -135,15 +138,25 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
                 if folder_id:
                     st.info(f"📁 Carpeta seleccionada: **{folder_name}**")
                     if st.button(f"⬆️ Confirmar subida de: {file_name}", key=f"btn_upload_{key}", type="primary"):
-                        with st.spinner("Subiendo archivo a Google Drive..."):
-                            success, result = upload_file_to_drive(
-                                file_data=file_data,
+                        with st.spinner("Subiendo archivo a Google Drive con Service Account..."):
+                            # Obtener credenciales del Service Account
+                            try:
+                                sa_creds = st.secrets["google_drive"]
+                            except Exception as e:
+                                st.error(f"❌ Error: No se encontraron credenciales del Service Account: {e}")
+                                return
+                            
+                            # Upload con Service Account (centralizado)
+                            success, result = upload_file_with_sa(
+                                file_bytes=file_data,
                                 file_name=file_name,
                                 folder_id=folder_id,
-                                access_token=st.session_state.token['access_token']
+                                sa_credentials=sa_creds
                             )
+                            
                             if success:
                                 st.success(f"✅ ¡Archivo guardado exitosamente en Drive!")
+                                st.caption(f"📎 File ID: {result}")
                             else:
                                 st.error(f"❌ Error al subir: {result}")
             else:
