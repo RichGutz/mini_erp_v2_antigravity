@@ -261,6 +261,15 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
         st.error("❌ No se pudo generar token del Service Account para el Picker.")
         return None
 
+    # Botón para forzar refresh del Picker (limpiar caché)
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        if st.button("🔄 Refrescar Picker", key=f"refresh_simple_picker_{key}"):
+            # Limpiar UUID de sesión para forzar recreación del Picker
+            if 'simple_picker_session_id' in st.session_state:
+                del st.session_state.simple_picker_session_id
+            st.rerun()
+
     # IMPORTANTE: Key única por sesión para evitar caché entre sesiones pero estable en la misma sesión
     if 'simple_picker_session_id' not in st.session_state:
         st.session_state.simple_picker_session_id = str(uuid.uuid4())
