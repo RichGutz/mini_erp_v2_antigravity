@@ -1181,3 +1181,251 @@ DETALLE TECNICO:
 RESULTADO:
 Estabilidad del 100% en la interfaz. El picker persiste tras recargas y actualizaciones de estado.
 ================================================================================
+
+================================================================================
+FECHA: 2025-12-08 09:00:00
+SESIÓN: Limpieza de Credenciales Expuestas del Service Account en GitHub
+================================================================================
+
+PROBLEMA REPORTADO:
+-------------------
+Google Cloud Platform envió un email de advertencia indicando que las credenciales
+del Service Account (mini-erp-v2-antigravity-cc079f4da448.json) fueron detectadas
+públicamente expuestas en GitHub. La key será deshabilitada por Google.
+
+URL comprometida:
+https://github.com/RichGutz/mini_erp_v2_antigravity/blob/01b18752.../secrets%20oauth/...
+
+ACCIONES INMEDIATAS TOMADAS:
+----------------------------
+1. ROTACIÓN DE CREDENCIALES EN GOOGLE CLOUD CONSOLE:
+   - Usuario eliminó manualmente la key comprometida (cc079f4da448...)
+   - Generó nuevas credenciales del Service Account
+   - Descargó nuevo archivo JSON con credenciales frescas
+
+2. VERIFICACIÓN DE .GITIGNORE:
+   - Confirmado que `secrets oauth/` ya estaba en .gitignore (línea 68)
+   - Sin embargo, Git seguía rastreando archivos añadidos antes del .gitignore
+
+3. LIMPIEZA DEL HISTORIAL DE GIT:
+   - Opción seleccionada: Git Filter-Branch (Opción 2 - no requiere Java)
+   - Commit comprometido identificado: 01b18752c7e5abd61d985c5146901f27d5097e33
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+Ejecutados 5 pasos de limpieza completa:
+
+PASO 1: Eliminar del índice (09:09):
+   git rm --cached "secrets oauth/mini-erp-v2-antigravity-cc079f4da448.json"
+   git commit -m "Remove exposed credentials from tracking"
+   → Commit 256505a creado
+
+PASO 2: Reescribir historial completo (09:10-09:12):
+   git stash push -m "Temporary stash before filter-branch"
+   git filter-branch --force --index-filter \
+     "git rm --cached --ignore-unmatch 'secrets oauth/mini-erp-v2-antigravity-cc079f4da448.json'" \
+     --prune-empty --tag-name-filter cat -- --all
+   → 206 commits procesados en ~2 minutos
+   → Branch main reescrito completamente
+   → Branches de backup no afectados (no contenían el archivo)
+
+PASO 3: Limpieza de referencias (09:13):
+   git for-each-ref --format="%(refname)" refs/original/ | ForEach-Object { git update-ref -d $_ }
+   git reflog expire --expire=now --all
+   git gc --prune=now --aggressive
+   → Repositorio optimizado: 1129 → 1112 objetos
+
+PASO 4: Push forzado a GitHub (09:14):
+   git push origin main --force
+   → Push exitoso: + 4e9da89...7e992e5 main -> main (forced update)
+   → 26 objetos enviados, 21 deltas resueltos
+
+PASO 5: Verificación final (09:15):
+   git log --all --full-history -- "secrets oauth/mini-erp-v2-antigravity-cc079f4da448.json"
+   → ✅ Sin output (archivo completamente eliminado del historial)
+
+ARCHIVOS PROCESADOS:
+--------------------
+- .gitignore: Verificado (correcto)
+- Historial de Git: 206 commits reescritos
+- Branch principal: main (actualizado en GitHub)
+
+MÉTRICAS DE LA OPERACIÓN:
+--------------------------
+- Commits procesados: 206
+- Branches reescritos: 1 (main)
+- Tiempo total: ~5 minutos
+- Tamaño repo antes: 1129 objetos
+- Tamaño repo después: 1112 objetos
+- Verificación: ✅ Exitosa (cero commits con credenciales)
+
+SCRIPTS/DOCUMENTOS CREADOS:
+----------------------------
+1. C:\Users\rguti\.gemini\...\task.md
+   → Plan de trabajo con checklist
+
+2. C:\Users\rguti\.gemini\...\git_cleanup_options.md
+   → Documento con 3 opciones de limpieza (BFG, Filter-Branch, Repo Nuevo)
+
+3. C:\Users\rguti\.gemini\...\git_cleanup_steps.md
+   → Guía paso a paso con comandos ejecutables
+
+4. C:\Users\rguti\.gemini\...\walkthrough.md
+   → Documentación completa de la sesión con métricas
+
+ESTADO ACTUAL DE SEGURIDAD:
+----------------------------
+✅ Credenciales antiguas: Deshabilitadas en Google Cloud
+✅ Historial de Git: Limpio (verificado sin residuos)
+✅ GitHub público: Sin credenciales expuestas
+✅ .gitignore: Configurado correctamente
+⚠️ Nuevas credenciales: Pendiente configurar en Streamlit Secrets
+
+PRÓXIMOS PASOS PENDIENTES:
+---------------------------
+1. Configurar nuevas credenciales en .streamlit/secrets.toml
+2. Verificar permisos del Service Account en Google Drive
+3. Implementar uploads centralizados con Service Account
+4. Probar flujo completo de upload desde el ERP
+
+IMPACTO:
+--------
+✅ Eliminación completa de credenciales del repositorio público
+✅ Historial de Git sanitizado en todos los branches relevantes
+✅ Protección contra futuros leaks (gitignore verificado)
+✅ Nuevas credenciales generadas y seguras
+
+ESTADO: ✅ COMPLETADO
+TESTING: ⏳ PENDIENTE (Configuración de Streamlit Secrets y Service Account)
+================================================================================
+
+================================================================================
+FECHA: 2025-12-08 09:20:00
+SESIÓN: Configuración de Streamlit Secrets con Nuevas Credenciales
+================================================================================
+
+CONTEXTO:
+---------
+Continuación de la sesión anterior de limpieza de credenciales. Una vez rotadas
+las credenciales en Google Cloud Console y limpiado el historial de Git, era
+necesario actualizar el archivo secrets.toml con las nuevas credenciales.
+
+PREOCUPACIÓN DEL USUARIO:
+--------------------------
+El usuario preguntó correctamente por la ubicación del archivo secrets.toml
+local y expresó preocupación por que pudiera exponerse en Git (evitar repetir
+el mismo problema). Sugirió moverlo a la carpeta "secrets oauth/" que ya está
+en gitignore.
+
+DECISIÓN TÉCNICA:
+-----------------
+Mantener secrets.toml en la ubicación estándar de Streamlit (.streamlit/secrets.toml)
+porque:
+1. Es la convención estándar que Streamlit busca automáticamente
+2. Mover el archivo rompería la funcionalidad de la aplicación
+3. Ya está protegido correctamente en gitignore
+
+SOLUCIÓN IMPLEMENTADA:
+----------------------
+
+1. VERIFICACIÓN DE SEGURIDAD (09:21):
+   - Comando ejecutado: git ls-files ".streamlit/secrets.toml"
+   - Resultado: Sin output (✅ archivo NO está siendo rastreado por Git)
+   - Verificado que .gitignore tiene .streamlit/secrets.toml en línea 41
+
+2. PROTECCIÓN REFORZADA EN .GITIGNORE (09:22):
+   Agregadas 4 líneas de protección múltiple:
+   
+   Antes (líneas 40-42):
+   # Streamlit
+   .streamlit/secrets.toml
+   
+   Después (líneas 40-44):
+   # Streamlit - PROTECCIÓN MÚLTIPLE PARA SECRETS
+   .streamlit/secrets.toml          # Protección específica
+   .streamlit/secrets.*             # Cualquier archivo secrets en .streamlit/
+   **/secrets.toml                  # Cualquier secrets.toml en cualquier carpeta
+   secrets.toml                     # En la raíz del proyecto
+
+3. VERIFICACIÓN FINAL DE ARCHIVOS RASTREADOS (09:23):
+   - Comando: git ls-files | Select-String "secrets"
+   - Resultado: Solo .streamlit/secrets.toml.example (archivo de ejemplo sin credenciales)
+   - ✅ Confirmado que secrets.toml real NO está en Git
+
+4. GENERACIÓN DEL NUEVO SECRETS.TOML (09:24):
+   
+   Archivos procesados:
+   - Input 1: secrets.toml actual (proporcionado por usuario)
+   - Input 2: secrets oauth/mini-erp-v2-antigravity-de511e50b7c9.json (nuevo)
+   
+   Cambios realizados en [google_drive]:
+   - private_key_id: cc079f4da448... → de511e50b7c9b8f79afa76e4b884e9a76c9dea35
+   - private_key: Reemplazado completamente con nueva clave privada
+   
+   Campos mantenidos sin cambios:
+   - client_email, client_id, auth_uri, token_uri, etc. (no cambian al rotar key)
+   - Todas las demás secciones: [backend_api], [supabase], [google_oauth], [google]
+
+ARCHIVOS MODIFICADOS:
+---------------------
+1. .gitignore
+   * Líneas 40-44: Agregada protección múltiple para secrets.toml
+
+ARCHIVOS/DOCUMENTOS CREADOS:
+-----------------------------
+1. C:\Users\rguti\.gemini\...\secrets.toml.NUEVO
+   → Archivo listo para copy-paste con nuevas credenciales
+
+2. C:\Users\rguti\.gemini\...\seguridad_secrets.md
+   → Documento explicando ubicación, protecciones y estrategia de seguridad
+
+3. C:\Users\rguti\.gemini\...\instrucciones_secrets.md
+   → Guía para extraer contenido de archivos protegidos por gitignore
+
+INSTRUCCIONES DE DESPLIEGUE:
+-----------------------------
+Para Streamlit Cloud (Producción):
+1. Ir a https://share.streamlit.io/
+2. Seleccionar app mini_erp_v2_antigravity
+3. Settings → Secrets
+4. Borrar contenido actual
+5. Pegar nuevo contenido
+6. Save (reinicia automáticamente)
+
+Para Local (.streamlit/secrets.toml):
+1. Abrir .streamlit/secrets.toml con editor
+2. Borrar contenido actual
+3. Pegar nuevo contenido
+4. Guardar
+5. Reiniciar servidor Streamlit
+
+VERIFICACIÓN DE SEGURIDAD:
+---------------------------
+✅ secrets.toml NO está en Git (verificado con git ls-files)
+✅ 4 patrones de protección en gitignore
+✅ Historial de Git limpio (sesión anterior)
+✅ Solo archivo .example en Git (sin credenciales - OK)
+✅ Nueva private_key_id confirmada (de511e50b7c9...)
+
+COMPARACIÓN DE CREDENCIALES:
+-----------------------------
+Antiguas (comprometidas):
+- private_key_id: cc079f4da448aad66500bd6e6a995b846a830eff
+- Estado: ❌ Deshabilitadas por Google
+
+Nuevas (rotadas):
+- private_key_id: de511e50b7c9b8f79afa76e4b884e9a76c9dea35
+- Estado: ✅ Activas y seguras
+
+IMPACTO:
+--------
+✅ Nuevas credenciales configuradas y documentadas
+✅ Protección reforzada en gitignore (4 patrones)
+✅ Verificado que secrets.toml NO está en Git
+✅ Usuario educado sobre seguridad de secrets.toml
+✅ Archivos listos para despliegue en Streamlit Cloud y local
+
+ESTADO: ✅ COMPLETADO
+TESTING: ⏳ PENDIENTE (Usuario debe pegar secrets en Streamlit Cloud y local)
+================================================================================
+

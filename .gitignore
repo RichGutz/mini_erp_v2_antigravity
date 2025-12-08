@@ -37,8 +37,11 @@ Thumbs.db
 # Environment variables
 .env
 
-# Streamlit
+# Streamlit - PROTECCIÓN MÚLTIPLE PARA SECRETS
 .streamlit/secrets.toml
+.streamlit/secrets.*
+**/secrets.toml
+secrets.toml
 
 # Logs
 *.log
