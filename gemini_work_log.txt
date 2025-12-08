@@ -1561,3 +1561,9 @@ ESTADO: ✅ COMPLETADO (código implementado y commiteado)
 TESTING: ⏳ PENDIENTE (Usuario debe configurar carpeta y probar)
 ================================================================================
 
+
+17. NUEVA ESTRATEGIA: NAVEGADOR NATIVO (Custom Browser)
+    - Accion: Reemplazar Google Picker por componente nativo Streamlit.
+    - Motivo: Seguridad y UX. Impedir visualizacion de Drives personales.
+    - Backup: Rama backup_picker_hybrid_20251208_1531 creada.
+================================================================================
