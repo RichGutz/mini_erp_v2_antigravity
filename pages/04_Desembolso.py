@@ -20,12 +20,12 @@ from src.utils.pdf_generators import generar_voucher_transferencia_pdf
 API_BASE_URL = os.getenv("BACKEND_API_URL")
 
 # --- Configuración Service Account ---
+# Usar credenciales del Service Account desde secrets.toml
 try:
-    # Intenta cargar desde secrets (Producción)
-    SA_CREDENTIALS = st.secrets["service_account"]
-except Exception:
-    # Fallback a archivo (Local)
-    SA_CREDENTIALS = "secrets oauth/mini-erp-v2-antigravity-cc079f4da448.json"
+    SA_CREDENTIALS = st.secrets["google_drive"]  # CORREGIDO: era "service_account", debe ser "google_drive"
+except Exception as e:
+    st.error(f"❌ Error: No se encontraron credenciales del Service Account en secrets.toml: {e}")
+    st.stop()
 
 if not API_BASE_URL:
     try:
