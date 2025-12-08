@@ -221,10 +221,12 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     """
     Renders a Google Picker just to select a folder.
     Returns the selected folder info (dict) or None.
+    
+    IMPORTANTE: Usa token del Service Account para mostrar SOLO Drive del SA.
     """
     st.markdown(f"**{label}**")
 
-    # Check authentication
+    # Check authentication del usuario (para tracking/audit)
     if 'token' not in st.session_state or not st.session_state.token:
         st.warning("⚠️ Debes iniciar sesión con Google en el Home.")
         return None
@@ -239,14 +241,20 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
         st.error("Error de configuración de Google Secrets.")
         return None
 
+    # Generar token del Service Account para el Picker
+    sa_token = get_service_account_token()
+    if not sa_token:
+        st.error("❌ No se pudo generar token del Service Account para el Picker.")
+        return None
+
     picker_key = f"simple_picker_{key}"
     app_id = client_id.split('-')[0] if client_id else None
 
     selected_folder = None
     with patch_picker_flatten():
         selected_folder = google_picker(
-            label="📂 Seleccionar Carpeta",
-            token=st.session_state.token['access_token'],
+            label="📂 Repositorio Institucional (Drive del ERP)",
+            token=sa_token,  # ✅ CAMBIADO: Usa token del SA
             apiKey=api_key,
             appId=app_id,
             view_ids=["FOLDERS"],
