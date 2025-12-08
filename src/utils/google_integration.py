@@ -58,7 +58,13 @@ def get_service_account_token():
         
         # Fix de private_key si viene con \\n en lugar de \n
         if 'private_key' in sa_creds_dict:
-            sa_creds_dict['private_key'] = sa_creds_dict['private_key'].replace('\\\\n', '\n')
+            # CORREGIDO: era \\\\n, debe ser \\n
+            original_key = sa_creds_dict['private_key']
+            sa_creds_dict['private_key'] = original_key.replace('\\n', '\n')
+            
+            # Debug: verificar si se hizo el reemplazo
+            if '\\n' in original_key:
+                st.info("🔧 Debug: Private key tenía \\n, se convirtió a saltos de línea reales")
         
         # Crear credenciales con scope de Drive
         creds = service_account.Credentials.from_service_account_info(
@@ -69,10 +75,16 @@ def get_service_account_token():
         # Refrescar para obtener access_token
         creds.refresh(google.auth.transport.requests.Request())
         
+        # Debug: confirmar que se generó el token
+        if creds.token:
+            st.success(f"✅ Token del Service Account generado exitosamente (longitud: {len(creds.token)})")
+        
         return creds.token
         
     except Exception as e:
-        st.error(f"Error generando token del Service Account: {e}")
+        st.error(f"❌ Error generando token del Service Account: {e}")
+        import traceback
+        st.code(traceback.format_exc())  # Mostrar stack trace completo
         return None
 # --------------------------
 
