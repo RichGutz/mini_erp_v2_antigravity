@@ -245,8 +245,14 @@ def upload_file_with_sa(file_bytes, file_name, folder_id, sa_credentials):
     try:
         # Load credentials
         if isinstance(sa_credentials, dict):
+            # Clonar para no modificar el original de st.secrets (que podría ser inmutable)
+            info = dict(sa_credentials)
+            if 'private_key' in info:
+                # Fix común para Streamlit Secrets: reemplazar \\n con \n real
+                info['private_key'] = info['private_key'].replace('\\n', '\n')
+            
             creds = service_account.Credentials.from_service_account_info(
-                sa_credentials, 
+                info, 
                 scopes=['https://www.googleapis.com/auth/drive']
             )
         else:
