@@ -156,6 +156,15 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
         st.error("❌ No se pudo generar token del Service Account para el Picker.")
         return
     
+    # Botón para forzar refresh del Picker (limpiar caché)
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        if st.button("🔄 Refrescar Picker", key=f"refresh_picker_{key}"):
+            # Limpiar UUID de sesión para forzar recreación del Picker
+            if 'picker_session_id' in st.session_state:
+                del st.session_state.picker_session_id
+            st.rerun()
+    
     # 3. Render Picker (usa token del SA para mostrar Drive del SA)
     # IMPORTANTE: Key única por sesión para evitar caché entre sesiones pero estable en la misma sesión
     if 'picker_session_id' not in st.session_state:
