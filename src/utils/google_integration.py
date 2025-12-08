@@ -3,7 +3,7 @@ import requests
 import json
 from streamlit_google_picker import google_picker
 import streamlit_google_picker.uploaded_file as lib_upl # Import for monkeypatching
-import time  # Para generar keys únicas y evitar caché del Picker
+import uuid  # Para generar keys únicas por sesión
 
 # --- CONFIGURACIÓN SHARED DRIVE ---
 # ID del Shared Drive institucional de rich@kaizencapital.pe
@@ -157,8 +157,11 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
         return
     
     # 3. Render Picker (usa token del SA para mostrar Drive del SA)
-    # IMPORTANTE: Key única con timestamp para forzar recreación y evitar caché
-    picker_key = f"picker_{key}_{int(time.time() * 1000)}"
+    # IMPORTANTE: Key única por sesión para evitar caché entre sesiones pero estable en la misma sesión
+    if 'picker_session_id' not in st.session_state:
+        st.session_state.picker_session_id = str(uuid.uuid4())
+    
+    picker_key = f"picker_{key}_{st.session_state.picker_session_id}"
     app_id = client_id.split('-')[0] if client_id else None
     
     selected_folder = None
@@ -171,7 +174,7 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
             view_ids=["FOLDERS"],
             allow_folders=True,
             accept_multiple_files=False,
-            key=picker_key  # Key única para forzar refresh
+            key=picker_key  # Key única por sesión
         )
 
     # 4. Handle Selection & Upload (con Service Account)
@@ -249,8 +252,11 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
         st.error("❌ No se pudo generar token del Service Account para el Picker.")
         return None
 
-    # IMPORTANTE: Key única con timestamp para forzar recreación y evitar caché
-    picker_key = f"simple_picker_{key}_{int(time.time() * 1000)}"
+    # IMPORTANTE: Key única por sesión para evitar caché entre sesiones pero estable en la misma sesión
+    if 'simple_picker_session_id' not in st.session_state:
+        st.session_state.simple_picker_session_id = str(uuid.uuid4())
+    
+    picker_key = f"simple_picker_{key}_{st.session_state.simple_picker_session_id}"
     app_id = client_id.split('-')[0] if client_id else None
 
     selected_folder = None
