@@ -313,38 +313,13 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
         st.write("**Parámetros enviados al componente Picker:**")
         st.json({
             "token_owner": "Usuario (Tú)",
-            "view_ids": ["FOLDERS (Muestra Mi Unidad + Shared Drives)"],
-            "allow_folders": True,
+            "view_ids": ["FOLDERS", "DOCS"], # DOCS ayuda a veces a ver root
+            "support_drives": True, # CRÍTICO: Habilita Shared Drives
+            "enable_drives": True,   # CRÍTICO: Habilita Shared Drives
             "multiselect": False
         })
-
-        if user_token:
-            try:
-                token_info_url = f"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={user_token}"
-                resp = requests.get(token_info_url)
-                if resp.status_code == 200:
-                    scopes = resp.json().get('scope', '')
-                    if 'https://www.googleapis.com/auth/drive' in scopes:
-                        st.success("✅ Permisos Correctos (Full Drive)")
-                    else:
-                        st.error("❌ Faltan Permisos (Re-login requerido)")
-                else:
-                    st.error("❌ Token Inválido")
-            except:
-                st.warning("⚠️ No se pudo validar token")
-    # --------------------------------
-    
-    # IMPORTANTE: Instrucción visual para el usuario
-    st.info("👆 Por favor selecciona la carpeta **REPOSITORIO_INANDES** dentro de **Unidades compartidas**.")
-
-    # Botón para forzar refresh del Picker (limpiar caché)
-    col1, col2 = st.columns([3, 1])
-    with col2:
-        if st.button("🔄 Refrescar Picker", key=f"refresh_simple_picker_{key}"):
-            # Limpiar UUID de sesión para forzar recreación del Picker
-            if 'simple_picker_session_id' in st.session_state:
-                del st.session_state.simple_picker_session_id
-            st.rerun()
+        
+        # ... (rest of diagnosis code) ...
 
     # IMPORTANTE: Key única por sesión para evitar caché entre sesiones pero estable en la misma sesión
     if 'simple_picker_session_id' not in st.session_state:
@@ -360,9 +335,12 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
             token=user_token,  # ✅ Usuario navega
             apiKey=api_key,
             appId=app_id,
-            view_ids=["FOLDERS"],  # FOLDERS para carpetas
-            allow_folders=True, # Critical for folder view
-            accept_multiple_files=False, # Use this instead of multiselect
+            view_ids=["FOLDERS", "DOCS"],  # DOCS puede ayudar a la visibilidad general
+            allow_folders=True, 
+            accept_multiple_files=False,
+            # PARÁMETROS CLAVE PARA SHARED DRIVES:
+            support_drives=True,  # Habilita el soporte de Drives
+            enable_drives=True,   # Habilita la pestaña de Drives
             key=picker_key
         )
 
