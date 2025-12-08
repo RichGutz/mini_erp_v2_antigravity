@@ -91,54 +91,49 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
                         
     return None
 
-# Usar el nuevo componente v2
-selected_folder = render_folder_navigator_v2(key="native_test_v2")
+# --- LAYOUT DE 2 COLUMNAS (Lado a Lado) ---
+col_left, col_right = st.columns([3, 2], gap="large")
 
-st.markdown("---")
+with col_left:
+    # --- 1. Selector de Carpeta (Nativo) ---
+    # Usamos el componente v2 directamente
+    selected_folder = render_folder_navigator_v2(key="native_test_v2")
 
-# --- 2. Prueba de Subida ---
-st.write("### 2. Prueba de Subida de Archivo")
+with col_right:
+    # --- 2. Prueba de Subida (Panel Derecho) ---
+    st.subheader("🚀 Prueba de Subida")
+    st.info("Sube un archivo de prueba a la carpeta seleccionada en el panel izquierdo.")
 
-if selected_folder:
-    st.success(f"📂 Carpeta Activa: **{selected_folder['name']}** (ID: `{selected_folder['id']}`)")
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        uploaded_file = st.file_uploader("Seleccionar archivo para subir", type=['pdf', 'txt', 'png', 'jpg'])
-    
-    with col2:
-        st.write("Metadata de subida:")
-        st.json({
-            "folder_name": selected_folder['name'],
-            "folder_id": selected_folder['id']
-        })
-
-    if uploaded_file:
-        if st.button("⬆️ Subir Archivo al Repositorio", type="primary"):
-            with st.spinner("Subiendo archivo con Service Account..."):
-                file_bytes = uploaded_file.getvalue()
-                file_name = uploaded_file.name
-                
-                # Obtener credenciales
-                try:
-                    sa_creds = st.secrets["google_drive"]
-                    
-                    success, result = upload_file_with_sa(
-                        file_bytes=file_bytes,
-                        file_name=file_name,
-                        folder_id=selected_folder['id'],
-                        sa_credentials=sa_creds
-                    )
-                    
-                    if success:
-                        st.balloons()
-                        st.success(f"✅ Archivo **{file_name}** subido exitosamente!")
-                        st.code(f"File ID: {result}")
-                    else:
-                        st.error(f"❌ Error al subir: {result}")
+    if selected_folder:
+        # Mostrar info compacta de carpeta seleccionada
+        with st.container(border=True):
+            st.write(f"📂 **Destino:** `{selected_folder['name']}`")
+            # st.caption(f"ID: {selected_folder['id']}")
+            
+            uploaded_file = st.file_uploader("Seleccionar archivo", type=['pdf', 'txt', 'png', 'jpg'])
+            
+            if uploaded_file:
+                if st.button("⬆️ Subir Archivo Ahora", type="primary", use_container_width=True):
+                    with st.spinner("Subiendo..."):
+                        file_bytes = uploaded_file.getvalue()
+                        file_name = uploaded_file.name
                         
-                except Exception as e:
-                    st.error(f"Error de configuración/credenciales: {e}")
-else:
-    st.info("👈 Navega y selecciona una carpeta en la sección anterior para habilitar la subida.")
+                        try:
+                            sa_creds = st.secrets["google_drive"]
+                            success, result = upload_file_with_sa(
+                                file_bytes=file_bytes,
+                                file_name=file_name,
+                                folder_id=selected_folder['id'],
+                                sa_credentials=sa_creds
+                            )
+                            
+                            if success:
+                                st.balloons()
+                                st.success(f"✅ **{file_name}** subido!")
+                                # st.code(f"ID: {result}")
+                            else:
+                                st.error(f"❌ Error: {result}")
+                        except Exception as e:
+                            st.error(f"Error config: {e}")
+    else:
+        st.warning("👈 Selecciona una carpeta a la izquierda para habilitar la subida.")
