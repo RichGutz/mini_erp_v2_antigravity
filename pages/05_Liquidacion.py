@@ -10,6 +10,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 from src.data import supabase_repository as db
 from src.core.factoring_system import SistemaFactoringCompleto
 from src.utils.pdf_generators import generate_liquidacion_universal_pdf
+from src.utils.google_integration import render_folder_navigator_v2, upload_file_with_sa
 
 # --- Page Config ---
 st.set_page_config(
@@ -18,6 +19,14 @@ st.set_page_config(
     page_title="Módulo de Liquidación INANDES",
     page_icon="💰"
 )
+
+# --- Configuración Service Account ---
+try:
+    # Convertir AttrDict a dict normal para upload_file_with_sa
+    SA_CREDENTIALS = dict(st.secrets["google_drive"])
+except Exception as e:
+    st.error(f"❌ Error: No se encontraron credenciales del Service Account en secrets.toml: {e}")
+    st.stop()
 
 # --- Session State Initialization ---
 def init_session_state():
@@ -530,71 +539,123 @@ def mostrar_liquidacion_universal():
                 st.markdown(tabla_md, unsafe_allow_html=True)
         
         
-        # Botones de acción en columnas
-        col_pdf, col_save = st.columns(2)
+        # --- SECCIÓN 4: SELECCIÓN DE CARPETA (Standardized) ---
+        st.markdown("---")
+        st.subheader("4. Selección de Carpeta Destino (Repositorio)")
         
-        with col_pdf:
-            if st.button("📄 Bajar Perfil de Liquidación", type="secondary", use_container_width=True):
-                with st.spinner("Generando PDF de liquidación..."):
-                    try:
-                        if st.session_state.resultados_liquidacion_universal:
-                            # Generar PDF con los resultados de liquidación
+        selected_folder = render_folder_navigator_v2(key="liquidacion_folder_navigator")
+        
+        if selected_folder:
+             st.info(f"📂 **Destino Seleccionado:** `{selected_folder['name']}`")
+        else:
+             st.warning("👈 Navega y selecciona una carpeta destino para guardar y subir los archivos.")
+
+        st.markdown("---")
+        
+        # Botones de acción en columnas
+        col_actions = st.columns(1)[0]
+        
+        with col_actions:
+            if selected_folder:
+                if st.button("💾 Guardar Datos y Subir Documentos", type="primary", use_container_width=True):
+                    with st.spinner("Procesando Guardado Atómico (BD + Drive)..."):
+                        try:
+                            # 1. GENERAR PDF DE LIQUIDACIÓN (En Memoria)
+                            if not st.session_state.resultados_liquidacion_universal:
+                                st.error("No hay resultados para procesar.")
+                                st.stop()
+
                             pdf_bytes = generate_liquidacion_universal_pdf(
                                 st.session_state.resultados_liquidacion_universal,
                                 st.session_state.lote_encontrado_universal
                             )
                             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                            output_filename = f"liquidacion_universal_{timestamp}.pdf"
+                            pdf_filename = f"liquidacion_universal_{timestamp}.pdf"
                             
-                            st.download_button(
-                                label=f"⬇️ Descargar {output_filename}",
-                                data=pdf_bytes,
-                                file_name=output_filename,
-                                mime="application/pdf",
-                                use_container_width=True
+                            # 2. SUBIR PDF DE LIQUIDACIÓN
+                            ok_pdf, res_pdf = upload_file_with_sa(
+                                pdf_bytes, 
+                                pdf_filename, 
+                                selected_folder['id'], 
+                                SA_CREDENTIALS
                             )
-                        else:
-                            st.warning("No hay resultados de liquidación para generar el PDF.")
-                    except Exception as e:
-                        st.error(f"Error al generar el PDF: {e}")
-        
-        with col_save:
-            if st.button("💾 Guardar Liquidaciones en Supabase", type="primary", use_container_width=True):
-                # Lógica de guardado (sin cambios, pero ahora se podría incluir el voucher)
-                # Por ahora, solo se añade el uploader al front.
-                with st.spinner("Guardando liquidaciones en Supabase..."):
-                    try:
-                        for i, resultado in enumerate(st.session_state.resultados_liquidacion_universal):
-                            if resultado.get("error"):
-                                continue
-                            
-                            proposal_id = resultado['id_operacion']
-                            factura_original = next((f for f in st.session_state.lote_encontrado_universal if f.get('proposal_id') == proposal_id), None)
-                            if not factura_original:
-                                st.warning(f"No se encontró la factura original para {proposal_id}. Saltando guardado.")
-                                continue
+                            if ok_pdf:
+                                st.success(f"✅ Reporte PDF subido: {pdf_filename}")
+                            else:
+                                st.error(f"❌ Error subiendo reporte PDF: {res_pdf}")
 
-                            resumen_id = db.get_or_create_liquidacion_resumen(proposal_id, factura_original)
+                            # 3. SUBIR VOUCHERS (Si existen)
+                            # A. Voucher Global
+                            if st.session_state.usar_voucher_unico_liquidacion and st.session_state.voucher_global_liquidacion:
+                                v_glob = st.session_state.voucher_global_liquidacion
+                                # Reset pointer just in case
+                                v_glob.seek(0)
+                                v_bytes = v_glob.getvalue()
+                                v_name = f"VOUCHER_GLOBAL_{timestamp}_{v_glob.name}"
+                                
+                                ok_v, res_v = upload_file_with_sa(v_bytes, v_name, selected_folder['id'], SA_CREDENTIALS)
+                                if ok_v:
+                                    st.success(f"✅ Voucher Global subido: {v_name}")
+                                else:
+                                    st.warning(f"⚠️ Error subiendo Voucher Global: {res_v}")
 
-                            # Serializar resultado para JSON (convertir fechas a strings)
-                            resultado_serializado = serialize_resultado_for_json(resultado)
+                            # B. Vouchers Individuales
+                            if not st.session_state.usar_voucher_unico_liquidacion:
+                                for pid, v_file in st.session_state.vouchers_universales.items():
+                                    if v_file:
+                                        try:
+                                            v_file.seek(0)
+                                            v_bytes = v_file.getvalue()
+                                            # Clean filename prefix
+                                            inv_num = parse_invoice_number(pid)
+                                            v_name = f"VOUCHER_{inv_num}_{v_file.name}"
+                                            
+                                            ok_v, res_v = upload_file_with_sa(v_bytes, v_name, selected_folder['id'], SA_CREDENTIALS)
+                                            if ok_v:
+                                                st.toast(f"Voucher {inv_num} subido.")
+                                            else:
+                                                st.warning(f"⚠️ Error voucher {inv_num}: {res_v}")
+                                        except Exception as ev:
+                                            st.warning(f"⚠️ Excepción voucher {pid}: {ev}")
 
-                            db.add_liquidacion_evento(
-                                liquidacion_resumen_id=resumen_id,
-                                tipo_evento="Liquidación Universal",
-                                fecha_evento=resultado.get('fecha_pago_individual', st.session_state.global_liquidation_date_universal),
-                                monto_recibido=resultado['monto_pagado'],
-                                dias_diferencia=resultado['dias_mora'],
-                                resultado_json=resultado_serializado
-                            )
+                            # 4. GUARDAR EN BD (SUPABASE)
+                            count_saved = 0
+                            for i, resultado in enumerate(st.session_state.resultados_liquidacion_universal):
+                                if resultado.get("error"):
+                                    continue
+                                
+                                proposal_id = resultado['id_operacion']
+                                factura_original = next((f for f in st.session_state.lote_encontrado_universal if f.get('proposal_id') == proposal_id), None)
+                                if not factura_original:
+                                    continue
 
-                            db.update_liquidacion_resumen_saldo(resumen_id, resultado['saldo_global'])
-                            db.update_proposal_status(proposal_id, resultado['estado_operacion'])
+                                resumen_id = db.get_or_create_liquidacion_resumen(proposal_id, factura_original)
+                                resultado_serializado = serialize_resultado_for_json(resultado)
 
-                        st.success("¡Liquidaciones guardadas exitosamente en Supabase!")
-                        st.balloons()
-                    except Exception as e:
-                        st.error(f"Ocurrió un error al guardar en la base de datos: {e}")
+                                db.add_liquidacion_evento(
+                                    liquidacion_resumen_id=resumen_id,
+                                    tipo_evento="Liquidación Universal",
+                                    fecha_evento=resultado.get('fecha_pago_individual', st.session_state.global_liquidation_date_universal),
+                                    monto_recibido=resultado['monto_pagado'],
+                                    dias_diferencia=resultado['dias_mora'],
+                                    resultado_json=resultado_serializado
+                                )
+
+                                db.update_liquidacion_resumen_saldo(resumen_id, resultado['saldo_global'])
+                                db.update_proposal_status(proposal_id, resultado['estado_operacion'])
+                                count_saved += 1
+                                
+                            if count_saved > 0:
+                                st.success(f"✅ {count_saved} Liquidaciones registradas en Base de Datos.")
+                                st.balloons()
+                            else:
+                                st.warning("No se guardaron registros en BD (verificar errores previos).")
+
+                        except Exception as e:
+                            st.error(f"❌ Ocurrió un error crítico durante el proceso: {e}")
+            else:
+                 # Mensaje discreto si no hay carpeta
+                 st.caption("Seleccione una carpeta para habilitar el guardado.")
 
 # --- Main App Logic ---
 
