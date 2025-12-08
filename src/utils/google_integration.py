@@ -256,10 +256,10 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
         st.error("Error de configuración de Google Secrets.")
         return None
 
-    # Generar token FRESCO del Service Account para el Picker
-    sa_token = get_service_account_token()
-    if not sa_token:
-        st.error("❌ No se pudo generar token del Service Account para el Picker.")
+    # Obtener token del USUARIO para el Picker (navegación)
+    user_token = st.session_state.get('token')
+    if not user_token:
+        st.warning("⚠️ Debes iniciar sesión con Google en el Home.")
         return None
 
     # Botón para forzar refresh del Picker (limpiar caché)
