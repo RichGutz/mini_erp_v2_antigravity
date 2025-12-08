@@ -54,8 +54,8 @@ def patch_picker_flatten():
 
 def get_service_account_token():
     """
-    Genera un access_token temporal del Service Account para usar en el Google Picker.
-    Esto permite que el Picker muestre SOLO carpetas del Drive del SA (no del usuario).
+    Genera un access_token FRESCO del Service Account para usar en el Google Picker.
+    IMPORTANTE: Se genera un token nuevo en cada llamada para evitar problemas de caché.
     """
     try:
         from google.oauth2 import service_account
@@ -66,13 +66,8 @@ def get_service_account_token():
         
         # Fix de private_key si viene con \\n en lugar de \n
         if 'private_key' in sa_creds_dict:
-            # CORREGIDO: era \\\\n, debe ser \\n
             original_key = sa_creds_dict['private_key']
             sa_creds_dict['private_key'] = original_key.replace('\\n', '\n')
-            
-            # Debug: verificar si se hizo el reemplazo
-            if '\\n' in original_key:
-                st.info("🔧 Debug: Private key tenía \\n, se convirtió a saltos de línea reales")
         
         # Crear credenciales con scope de Drive
         creds = service_account.Credentials.from_service_account_info(
@@ -80,12 +75,8 @@ def get_service_account_token():
             scopes=['https://www.googleapis.com/auth/drive']
         )
         
-        # Refrescar para obtener access_token
+        # FORZAR refresh para obtener token FRESCO (no en caché)
         creds.refresh(google.auth.transport.requests.Request())
-        
-        # Debug: confirmar que se generó el token
-        if creds.token:
-            st.success(f"✅ Token del Service Account generado exitosamente (longitud: {len(creds.token)})")
         
         return creds.token
         
@@ -157,7 +148,8 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
         st.error("Error de configuración: Faltan secretos de Google.")
         return
 
-    # 2. Generar token del Service Account para el Picker
+    # 2. Generar token FRESCO del Service Account para el Picker
+    # IMPORTANTE: Se genera un token nuevo cada vez para evitar caché
     sa_token = get_service_account_token()
     if not sa_token:
         st.error("❌ No se pudo generar token del Service Account para el Picker.")
@@ -249,7 +241,7 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
         st.error("Error de configuración de Google Secrets.")
         return None
 
-    # Generar token del Service Account para el Picker
+    # Generar token FRESCO del Service Account para el Picker
     sa_token = get_service_account_token()
     if not sa_token:
         st.error("❌ No se pudo generar token del Service Account para el Picker.")
