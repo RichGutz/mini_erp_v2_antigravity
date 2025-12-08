@@ -281,11 +281,11 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     selected_folder = None
     with patch_picker_flatten():
         selected_folder = google_picker(
-            label="📂 Repositorio Institucional (Drive del ERP)",
-            token=sa_token,  # ✅ CAMBIADO: Usa token del SA
+            label=label,
+            token=user_token,  # ✅ USA TOKEN DEL USUARIO (navegación)
             apiKey=api_key,
             appId=app_id,
-            view_ids=["FOLDERS"],
+            view_ids=["DOCS"],  # DOCS muestra Mi unidad + Shared Drives
             allow_folders=True, # Critical for folder view
             accept_multiple_files=False, # Use this instead of multiselect
             key=picker_key
