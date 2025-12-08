@@ -7,6 +7,27 @@ sys.path.append(os.path.abspath("."))
 
 from src.utils.google_integration import list_folders_with_sa, upload_file_with_sa, REPOSITORIO_FOLDER_ID
 
+st.set_page_config(page_title="Testing Native Drive", page_icon="🧪", layout="wide")
+
+# --- CSS HACK: FORZAR ANCHO COMPLETO REAL ---
+st.markdown("""
+<style>
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        max-width: 100% !important;
+    }
+    [data-testid="stHorizontalBlock"] {
+        gap: 0.5rem !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.title("🧪 Prototipo: Navegador Nativo Drive (Service Account)")
+st.info("Esta página prueba la navegación de carpetas usando credenciales de Service Account directamente desde Python (Backend), sin usar componentes JS externos.")
+
 # --- PROTOTIPO V2: NAVEGADOR MEJORADO ---
 def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     st.subheader(f"📂 {label}")
@@ -92,48 +113,49 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     return None
 
 # --- LAYOUT DE 2 COLUMNAS (Lado a Lado) ---
-col_left, col_right = st.columns([2, 1], gap="large")
+col_left, col_right = st.columns([2, 1], gap="small")
 
 with col_left:
-    # --- 1. Selector de Carpeta (Nativo) ---
-    # Usamos el componente v2 directamente
-    selected_folder = render_folder_navigator_v2(key="native_test_v2")
+    # Usamos un contenedor con borde para simular la "Celda Fusionada" (2/3 de ancho)
+    with st.container(border=True):
+        # --- 1. Selector de Carpeta (Nativo) ---
+        selected_folder = render_folder_navigator_v2(key="native_test_v2")
 
 with col_right:
-    # --- 2. Prueba de Subida (Panel Derecho) ---
-    st.subheader("🚀 Prueba de Subida")
-    st.info("Sube un archivo de prueba a la carpeta seleccionada en el panel izquierdo.")
+    # Usamos un contenedor con borde para simular la "Celda Simple" (1/3 de ancho)
+    with st.container(border=True):
+        # --- 2. Prueba de Subida (Panel Derecho) ---
+        st.subheader("🚀 Prueba de Subida")
+        st.info("Sube un archivo de prueba a la carpeta seleccionada en el panel izquierdo.")
 
-    if selected_folder:
-        # Mostrar info compacta de carpeta seleccionada
-        with st.container(border=True):
-            st.write(f"📂 **Destino:** `{selected_folder['name']}`")
-            # st.caption(f"ID: {selected_folder['id']}")
-            
-            uploaded_file = st.file_uploader("Seleccionar archivo", type=['pdf', 'txt', 'png', 'jpg'])
-            
-            if uploaded_file:
-                if st.button("⬆️ Subir Archivo Ahora", type="primary", use_container_width=True):
-                    with st.spinner("Subiendo..."):
-                        file_bytes = uploaded_file.getvalue()
-                        file_name = uploaded_file.name
-                        
-                        try:
-                            sa_creds = st.secrets["google_drive"]
-                            success, result = upload_file_with_sa(
-                                file_bytes=file_bytes,
-                                file_name=file_name,
-                                folder_id=selected_folder['id'],
-                                sa_credentials=sa_creds
-                            )
+        if selected_folder:
+            # Mostrar info compacta de carpeta seleccionada
+            with st.container(border=True):
+                st.write(f"📂 **Destino:** `{selected_folder['name']}`")
+                
+                uploaded_file = st.file_uploader("Seleccionar archivo", type=['pdf', 'txt', 'png', 'jpg'])
+                
+                if uploaded_file:
+                    if st.button("⬆️ Subir Archivo Ahora", type="primary", use_container_width=True):
+                        with st.spinner("Subiendo..."):
+                            file_bytes = uploaded_file.getvalue()
+                            file_name = uploaded_file.name
                             
-                            if success:
-                                st.balloons()
-                                st.success(f"✅ **{file_name}** subido!")
-                                # st.code(f"ID: {result}")
-                            else:
-                                st.error(f"❌ Error: {result}")
-                        except Exception as e:
-                            st.error(f"Error config: {e}")
-    else:
-        st.warning("👈 Selecciona una carpeta a la izquierda para habilitar la subida.")
+                            try:
+                                sa_creds = st.secrets["google_drive"]
+                                success, result = upload_file_with_sa(
+                                    file_bytes=file_bytes,
+                                    file_name=file_name,
+                                    folder_id=selected_folder['id'],
+                                    sa_credentials=sa_creds
+                                )
+                                
+                                if success:
+                                    st.balloons()
+                                    st.success(f"✅ **{file_name}** subido!")
+                                else:
+                                    st.error(f"❌ Error: {result}")
+                            except Exception as e:
+                                st.error(f"Error config: {e}")
+        else:
+            st.warning("👈 Selecciona una carpeta a la izquierda para habilitar la subida.")
