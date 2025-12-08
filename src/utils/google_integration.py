@@ -11,6 +11,9 @@ import uuid  # Para generar keys únicas por sesión
 # para que el Picker muestre únicamente el repositorio institucional.
 # Si el SA tiene acceso a múltiples Drives, el Picker mostrará todos.
 SHARED_DRIVE_ID = "0AAeC4FtltHyBUk9PVA"
+
+# ID de la carpeta raíz del repositorio institucional
+REPOSITORIO_FOLDER_ID = "1Jv1r9kixL982gL-RCyPnhOY3W-qI0CLq"
 # -------------------------------------
 
 # --- SHARED MONKEYPATCH ---
@@ -181,6 +184,7 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
             apiKey=api_key,
             appId=app_id,
             view_ids=["FOLDERS"],
+            parent_folder_id=REPOSITORIO_FOLDER_ID,  # Inicia en carpeta raíz
             allow_folders=True,
             accept_multiple_files=False,
             key=picker_key  # Key única por sesión
@@ -285,6 +289,7 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
             apiKey=api_key,
             appId=app_id,
             view_ids=["FOLDERS"],  # FOLDERS para carpetas
+            parent_folder_id=REPOSITORIO_FOLDER_ID,  # Inicia en carpeta raíz
             allow_folders=True, # Critical for folder view
             accept_multiple_files=False, # Use this instead of multiselect
             key=picker_key
