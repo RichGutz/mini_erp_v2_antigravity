@@ -22,7 +22,8 @@ API_BASE_URL = os.getenv("BACKEND_API_URL")
 # --- Configuración Service Account ---
 # Usar credenciales del Service Account desde secrets.toml
 try:
-    SA_CREDENTIALS = st.secrets["google_drive"]  # CORREGIDO: era "service_account", debe ser "google_drive"
+    # Convertir AttrDict a dict normal para upload_file_with_sa
+    SA_CREDENTIALS = dict(st.secrets["google_drive"])  # CORREGIDO: Convertir AttrDict a dict
 except Exception as e:
     st.error(f"❌ Error: No se encontraron credenciales del Service Account en secrets.toml: {e}")
     st.stop()
