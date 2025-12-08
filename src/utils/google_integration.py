@@ -155,37 +155,6 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
     if not user_token:
         st.warning("⚠️ Para ver el Repositorio Institucional, inicia sesión con Google.")
         return
-        
-    # --- DIAGNÓSTICO EN UI (DEBUG) ---
-    # Muestra información crítica para depurar errores 403 en el Picker
-    st.error("🔥 MODO DEBUG: Si no ves esto, refresca la página.")
-    with st.expander("🔍 HERRAMIENTA DE DIAGNÓSTICO (ÁBREME)", expanded=True):
-        st.write("**Configuración Local:**")
-        st.code(f"App ID: {client_id.split('-')[0] if client_id else 'None'}")
-        st.code(f"API Key (parcial): {api_key[:10]}..." if api_key else "None")
-        
-        st.write("**Validación Token Usuario:**")
-        if user_token:
-            try:
-                # Consultar scopes reales a Google
-                token_info_url = f"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={user_token}"
-                resp = requests.get(token_info_url)
-                if resp.status_code == 200:
-                    info = resp.json()
-                    scopes = info.get('scope', '').split(' ')
-                    has_drive = 'https://www.googleapis.com/auth/drive' in scopes
-                    
-                    if has_drive:
-                        st.success("✅ Scope '.../auth/drive' DETECTADO (Correcto)")
-                    else:
-                        st.error("❌ FALTA Scope '.../auth/drive'. Necesitas cerrar sesión y volver a entrar aceptando permisos.")
-                        st.write("Scopes actuales:", scopes)
-                else:
-                    st.error(f"❌ Token inválido o expirado. Status: {resp.status_code}")
-                    st.json(resp.json())
-            except Exception as e:
-                st.error(f"Error validando token: {e}")
-    # --------------------------------
     
     # Botón para forzar refresh del Picker (limpiar caché)
     col1, col2 = st.columns([3, 1])
@@ -291,36 +260,6 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     if not user_token:
         st.warning("⚠️ Inicia sesión para ver carpetas.")
         return None
-
-    # --- DIAGNÓSTICO EN UI (DEBUG) ---
-    st.error("🔥 MODO DEBUG: Si no ves esto, refresca la página.")
-    with st.expander("🔍 HERRAMIENTA DE DIAGNÓSTICO (ÁBREME)", expanded=True):
-        st.write("**Configuración Local:**")
-        st.code(f"App ID: {client_id.split('-')[0] if client_id else 'None'}")
-        st.code(f"API Key (parcial): {api_key[:10]}..." if api_key else "None")
-        
-        st.write("**Validación Token Usuario:**")
-        if user_token:
-            try:
-                # Consultar scopes reales a Google
-                token_info_url = f"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={user_token}"
-                resp = requests.get(token_info_url)
-                if resp.status_code == 200:
-                    info = resp.json()
-                    scopes = info.get('scope', '').split(' ')
-                    has_drive = 'https://www.googleapis.com/auth/drive' in scopes
-                    
-                    if has_drive:
-                        st.success("✅ Scope '.../auth/drive' DETECTADO (Correcto)")
-                    else:
-                        st.error("❌ FALTA Scope '.../auth/drive'. Necesitas cerrar sesión y volver a entrar aceptando permisos.")
-                        st.write("Scopes actuales:", scopes)
-                else:
-                    st.error(f"❌ Token inválido o expirado. Status: {resp.status_code}")
-                    st.json(resp.json())
-            except Exception as e:
-                st.error(f"Error validando token: {e}")
-    # --------------------------------
 
     # Botón para forzar refresh del Picker (limpiar caché)
     col1, col2 = st.columns([3, 1])
