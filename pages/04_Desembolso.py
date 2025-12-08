@@ -242,12 +242,13 @@ else:
                     if monto_key not in st.session_state:
                          st.session_state[monto_key] = get_monto_a_desembolsar(factura)
                     
-                    st.session_state[monto_key] = st.number_input(
+                    # Widget updates session_state automatically via key
+                    current_val = st.number_input(
                         "Monto a Depositar",
                         key=monto_key,
                         format="%.2f"
                     )
-                    total_monto += st.session_state[monto_key]
+                    total_monto += current_val
                 
                 with c2:
                     if not st.session_state.sustento_unico:
