@@ -4,6 +4,7 @@ import sys
 import datetime
 import json
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # --- Path Setup ---
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -76,6 +77,17 @@ def get_monto_a_desembolsar(factura: dict) -> float:
         return recalc_data.get('desglose_final_detallado', {}).get('abono', {}).get('monto', 0.0)
     except (json.JSONDecodeError, AttributeError, TypeError):
         return 0.0
+    except (json.JSONDecodeError, AttributeError, TypeError):
+        return 0.0
+
+def upload_helper(file_bytes, file_name, folder_id, access_token):
+    try:
+        if not file_bytes:
+            return False, f"Sin contenido: {file_name}"
+        upload_file_to_drive(file_bytes, file_name, folder_id, access_token)
+        return True, f"✅ Subido: {file_name}"
+    except Exception as e:
+        return False, f"❌ Error {file_name}: {str(e)}"
 
 # --- Cargar Facturas ---
 if st.session_state.reload_data:
@@ -323,25 +335,25 @@ else:
                 except Exception as e:
                     st.error(f"❌ Error API: {e}")
                 
-                 # B) Upload Files
+                 # B) Upload Files (PARALLEL OPTIMIZATION)
                 if api_success:
                     folder_id = folder['id']
                     access_token = st.session_state.token['access_token']
-                    upload_errors = []
+                    upload_tasks = []
                     
-                    # Upload Voucher
+                    # 1. Prepare Voucher Task
                     if st.session_state.current_voucher_bytes:
                          first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
                          v_name = f"{first_lote}_Voucher_Transferencia.pdf"
-                         upload_file_to_drive(st.session_state.current_voucher_bytes, v_name, folder_id, access_token)
+                         upload_tasks.append((st.session_state.current_voucher_bytes, v_name))
                     
-                    # Upload Evidence
+                    # 2. Prepare Evidence Tasks
                     if st.session_state.sustento_unico:
                         f_obj = st.session_state.consolidated_proof_file
                         if f_obj:
                              first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
                              s_name = f"{first_lote}_Sustento_Global.pdf"
-                             upload_file_to_drive(f_obj.getvalue(), s_name, folder_id, access_token)
+                             upload_tasks.append((f_obj.getvalue(), s_name))
                     else:
                         for factura in facturas_seleccionadas:
                             pid = factura['proposal_id']
@@ -350,7 +362,42 @@ else:
                                 lote = factura.get('identificador_lote', 'Lote')
                                 inv = parse_invoice_number(pid)
                                 i_name = f"{lote}_{inv}_Sustento.pdf"
-                                upload_file_to_drive(f_obj.getvalue(), i_name, folder_id, access_token)
+                                upload_tasks.append((f_obj.getvalue(), i_name))
+                    
+                    # 3. Execute Parallel Uploads
+                    results_msg = []
+                    errors_count = 0
+                    
+                    if upload_tasks:
+                        curr_bar = st.progress(0, text="Iniciando carga de archivos...")
+                        total_files = len(upload_tasks)
+                        
+                        with ThreadPoolExecutor(max_workers=5) as executor:
+                            future_to_file = {
+                                executor.submit(upload_helper, b, n, folder_id, access_token): n 
+                                for b, n in upload_tasks
+                            }
+                            
+                            for i, future in enumerate(as_completed(future_to_file)):
+                                success, msg = future.result()
+                                results_msg.append(msg)
+                                if not success:
+                                    errors_count += 1
+                                # Update Progress
+                                prog = (i + 1) / total_files
+                                curr_bar.progress(prog, text=f"Subiendo {i+1}/{total_files}...")
+                        
+                        curr_bar.empty()
+                        
+                        # Show Summary
+                        with st.expander("Resultados de Carga", expanded=errors_count > 0):
+                            for msg in results_msg:
+                                if "❌" in msg:
+                                    st.error(msg)
+                                else:
+                                    st.write(msg)
+                    else:
+                        st.info("⚠️ No habían archivos para subir.")
                                 
                     st.balloons()
                     st.success("✨ ¡Proceso Completado!")
