@@ -6,14 +6,9 @@ import streamlit_google_picker.uploaded_file as lib_upl # Import for monkeypatch
 import uuid  # Para generar keys únicas por sesión
 
 # --- CONFIGURACIÓN SHARED DRIVE ---
-# ID del Shared Drive institucional de rich@kaizencapital.pe
-# IMPORTANTE: El Service Account debe tener acceso SOLO a este Shared Drive
-# para que el Picker muestre únicamente el repositorio institucional.
-# Si el SA tiene acceso a múltiples Drives, el Picker mostrará todos.
-SHARED_DRIVE_ID = "0AAeC4FtltHyBUk9PVA"
-
-# ID de la carpeta raíz del repositorio institucional (en Mi unidad de rich@kaizencapital.pe)
-REPOSITORIO_FOLDER_ID = "1k5OVgh_eBBTc9Ai_MhpLr-Mw7yN6t9YN"
+# ID de la carpeta raíz del repositorio en el SHARED DRIVE
+# Link: https://drive.google.com/drive/u/1/folders/1Jv1r9kixL982gL-RCyPnhOY3W-qI0CLq
+REPOSITORIO_FOLDER_ID = "1Jv1r9kixL982gL-RCyPnhOY3W-qI0CLq"
 # -------------------------------------
 
 # --- SHARED MONKEYPATCH ---
@@ -152,11 +147,13 @@ def render_drive_picker_uploader(key, file_data, file_name, label="Guardar en Go
         st.error("Error de configuración: Faltan secretos de Google.")
         return
 
-    # 2. Generar token del Service Account para el Picker
-    # IMPORTANTE: El Picker usa token del SA para mostrar SOLO carpetas del SA
-    sa_token = get_service_account_token()
-    if not sa_token:
-        st.error("❌ No se pudo generar token del Service Account para el Picker.")
+    # 2. Obtener token del USUARIO para el Picker (navegación)
+    # ESTRATEGIA HÍBRIDA WORKSPACE:
+    # - Picker: Usa token del USUARIO para poder "ver" y navegar Shared Drives.
+    # - Upload: Usa Service Account para escribir (autorizado en el Shared Drive).
+    user_token = st.session_state.get('token')
+    if not user_token:
+        st.warning("⚠️ Para ver el Repositorio Institucional, inicia sesión con Google.")
         return
     
     # Botón para forzar refresh del Picker (limpiar caché)
@@ -258,10 +255,10 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
         st.error("Error de configuración de Google Secrets.")
         return None
 
-    # Generar token del Service Account para el Picker
-    sa_token = get_service_account_token()
-    if not sa_token:
-        st.error("❌ No se pudo generar token del Service Account para el Picker.")
+    # Obtener token del USUARIO para el Picker
+    user_token = st.session_state.get('token')
+    if not user_token:
+        st.warning("⚠️ Inicia sesión para ver carpetas.")
         return None
 
     # Botón para forzar refresh del Picker (limpiar caché)
