@@ -126,7 +126,14 @@ if 'user_info' not in st.session_state:
 
                 # If all checks pass, store user info in session state
                 st.session_state.user_info = decoded_payload
-                st.session_state.token = result['token']
+                
+                # CORRECCIÓN CRÍTICA: Guardar solo el access_token (string), no el dict completo
+                # Esto asegura que el Picker reciba el token correcto
+                if isinstance(result['token'], dict):
+                    st.session_state.token = result['token'].get('access_token')
+                else:
+                    st.session_state.token = result['token']
+                    
                 st.session_state.user_db_id = user_record['id'] # Store DB ID for future use
                 st.session_state.user_hierarchy_level = user_access['hierarchy_level'] # Store hierarchy for current module
 
