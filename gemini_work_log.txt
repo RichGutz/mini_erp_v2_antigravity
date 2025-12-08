@@ -1567,3 +1567,73 @@ TESTING: ⏳ PENDIENTE (Usuario debe configurar carpeta y probar)
     - Motivo: Seguridad y UX. Impedir visualizacion de Drives personales.
     - Backup: Rama backup_picker_hybrid_20251208_1531 creada.
 ================================================================================
+FECHA: 2025-12-08 16:00:00
+SESIÓN: Implementación de Navegador Nativo de Carpetas (Adiós Picker)
+================================================================================
+
+PROBLEMA REPORTADO:
+-------------------
+El Google Picker standard (Javascript) presentaba riesgos de privacidad y usabilidad:
+1. Mostraba por defecto el Drive personal del usuario logueado en el navegador, no el
+   Drive del Service Account (Repositorio Institucional).
+2. Requería permisos complejos de OAuth scopes para listar archivos.
+3. No garantizaba que el usuario estuviera navegando *exclusivamente* en las carpetas
+   de la empresa.
+
+SOLUCIÓN: IMPLEMENTACIÓN DE "NAVEGADOR NATIVO" (Python/Streamlit)
+-----------------------------------------------------------------
+Se reemplazó totalmente la dependencia del Google Picker de UI (JS) por un componente
+construido 100% en Python usando Streamlit, que actúa como interfaz directa al
+Drive del Service Account.
+
+CÓMO FUNCIONA (ARQUITECTURA):
+-----------------------------
+1. BACKEND (Service Account):
+   - La función `list_folders_with_sa` usa las credenciales del Service Account (.toml)
+     para consultar la API de Drive.
+   - NUNCA usa el token del usuario logueado para listar carpetas.
+   - Solo puede "ver" lo que se ha compartido explícitamente con el email del Service Account.
+
+2. FRONTEND (Streamlit):
+   - Función `render_simple_folder_selector` en `src/utils/google_integration.py`.
+   - Mantiene el estado de navegación (carpeta actual, historial, breadcrumbs) en `st.session_state`.
+   - Renderiza botones para cada subcarpeta navegable.
+   - Permite "Subir Nivel" (Atrás) y "Seleccionar Carpeta Actual".
+
+3. UPLOAD CENTRALIZADO:
+   - La función `upload_file_with_sa` recibe el archivo y el ID seleccionado por el navegador nativo.
+   - Usa las mismas credenciales de Service Account para guardar el archivo.
+   - Resultado: Seguridad total. El archivo va del usuario -> Memoria Server -> Drive SA.
+
+VENTAJAS LOGRADAS:
+------------------
+✅ SEGURIDAD: El usuario NO PUEDE navegar en su Drive personal. Solo ve el Repositorio.
+✅ PRIVACIDAD: El entorno está aislado.
+✅ CONTROL: La navegación está restringida a la estructura de carpetas definida.
+✅ ESTABILIDAD: Eliminados errores de Javascript, cookies de terceros y popups bloqueados.
+✅ SIMPLEZA: Código Python puro, fácil de mantener y depurar.
+
+ARCHIVOS MODIFICADOS/CREADOS:
+-----------------------------
+1. `src/utils/google_integration.py`
+   - Implementado `render_simple_folder_selector` (Navegador visual).
+   - Implementado `list_folders_with_sa` (API Wrapper).
+   - Corregido `upload_file_with_sa` para soportar `st.secrets` tipo AttrDict.
+   
+2. `pages/desembolso_bottom_up.py` (NUEVO)
+   - Página prototipo para validar la funcionalidad.
+   - Sirve como base ("Bottom-Up") para reconstruir el módulo de Desembolso sobre esta arquitectura probada.
+
+ESTADO FINAL:
+-------------
+¡EXITOSO! El usuario confirmó: "LO LOGRASTE TE AMO".
+La navegación por carpetas del SA y la subida de archivos funcionan perfectamente.
+
+PRÓXIMOS PASOS:
+---------------
+- Migrar la lógica de negocio de Desembolso (tabla de facturas, estados) a `desembolso_bottom_up.py`.
+- Renombrar y oficializar el nuevo módulo de Desembolso.
+- Eliminar código muerto del antiguo Picker cuando la migración termine.
+
+================================================================================
+
