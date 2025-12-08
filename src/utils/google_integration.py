@@ -338,9 +338,7 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
             view_ids=["FOLDERS", "DOCS"],  # DOCS puede ayudar a la visibilidad general
             allow_folders=True, 
             accept_multiple_files=False,
-            # PARÁMETROS CLAVE PARA SHARED DRIVES:
-            support_drives=True,  # Habilita el soporte de Drives
-            enable_drives=True,   # Habilita la pestaña de Drives
+            # support_drives y enable_drives NO soportados por esta librería
             key=picker_key
         )
 
