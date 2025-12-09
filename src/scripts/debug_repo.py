@@ -1,3 +1,4 @@
+
 import sys
 import os
 
@@ -6,42 +7,36 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 
 from src.data import supabase_repository as db
 
-def test_repo_function():
-    print("🚀 Testing supabase_repository.get_razon_social_by_ruc...\n")
+def test_ruc(ruc_to_test):
+    print(f"\n[TEST] Testing supabase_repository.get_razon_social_by_ruc for RUC: {ruc_to_test}...\n")
     
-    # Known RUC from previous successful test
-    test_ruc = "20603718489" 
-    
-    print(f"1. Testing with string RUC: '{test_ruc}'")
+    print(f"1. Testing with string RUC: '{ruc_to_test}'")
     try:
-        name = db.get_razon_social_by_ruc(test_ruc)
+        name = db.get_razon_social_by_ruc(ruc_to_test)
         if name:
-            print(f"   ✅ Success! Found: {name}")
+            print(f"   [SUCCESS] Found: {name}")
         else:
-            print(f"   ❌ Failed. Returned empty string.")
+            print(f"   [FAILED] Returned empty string for RUC: {ruc_to_test}.")
     except Exception as e:
-        print(f"   ❌ Exception: {e}")
+        print(f"   [EXCEPTION] {e}")
 
-    # Test with numeric RUC (if python treats it as int)
-    print(f"\n2. Testing with int RUC: {int(test_ruc)}")
+    # Test with numeric RUC (checking robust handling)
     try:
-        name = db.get_razon_social_by_ruc(int(test_ruc))
-        if name:
-            print(f"   ✅ Success! Found: {name}")
-        else:
-            print(f"   ❌ Failed. Returned empty string.")
-    except Exception as e:
-        print(f"   ❌ Exception: {e}")
-        
-    print(f"\n3. Testing with Non-Existent RUC: '12345678901'")
-    try:
-        name = db.get_razon_social_by_ruc("12345678901")
-        if name == "":
-            print(f"   ✅ Success! Correctly returned empty string for missing user.")
-        else:
-            print(f"   ⚠️ Unexpected result: {name}")
-    except Exception as e:
-        print(f"   ❌ Exception: {e}")
+        ruc_int = int(ruc_to_test)
+        print(f"\n2. Testing with int RUC: {ruc_int}")
+        try:
+            name = db.get_razon_social_by_ruc(ruc_int)
+            if name:
+                print(f"   [SUCCESS] Found: {name}")
+            else:
+                print(f"   [FAILED] Returned empty string for RUC: {ruc_to_test}.")
+        except Exception as e:
+            print(f"   [EXCEPTION] {e}")
+    except ValueError:
+        print(f"\n2. Testing with int RUC: SKIPPED (Not a number)")
 
 if __name__ == "__main__":
-    test_repo_function()
+    print("--- STARTING LOCAL REPRODUCTION ---")
+    test_ruc("20609885026") # Emisor reported failing
+    test_ruc("20380336384") # Aceptante reported failing
+    print("--- END ---")
