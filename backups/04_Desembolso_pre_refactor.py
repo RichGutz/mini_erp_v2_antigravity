@@ -9,7 +9,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # --- Path Setup ---
 # Add root directory to path to allow imports from src
 sys.path.append(os.path.abspath("."))
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 from src.data import supabase_repository as db
 from src.utils.google_integration import render_folder_navigator_v2, upload_file_with_sa
@@ -21,12 +20,12 @@ API_BASE_URL = os.getenv("BACKEND_API_URL")
 
 # --- Configuración Page ---
 st.set_page_config(
-    page_title="Módulo de Desembolsos",
-    page_icon="💼",
+    page_title="Módulo de Desembolsos (Nativo)",
+    page_icon="💵",
     layout="wide"
 )
 
-# --- CSS HACK: FORZAR ANCHO COMPLETO REAL Y HEADER ALINEADO ---
+# --- CSS HACK: FORZAR ANCHO COMPLETO REAL ---
 st.markdown("""
 <style>
     .block-container {
@@ -36,25 +35,22 @@ st.markdown("""
         padding-right: 1rem;
         max-width: 100% !important;
     }
-    [data-testid="stHorizontalBlock"] { 
-        align-items: center; 
-    }
 </style>
 """, unsafe_allow_html=True)
 
 # --- Configuración Service Account ---
 try:
-    # Convertir AttrDict a dict normal
+    # Convertir AttrDict a dict normal para upload_file_with_sa
     SA_CREDENTIALS = dict(st.secrets["google_drive"])
 except Exception as e:
-    st.error(f"Error: No se encontraron credenciales del Service Account en secrets.toml: {e}")
+    st.error(f"❌ Error: No se encontraron credenciales del Service Account en secrets.toml: {e}")
     st.stop()
 
 if not API_BASE_URL:
     try:
         API_BASE_URL = st.secrets["backend_api"]["url"]
     except (KeyError, AttributeError):
-        st.error("BACKEND_API_URL no configurada.")
+        st.error("❌ BACKEND_API_URL no configurada.")
         st.stop()
 
 USUARIO_ID_TEST = "user_test@inandes.com"
@@ -110,11 +106,11 @@ def upload_helper(file_bytes, file_name, folder_id, sa_creds):
         # USA SERVICE ACCOUNT
         success, res_id = upload_file_with_sa(file_bytes, file_name, folder_id, sa_creds)
         if success:
-             return True, f"Subido (SA): {file_name}"
+             return True, f"✅ Subido (SA): {file_name}"
         else:
-             return False, f"Error {file_name}: {res_id}" 
+             return False, f"❌ Error {file_name}: {res_id}" 
     except Exception as e:
-        return False, f"Error {file_name}: {str(e)}"
+        return False, f"❌ Error {file_name}: {str(e)}"
 
 # --- Cargar Facturas ---
 if st.session_state.reload_data:
@@ -125,18 +121,8 @@ if st.session_state.reload_data:
         }
         st.session_state.reload_data = False
 
-# --- UI: Header con Logos (Estandarizado) ---
-col1, col2, col3 = st.columns([0.25, 0.5, 0.25])
-with col1:
-    st.image(os.path.join(project_root, "static", "logo_geek.png"), width=200)
-with col2:
-    st.markdown("<h2 style='text-align: center; font-size: 2.4em;'>Módulo de Desembolso</h2>", unsafe_allow_html=True)
-with col3:
-    empty_col, logo_col = st.columns([2, 1])
-    with logo_col:
-        st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
-
-st.markdown("---")
+# --- HEADER ---
+st.title("💵 Módulo de Desembolsos (Nativo)")
 st.info("Navegación segura a través de Service Account. Los archivos se centralizan en el repositorio institucional.")
 
 # ==============================================================================
@@ -152,7 +138,7 @@ with st.container(border=True):
     ]
 
     if not st.session_state.facturas_aprobadas:
-        st.info("No hay facturas aprobadas pendientes de desembolso.")
+        st.info("✅ No hay facturas aprobadas pendientes de desembolso.")
     else:
         # Header de la tabla
         cols = st.columns([0.5, 1.5, 1.5, 2, 2, 1.5])
@@ -182,10 +168,10 @@ with st.container(border=True):
             f for f in st.session_state.facturas_aprobadas
             if st.session_state.facturas_seleccionadas_desembolso.get(f['proposal_id'], False)
         ]
-        st.caption(f"Registros seleccionados: {len(facturas_seleccionadas)}")
+        st.caption(f"📝 Registros seleccionados: {len(facturas_seleccionadas)}")
 
 if not facturas_seleccionadas:
-    st.warning("Selecciona al menos una factura para habilitar las opciones de desembolso.")
+    st.warning("👆 Selecciona al menos una factura para habilitar las opciones de desembolso.")
 else:
     # ==============================================================================
     # SECCIÓN 2: GENERAR VOUCHER (Full Width)
@@ -203,7 +189,7 @@ else:
             datos_emisor = db.get_signatory_data_by_ruc(str(emisor_ruc))
             if datos_emisor:
                 with c_v2:
-                    if st.button("Generar Voucher", use_container_width=True):
+                    if st.button("📄 Generar Voucher", use_container_width=True):
                         try:
                             facturas_para_pdf = [{
                                 'numero_factura': parse_invoice_number(f['proposal_id']),
@@ -222,24 +208,24 @@ else:
                             if pdf_bytes:
                                 st.session_state.voucher_generado = True
                                 st.session_state.current_voucher_bytes = pdf_bytes
-                                st.success("Voucher Generado")
+                                st.success("✅ Generado")
                             else:
-                                st.error("Error al generar PDF")
+                                st.error("❌ Error PDF")
                         except Exception as e:
                             st.error(f"Excepción: {e}")
                 
                 if st.session_state.current_voucher_bytes:
                      st.download_button(
-                        label="Descargar Voucher",
+                        label="⬇️ Descargar Voucher",
                         data=st.session_state.current_voucher_bytes,
                         file_name="voucher_transferencia.pdf",
                         mime="application/pdf",
                         use_container_width=True
                     )
             else:
-                st.error("Emisor sin datos bancarios registrados.")
+                st.error("⚠️ Emisor sin datos bancarios registrados.")
         else:
-            st.error("Factura sin RUC de Emisor.")
+            st.error("❌ Factura sin RUC de Emisor.")
 
     # ==============================================================================
     # SECCIÓN 3: FORMALIZACIÓN (Full Width)
@@ -284,7 +270,7 @@ else:
                             "Sustento Individual", type=["pdf", "png", "jpg"], key=f"uploader_{pid}"
                         )
                     else:
-                        st.caption("Usando sustento global")
+                        st.caption("ℹ️ Usando sustento global")
 
     # ==============================================================================
     # SECCIÓN 4: SELECCIÓN DE CARPETA (Full Width - Abajo)
@@ -300,7 +286,7 @@ else:
         if selected_folder:
              st.info(f"📂 **Destino Seleccionado:** `{selected_folder['name']}`")
         else:
-             st.warning("Navega y selecciona una carpeta destino para habilitar el botón final.")
+             st.warning("👈 Navega y selecciona una carpeta destino para habilitar el botón final.")
 
 
     # --- FOOTER / ACCIONES FINALES ---
@@ -308,11 +294,11 @@ else:
 
     # Botón de Ejecución Global
     if selected_folder:
-        if st.button("REGISTRAR DESEMBOLSO Y SUBIR ARCHIVOS", type="primary", use_container_width=True):
+        if st.button("🚀 REGISTRAR DESEMBOLSO Y SUBIR ARCHIVOS", type="primary", use_container_width=True):
             
             # Validaciones de sustento
             if st.session_state.sustento_unico and not st.session_state.consolidated_proof_file:
-                 st.error("Falta el archivo de sustento consolidado.")
+                 st.error("❌ Falta el archivo de sustento consolidado.")
                  st.stop()
             
             with st.spinner("Procesando Desembolsos (API + Drive + BD)..."):
@@ -344,7 +330,7 @@ else:
                     else:
                          st.error("No API URL")
                 except Exception as e:
-                    st.error(f"Error API: {e}")
+                    st.error(f"❌ Error API: {e}")
                 
                 # B) Upload Files (Si API OK)
                 if api_success:
@@ -400,11 +386,11 @@ else:
                         
                         with st.expander("Resultados de Carga", expanded=errors_count > 0):
                             for msg in results_msg:
-                                if "Error" in msg: st.error(msg)
+                                if "❌" in msg: st.error(msg)
                                 else: st.write(msg)
                     
                     st.balloons()
-                    st.success("¡Desembolso Completado Exitosamente!")
+                    st.success("✨ ¡Desembolso Completado Exitosamente!")
 
                     # --- EMAIL SENDER INTEGRATION (State Persistence) ---
                     st.session_state.show_email_desembolso = True
@@ -439,7 +425,7 @@ else:
                             if res.get('status') == 'SUCCESS':
                                 pass
                     
-                    if st.button("Recargar Página"):
+                    if st.button("🔄 Recargar Página"):
                         st.session_state.reload_data = True
                         st.session_state.show_email_desembolso = False # Reset on reload
                         st.rerun()
@@ -451,4 +437,4 @@ else:
     # ------------------------------------------------
 
     elif facturas_seleccionadas and not selected_folder:
-        st.warning("Faltas seleccionar una carpeta de destino en la Sección 4.")
+        st.warning("⚠️ Faltas seleccionar una carpeta de destino en la Sección 4.")
