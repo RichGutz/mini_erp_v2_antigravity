@@ -28,6 +28,32 @@ st.set_page_config(
     page_icon="📊",
 )
 
+# --- DIAGNOSTIC PANEL (TEMPORARY) ---
+with st.expander("🕵️‍♂️ Diagnóstico de Conexión Supabase (Verificar RLS)", expanded=False):
+    try:
+        from src.data.supabase_client import get_supabase_client
+        client = get_supabase_client()
+        
+        # 1. Check Key Type (Safe Check)
+        # We don't show the full key, just check the header/payload signature if possible, or just length
+        st.write("Estado del Cliente:")
+        
+        # 2. Test Query
+        st.write("Probando acceso a 'EMISORES.ACEPTANTES'...")
+        res = client.table('EMISORES.ACEPTANTES').select('*', count='exact').limit(1).execute()
+        
+        if res.count is not None:
+             st.metric("Filas Visibles", res.count)
+             if res.count == 0:
+                 st.error("❌ 0 filas visibles. Probablemente RLS está bloqueando (Usando Anon Key).")
+             else:
+                 st.success(f"✅ Éxito: El sistema puede ver {res.count} registros. RLS superado.")
+        else:
+             st.warning("⚠️ No se pudo obtener conteo.")
+             
+    except Exception as e:
+        st.error(f"❌ Error de conexión: {e}")
+
 # Backend URL Strategy
 API_BASE_URL = os.getenv("BACKEND_API_URL")
 if not API_BASE_URL:
