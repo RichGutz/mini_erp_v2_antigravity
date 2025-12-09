@@ -37,7 +37,7 @@ def render_email_sender(key_suffix: str, documents: list, default_email: str = "
         to_email = c1.text_input("Destinatario", value=default_email, placeholder="cliente@empresa.com", key=f"to_{key_suffix}")
         subject = c2.text_input("Asunto", value=default_subject, placeholder="Envío de Documentos - Operación XYZ", key=f"sub_{key_suffix}")
         
-        body = st.text_area("Mensaje", value="Estimados,\n\nAdjunto encontrarán los documentos relacionados a la operación reciente.\n\nSaludos formales,", height=100, key=f"body_{key_suffix}")
+        body = st.text_area("Mensaje", value="Estimados,\n\nAdjunto encontrarán los documentos relacionados a la operación reciente.\n\nSaludos formales,", height=200, key=f"body_{key_suffix}")
         
         # 3. Botón de Envío
         if st.button("📤 Enviar Correo", key=f"btn_send_{key_suffix}", type="primary", use_container_width=True):
