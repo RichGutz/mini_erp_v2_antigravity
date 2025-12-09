@@ -185,7 +185,7 @@ with st.container(border=True):
         st.caption(f"Registros seleccionados: {len(facturas_seleccionadas)}")
 
 if not facturas_seleccionadas:
-    
+    pass
 else:
     # ==============================================================================
     # SECCIÓN 2: GENERAR VOUCHER (Full Width)
