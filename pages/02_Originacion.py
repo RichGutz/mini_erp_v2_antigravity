@@ -362,28 +362,22 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
                                     # 1. Tasa de Avance (Universal)
                                     if db_rates.get('tasa_avance', 0) > 0:
                                         invoice_entry['tasa_de_avance'] = float(db_rates['tasa_avance'])
-                                        # Update Global Default if first item or not set
-                                        if i == 0: 
-                                        # Update Global Default if first item or not set
+                                        # Update Global Default if first item
                                         if i == 0: 
                                             st.session_state.default_tasa_de_avance = float(db_rates['tasa_avance'])
                                             st.session_state.tasa_avance_global = float(db_rates['tasa_avance'])
                                             st.session_state.aplicar_tasa_avance_global = True
 
                                     # 2. Intereses (Depende Moneda)
-
-                                    # 2. Intereses (Depende Moneda)
                                     if moneda == 'USD':
                                         new_int_mensual = float(db_rates.get('interes_mensual_usd', 0))
                                         new_int_mora = float(db_rates.get('interes_moratorio_usd', 0))
-                                        new_com_est_min = float(db_rates.get('comision_estructuracion_usd', 0)) # Mapped to Min Struct Fee
+                                        new_com_est_min = float(db_rates.get('comision_estructuracion_usd', 0))
                                     else:
                                         new_int_mensual = float(db_rates.get('interes_mensual_pen', 0))
                                         new_int_mora = float(db_rates.get('interes_moratorio_pen', 0))
                                         new_com_est_min = float(db_rates.get('comision_estructuracion_pen', 0))
                                     
-                                    if new_int_mensual > 0:
-                                        invoice_entry['interes_mensual'] = new_int_mensual
                                     if new_int_mensual > 0:
                                         invoice_entry['interes_mensual'] = new_int_mensual
                                         if i == 0:
@@ -399,22 +393,15 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
                                             st.session_state.aplicar_interes_moratorio_global = True
 
                                     # 3. Comisiones Estructuración (Mínima)
-                                    # Note: We map the DB specific currency value to the corresponding Global Min
-                                    if i == 0:
-                                         found_struct = False
-                                         if db_rates.get('comision_estructuracion_pen', 0) > 0:
-                                             st.session_state.comision_estructuracion_min_pen_global = float(db_rates['comision_estructuracion_pen'])
-                                             found_struct = True
-                                         if db_rates.get('comision_estructuracion_usd', 0) > 0:
-                                             st.session_state.comision_estructuracion_min_usd_global = float(db_rates['comision_estructuracion_usd'])
-                                             found_struct = True
-                                         
-                                         if found_struct:
-                                             st.session_state.aplicar_comision_estructuracion_global = True
+                                    if i == 0 and new_com_est_min > 0:
+                                        if moneda == 'USD':
+                                            st.session_state.comision_estructuracion_min_usd_global = new_com_est_min
+                                        else:
+                                            st.session_state.comision_estructuracion_min_pen_global = new_com_est_min
+                                        st.session_state.aplicar_comision_estructuracion_global = True
                                     
                             except Exception as e_db:
                                 print(f"Error fetching DB rates: {e_db}")
-                                # Silently fail back to defaults
                             # -------------------------------
                             st.session_state.invoices_data.append(invoice_entry)
                             st.success(f"Datos de {uploaded_file.name} cargados.")
