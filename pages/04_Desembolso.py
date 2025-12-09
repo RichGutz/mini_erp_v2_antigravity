@@ -137,7 +137,7 @@ with col3:
         st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
 
 st.markdown("---")
-st.info("Navegación segura a través de Service Account. Los archivos se centralizan en el repositorio institucional.")
+
 
 # ==============================================================================
 # SECCIÓN 1: FACTURAS PENDIENTES (Full Width)
@@ -185,7 +185,7 @@ with st.container(border=True):
         st.caption(f"Registros seleccionados: {len(facturas_seleccionadas)}")
 
 if not facturas_seleccionadas:
-    st.warning("Selecciona al menos una factura para habilitar las opciones de desembolso.")
+    
 else:
     # ==============================================================================
     # SECCIÓN 2: GENERAR VOUCHER (Full Width)
