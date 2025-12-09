@@ -559,7 +559,7 @@ def get_financial_conditions(ruc: str) -> Optional[Dict[str, float]]:
     supabase = get_supabase_client()
     try:
         response = supabase.table('EMISORES.ACEPTANTES').select(
-            'tasa_avance, interes_mensual_pen, interes_moratorio_pen, interes_mensual_usd, interes_moratorio_usd, comision_estructuracion_pen, comision_estructuracion_usd'
+            'tasa_avance, interes_mensual_pen, interes_moratorio_pen, interes_mensual_usd, interes_moratorio_usd, comision_estructuracion_pen, comision_estructuracion_usd, comision_estructuracion_pct, comision_afiliacion_pen, comision_afiliacion_usd, dias_minimos_interes'
         ).eq('RUC', ruc).single().execute()
         return response.data if response.data else None
     except Exception as e:

@@ -392,13 +392,44 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
                                             st.session_state.interes_moratorio_global = new_int_mora
                                             st.session_state.aplicar_interes_moratorio_global = True
 
-                                    # 3. Comisiones Estructuración (Mínima)
-                                    if i == 0 and new_com_est_min > 0:
-                                        if moneda == 'USD':
-                                            st.session_state.comision_estructuracion_min_usd_global = new_com_est_min
-                                        else:
-                                            st.session_state.comision_estructuracion_min_pen_global = new_com_est_min
-                                        st.session_state.aplicar_comision_estructuracion_global = True
+                                    # 3. Comisiones Estructuración (Mínima y PCT)
+                                    if i == 0:
+                                        # Minima
+                                        if new_com_est_min > 0:
+                                            if moneda == 'USD':
+                                                st.session_state.comision_estructuracion_min_usd_global = new_com_est_min
+                                            else:
+                                                st.session_state.comision_estructuracion_min_pen_global = new_com_est_min
+                                            st.session_state.aplicar_comision_estructuracion_global = True
+                                        
+                                        # Porcentual (Nuevo)
+                                        new_com_est_pct = float(db_rates.get('comision_estructuracion_pct', 0))
+                                        if new_com_est_pct > 0:
+                                            st.session_state.comision_estructuracion_pct_global = new_com_est_pct
+                                            st.session_state.aplicar_comision_estructuracion_global = True
+
+                                    # 4. Comision Afiliacion (Nueva)
+                                    if i == 0:
+                                        new_com_afil_pen = float(db_rates.get('comision_afiliacion_pen', 0))
+                                        new_com_afil_usd = float(db_rates.get('comision_afiliacion_usd', 0))
+                                        
+                                        if new_com_afil_pen > 0:
+                                            st.session_state.comision_afiliacion_pen_global = new_com_afil_pen
+                                            st.session_state.aplicar_comision_afiliacion_global = True
+                                            invoice_entry['comision_afiliacion_pen'] = new_com_afil_pen
+                                        
+                                        if new_com_afil_usd > 0:
+                                            st.session_state.comision_afiliacion_usd_global = new_com_afil_usd
+                                            st.session_state.aplicar_comision_afiliacion_global = True
+                                            invoice_entry['comision_afiliacion_usd'] = new_com_afil_usd
+
+                                    # 5. Dias Minimos Interes (Nuevo)
+                                    new_dias_min = int(db_rates.get('dias_minimos_interes', 0))
+                                    if new_dias_min > 0:
+                                        invoice_entry['dias_minimos_interes_individual'] = new_dias_min
+                                        if i == 0:
+                                            st.session_state.dias_interes_minimo_global = new_dias_min
+                                            st.session_state.aplicar_dias_interes_minimo_global = True
                                     
                             except Exception as e_db:
                                 print(f"Error fetching DB rates: {e_db}")

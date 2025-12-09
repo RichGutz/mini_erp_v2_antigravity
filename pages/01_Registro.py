@@ -207,6 +207,18 @@ def mostrar_formulario_crear():
         with col7:
              comision_est_usd = st.number_input("Com. Estruct. USD (Flat)", min_value=0.0, step=1.0, format="%.2f")
         
+        col8, col9 = st.columns(2)
+        with col8:
+             comision_est_pct = st.number_input("Com. Estruct. (%)", min_value=0.0, step=0.01, format="%.2f")
+        with col9:
+             dias_min_interes = st.number_input("Días Mínimos Interés", min_value=0, step=1, format="%d")
+
+        col10, col11 = st.columns(2)
+        with col10:
+             comision_afil_pen = st.number_input("Com. Afiliación PEN", min_value=0.0, step=1.0, format="%.2f")
+        with col11:
+             comision_afil_usd = st.number_input("Com. Afiliación USD", min_value=0.0, step=1.0, format="%.2f")
+        
         submitted = st.form_submit_button("Crear Registro", type="primary")
         
         if submitted:
@@ -240,7 +252,12 @@ def mostrar_formulario_crear():
                     'interes_mensual_usd': interes_mensual_usd,
                     'interes_moratorio_usd': interes_moratorio_usd,
                     'comision_estructuracion_pen': comision_est_pen,
-                    'comision_estructuracion_usd': comision_est_usd
+                    'comision_estructuracion_pen': comision_est_pen,
+                    'comision_estructuracion_usd': comision_est_usd,
+                    'comision_estructuracion_pct': comision_est_pct,
+                    'comision_afiliacion_pen': comision_afil_pen,
+                    'comision_afiliacion_usd': comision_afil_usd,
+                    'dias_minimos_interes': dias_min_interes
                 }
                 
                 success, message = db.create_emisor_deudor(data)
@@ -374,6 +391,18 @@ def mostrar_formulario_editar():
         with col7:
              comision_est_usd = st.number_input("Com. Estruct. USD (Flat)", min_value=0.0, step=1.0, format="%.2f", value=float(registro.get('comision_estructuracion_usd', 0.0) or 0.0))
         
+        col8, col9 = st.columns(2)
+        with col8:
+             comision_est_pct = st.number_input("Com. Estruct. (%)", min_value=0.0, step=0.01, format="%.2f", value=float(registro.get('comision_estructuracion_pct', 0.0) or 0.0))
+        with col9:
+             dias_min_interes = st.number_input("Días Mínimos Interés", min_value=0, step=1, format="%d", value=int(registro.get('dias_minimos_interes', 0) or 0))
+
+        col10, col11 = st.columns(2)
+        with col10:
+             comision_afil_pen = st.number_input("Com. Afiliación PEN", min_value=0.0, step=1.0, format="%.2f", value=float(registro.get('comision_afiliacion_pen', 0.0) or 0.0))
+        with col11:
+             comision_afil_usd = st.number_input("Com. Afiliación USD", min_value=0.0, step=1.0, format="%.2f", value=float(registro.get('comision_afiliacion_usd', 0.0) or 0.0))
+        
         submitted = st.form_submit_button("Guardar Cambios", type="primary")
         
         if submitted:
@@ -403,7 +432,11 @@ def mostrar_formulario_editar():
                     'interes_mensual_usd': interes_mensual_usd,
                     'interes_moratorio_usd': interes_moratorio_usd,
                     'comision_estructuracion_pen': comision_est_pen,
-                    'comision_estructuracion_usd': comision_est_usd
+                    'comision_estructuracion_usd': comision_est_usd,
+                    'comision_estructuracion_pct': comision_est_pct,
+                    'comision_afiliacion_pen': comision_afil_pen,
+                    'comision_afiliacion_usd': comision_afil_usd,
+                    'dias_minimos_interes': dias_min_interes
                 }
                 
                 success, message = db.update_emisor_deudor(registro['RUC'], data)
