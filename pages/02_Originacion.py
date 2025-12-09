@@ -447,8 +447,11 @@ if st.checkbox("🐞 Mostrar Debugging", value=True):
                 try:
                     # Re-verify specific RUC lookup live
                     live_lookup = db.get_razon_social_by_ruc(emisor_ruc)
+                    # Debug Financial Conditions
+                    live_financials = db.get_financial_conditions(emisor_ruc)
                 except Exception as e:
                     live_lookup = f"ERROR: {e}"
+                    live_financials = f"ERROR: {e}"
 
                 st.code(f"""
 Factura #{i+1}: {inv.get('parsed_pdf_name')}
@@ -456,6 +459,7 @@ Factura #{i+1}: {inv.get('parsed_pdf_name')}
 RUC Raw: '{emisor_ruc}'
 Nombre Cached: '{emisor_nombre}'
 Lookup en Vivo: '{live_lookup}'
+Condiciones Financieras BD: {json.dumps(live_financials, indent=2, default=str) if isinstance(live_financials, dict) else live_financials}
                 """)
         else:
             st.info("No hay facturas cargadas para inspeccionar.")
