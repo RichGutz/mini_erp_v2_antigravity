@@ -12,6 +12,7 @@ sys.path.append(os.path.abspath("."))
 
 from src.data import supabase_repository as db
 from src.utils.google_integration import render_folder_navigator_v2, upload_file_with_sa
+from src.ui.email_component import render_email_sender
 from src.utils.pdf_generators import generar_voucher_transferencia_pdf
 
 # --- Estrategia Unificada para la URL del Backend ---
@@ -390,6 +391,34 @@ else:
                     
                     st.balloons()
                     st.success("✨ ¡Desembolso Completado Exitosamente!")
+
+                    # --- EMAIL SENDER INTEGRATION (State Persistence) ---
+                    st.session_state.show_email_desembolso = True
+                    st.session_state.email_docs_desembolso = []
+                    
+                    # 1. Voucher
+                    if st.session_state.current_voucher_bytes:
+                            first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
+                            v_name = f"{first_lote}_Voucher_Transferencia.pdf"
+                            st.session_state.email_docs_desembolso.append({'name': v_name, 'bytes': st.session_state.current_voucher_bytes})
+                    
+                    # 2. Sustentos
+                    if st.session_state.sustento_unico:
+                        f_obj = st.session_state.consolidated_proof_file
+                        if f_obj:
+                                first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
+                                s_name = f"{first_lote}_Sustento_Global.pdf"
+                                st.session_state.email_docs_desembolso.append({'name': s_name, 'bytes': f_obj.getvalue()})
+                    else:
+                        for factura in facturas_seleccionadas:
+                            pid = factura['proposal_id']
+                            f_obj = st.session_state.individual_proof_files.get(pid)
+                            if f_obj:
+                                lote = factura.get('identificador_lote', 'Lote')
+                                inv = parse_invoice_number(pid)
+                                i_name = f"{lote}_{inv}_Sustento.pdf"
+                                st.session_state.email_docs_desembolso.append({'name': i_name, 'bytes': f_obj.getvalue()})
+                    # ----------------------------------------------------
                     
                     # Actualizar estados visualmente
                     for res in st.session_state.resultados_desembolso.get('resultados_del_lote', []):
@@ -398,7 +427,14 @@ else:
                     
                     if st.button("🔄 Recargar Página"):
                         st.session_state.reload_data = True
+                        st.session_state.show_email_desembolso = False # Reset on reload
                         st.rerun()
+
+    # --- RENDER EMAIL SENDER OUTSIDE BUTTON SCOPE ---
+    if st.session_state.get('show_email_desembolso', False):
+         st.markdown("---")
+         render_email_sender(key_suffix="desembolso", documents=st.session_state.get('email_docs_desembolso', []))
+    # ------------------------------------------------
 
     elif facturas_seleccionadas and not selected_folder:
         st.warning("⚠️ Faltas seleccionar una carpeta de destino en la Sección 4.")

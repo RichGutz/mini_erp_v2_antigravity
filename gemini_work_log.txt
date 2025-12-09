@@ -1737,3 +1737,9 @@ ESTADO:  COMPLETADO
 
 [2025-12-08 19:30] BLOGFIX: Implementado persistencia de estado para Email Sender en Originacion (evita desaparición al interactuar).
 
+
+[2025-12-08 19:33] PHASE 2: Iniciando integración de Email Sender en Desembolso y Liquidación tras validación de usuario.
+
+
+[2025-12-08 19:38] PHASE 2 COMPLETED: Email Sender integrado y verificado en Desembolso y Liquidación. Commit final.
+

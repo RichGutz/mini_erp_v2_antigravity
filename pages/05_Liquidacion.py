@@ -11,6 +11,7 @@ from src.data import supabase_repository as db
 from src.core.factoring_system import SistemaFactoringCompleto
 from src.utils.pdf_generators import generate_liquidacion_universal_pdf
 from src.utils.google_integration import render_folder_navigator_v2, upload_file_with_sa
+from src.ui.email_component import render_email_sender
 
 # --- Page Config ---
 st.set_page_config(
@@ -648,6 +649,29 @@ def mostrar_liquidacion_universal():
                             if count_saved > 0:
                                 st.success(f"✅ {count_saved} Liquidaciones registradas en Base de Datos.")
                                 st.balloons()
+                                
+                                # --- EMAIL SENDER INTEGRATION (State Persistence) ---
+                                st.session_state.show_email_liquidacion = True
+                                st.session_state.email_docs_liquidacion = []
+                                
+                                # 1. PDF Liquidacion
+                                st.session_state.email_docs_liquidacion.append({'name': pdf_filename, 'bytes': pdf_bytes})
+
+                                # 2. Voucher Global
+                                if st.session_state.usar_voucher_unico_liquidacion and st.session_state.voucher_global_liquidacion:
+                                    v_glob = st.session_state.voucher_global_liquidacion
+                                    v_name_g = f"VOUCHER_GLOBAL_{timestamp}_{v_glob.name}"
+                                    st.session_state.email_docs_liquidacion.append({'name': v_name_g, 'bytes': v_glob.getvalue()})
+
+                                # 3. Vouchers Individuales
+                                if not st.session_state.usar_voucher_unico_liquidacion:
+                                    for pid, v_file in st.session_state.vouchers_universales.items():
+                                        if v_file:
+                                            inv_num = parse_invoice_number(pid)
+                                            v_name_i = f"VOUCHER_{inv_num}_{v_file.name}"
+                                            st.session_state.email_docs_liquidacion.append({'name': v_name_i, 'bytes': v_file.getvalue()})
+                                # ----------------------------------------------------
+
                             else:
                                 st.warning("No se guardaron registros en BD (verificar errores previos).")
 
@@ -656,6 +680,12 @@ def mostrar_liquidacion_universal():
             else:
                  # Mensaje discreto si no hay carpeta
                  st.caption("Seleccione una carpeta para habilitar el guardado.")
+
+    # --- RENDER EMAIL SENDER OUTSIDE BUTTON SCOPE ---
+    if st.session_state.get('show_email_liquidacion', False):
+         st.markdown("---")
+         render_email_sender(key_suffix="liquidacion", documents=st.session_state.get('email_docs_liquidacion', []))
+    # ------------------------------------------------
 
 # --- Main App Logic ---
 
