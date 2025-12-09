@@ -286,6 +286,22 @@ with col3:
     with logo_col:
         st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
 
+# --- DEBUGGING UI ---
+if st.checkbox("🐞 Mostrar Debugging", value=True):
+    with st.expander("🔍 Inspector de Datos (Debug)", expanded=True):
+        st.write("Estado de Conexión Supabase (Simulado): OK")
+        if st.session_state.invoices_data:
+            st.write(f"Facturas Cargadas: {len(st.session_state.invoices_data)}")
+            for i, inv in enumerate(st.session_state.invoices_data):
+                st.code(f"""
+Factura #{i+1}: {inv.get('parsed_pdf_name')}
+---------------------------------------------
+RUC Emisor Extraído:   '{inv.get('emisor_ruc')}' -> Nombre: '{inv.get('emisor_nombre')}'
+RUC Aceptante Extraído: '{inv.get('aceptante_ruc')}' -> Nombre: '{inv.get('aceptante_nombre')}'
+                """)
+        else:
+            st.info("No hay facturas cargadas para inspeccionar.")
+
 
 # --- Section 1: File Upload ---
 with st.expander("📂 Carga de Facturas (PDF)", expanded=True):

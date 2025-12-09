@@ -40,8 +40,12 @@ def get_razon_social_by_ruc(ruc: str) -> str:
     supabase = get_supabase_client()
     if not ruc:
         return ""
+    
+    # Robustification: Convert to string and strip whitespace
+    clean_ruc = str(ruc).strip()
+    
     try:
-        response = supabase.table('EMISORES.ACEPTANTES').select('"Razon Social"').eq('RUC', ruc).single().execute()
+        response = supabase.table('EMISORES.ACEPTANTES').select('"Razon Social"').eq('RUC', clean_ruc).single().execute()
         return response.data.get('Razon Social', '') if response.data else ''
     except Exception as e:
         print(f"[ERROR in get_razon_social_by_ruc]: {e}")
