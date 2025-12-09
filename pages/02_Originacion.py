@@ -17,6 +17,7 @@ from src.data import supabase_repository as db
 from src.utils import pdf_generators
 from src.utils.pdf_generators import generar_anexo_liquidacion_pdf
 from src.utils.google_integration import render_folder_navigator_v2, upload_file_with_sa, render_simple_folder_selector, upload_file_to_drive
+from src.ui.email_component import render_email_sender
 
 
 # --- Estrategia Unificada para la URL del Backend ---
@@ -1002,6 +1003,37 @@ if st.session_state.invoices_data:
                         if not drive_errors:
                             st.balloons()
                             st.success("✨ ¡Proceso Completado Exitosamente!")
+                            
+                            # --- EMAIL SENDER INTEGRATION ---
+                            st.markdown("---")
+                            # DEBUG: Verificar si entra aquí
+                            st.write("DEBUG: Iniciando bloque de email sender...") 
+                            
+                            email_docs = []
+                            # 1. Perfil
+                            if 'last_generated_perfil_pdf' in st.session_state:
+                                email_docs.append(st.session_state['last_generated_perfil_pdf'])
+                            else:
+                                st.write("DEBUG: No last_generated_perfil_pdf")
+
+                            # 2. Liquidacion
+                            if 'last_generated_liquidacion_pdf' in st.session_state:
+                                email_docs.append(st.session_state['last_generated_liquidacion_pdf'])
+                            else:
+                                st.write("DEBUG: No last_generated_liquidacion_pdf")
+
+                            # 3. Originales
+                            if 'original_uploads_cache' in st.session_state:
+                                for orig in st.session_state.original_uploads_cache:
+                                    email_docs.append({'name': orig['name'], 'bytes': orig['bytes']})
+                            else:
+                                st.write("DEBUG: No original_uploads_cache")
+                            
+                            st.write(f"DEBUG: Docs encontrados: {len(email_docs)}")
+                            
+                            render_email_sender(key_suffix="originacion", documents=email_docs)
+                            # -------------------------------
+
                         else:
                             st.error(f"Hubo errores subiendo archivos: {drive_errors}")
     
