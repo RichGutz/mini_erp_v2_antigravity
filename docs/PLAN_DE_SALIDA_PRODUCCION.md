@@ -2,23 +2,14 @@
 
 Este documento detalla la estrategia para transformar el MVP actual ("Mini ERP V2") en un producto de software profesional, seguro y escalable.
 
-## 🚨 FASE 0: SEGURIDAD CRÍTICA (Inmediato)
-> **Estado:** 🔴 **EMERGENCIA**
-> **Objetivo:** Cerrar brechas de seguridad graves antes de cualquier otra cosa.
+## 🚨 FASE 0: SEGURIDAD CRÍTICA (POSTERGADO)
+> **Estado:** ⚪ **POSTERGADO (Por solicitud del usuario - 09/12/2025)**
+> **Nota:** Se decidió mantener el repositorio público y desactivar RLS por ahora para agilizar el desarrollo. Se retomará más adelante.
 
-> [!NOTE]
-> **HITO ALCANZADO:** El estado actual del código (Rama: `backup/erp_funcionando_antes_refactor`) representa el **producto más sofisticado y funcional** logrado hasta la fecha. Este punto sirve como "Golden Copy" antes de iniciar la reingeniería.
-
-1.  **Privatizar Repositorio (URGENTE)**
-    *   [x] Cambiar visibilidad de GitHub a **Private**.
-    *   [ ] Verificar que `secrets.toml`, `.env` y credenciales JSON **nunca** hayan sido commiteados. Si lo fueron, rotar todas las claves inmediatamente.
-2.  **Blindar Supabase (URGENTE)**
-    *   [ ] Activar **Row Level Security (RLS)** en todas las tablas. (Actualmente es "público" si tienes la key anónima).
-    *   [ ] Configurar políticas de acceso: "Solo usuarios autenticados pueden leer/escribir su propia data".
-    *   [ ] Desactivar acceso público a tablas sensibles (`EMISORES`, `PROPUESTAS`, `USUARIOS`).
-3.  **Gestión de Secretos**
-    *   [ ] Auditoría de `st.secrets`: Asegurar que **ninguna** key esté harcodeada en el código.
-    *   [ ] Rotación de Key de Service Account (Google Drive) y Keys de Supabase por precaución.
+1.  **Privatizar Repositorio** (Postergado)
+2.  **Blindar Supabase (RLS)** (Postergado)
+    *   *RLS desactivado manualmente por el usuario.*
+3.  **Gestión de Secretos** (Pendiente de revisión futura)
 
 ## 🏗️ FASE 1: ESTANDARIZACIÓN DE CÓDIGO (Refactoring)
 > **Estado:** 🟡 Pendiente
