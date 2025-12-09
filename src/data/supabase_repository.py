@@ -548,3 +548,20 @@ def search_emisores_deudores(search_term: str) -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"[ERROR en search_emisores_deudores]: {e}")
         return []
+
+def get_financial_conditions(ruc: str) -> Optional[Dict[str, float]]:
+    """
+    Retrieves default financial conditions for a given RUC from EMISORES.ACEPTANTES.
+    Returns a dict with keys matching the DB columns.
+    """
+    if not ruc:
+        return None
+    supabase = get_supabase_client()
+    try:
+        response = supabase.table('EMISORES.ACEPTANTES').select(
+            'tasa_avance, interes_mensual_pen, interes_moratorio_pen, interes_mensual_usd, interes_moratorio_usd, comision_estructuracion_pen, comision_estructuracion_usd'
+        ).eq('RUC', ruc).single().execute()
+        return response.data if response.data else None
+    except Exception as e:
+        print(f"[ERROR in get_financial_conditions]: {e}")
+        return None

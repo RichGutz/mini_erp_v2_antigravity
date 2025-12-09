@@ -185,6 +185,28 @@ def mostrar_formulario_crear():
         with col3:
             cci = st.text_input("Número de CCI (PEN)", max_chars=20)
         
+        # Condiciones Financieras (NUEVO)
+        st.subheader("Condiciones Financieras (Por Defecto)")
+        st.caption("Estas tasas se cargarán automáticamente al crear operaciones para este emisor.")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            tasa_avance = st.number_input("Tasa de Avance (%)", min_value=0.0, max_value=100.0, step=0.01, format="%.2f")
+        with col2:
+            interes_mensual_pen = st.number_input("Int. Mensual PEN (%)", min_value=0.0, step=0.01, format="%.2f")
+        with col3:
+            interes_moratorio_pen = st.number_input("Int. Moratorio PEN (%)", min_value=0.0, step=0.01, format="%.2f")
+        with col4:
+            comision_est_pen = st.number_input("Com. Estruct. PEN (Flat)", min_value=0.0, step=1.0, format="%.2f")
+
+        col5, col6, col7 = st.columns(3)
+        with col5:
+             interes_mensual_usd = st.number_input("Int. Mensual USD (%)", min_value=0.0, step=0.01, format="%.2f")
+        with col6:
+             interes_moratorio_usd = st.number_input("Int. Moratorio USD (%)", min_value=0.0, step=0.01, format="%.2f")
+        with col7:
+             comision_est_usd = st.number_input("Com. Estruct. USD (Flat)", min_value=0.0, step=1.0, format="%.2f")
+        
         submitted = st.form_submit_button("Crear Registro", type="primary")
         
         if submitted:
@@ -209,7 +231,16 @@ def mostrar_formulario_crear():
                     'Numero de Cuenta PEN': numero_cuenta or None,
                     'Numero de CCI PEN': cci or None,
                     'Correo Electronico 1': correo_1 or None,
-                    'Correo Electronico 2': correo_2 or None
+                    'Correo Electronico 1': correo_1 or None,
+                    'Correo Electronico 2': correo_2 or None,
+                    # Campos Financieros
+                    'tasa_avance': tasa_avance,
+                    'interes_mensual_pen': interes_mensual_pen,
+                    'interes_moratorio_pen': interes_moratorio_pen,
+                    'interes_mensual_usd': interes_mensual_usd,
+                    'interes_moratorio_usd': interes_moratorio_usd,
+                    'comision_estructuracion_pen': comision_est_pen,
+                    'comision_estructuracion_usd': comision_est_usd
                 }
                 
                 success, message = db.create_emisor_deudor(data)
@@ -320,6 +351,28 @@ def mostrar_formulario_editar():
             numero_cuenta = st.text_input("Número de Cuenta (PEN)", value=registro.get('Numero de Cuenta PEN', '') or '')
         with col3:
             cci = st.text_input("Número de CCI (PEN)", value=registro.get('Numero de CCI PEN', '') or '', max_chars=20)
+
+        # Condiciones Financieras (NUEVO)
+        st.subheader("Condiciones Financieras (Por Defecto)")
+        st.caption("Estas tasas se cargarán automáticamente al crear operaciones para este emisor.")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            tasa_avance = st.number_input("Tasa de Avance (%)", min_value=0.0, max_value=100.0, step=0.01, format="%.2f", value=float(registro.get('tasa_avance', 0.0) or 0.0))
+        with col2:
+            interes_mensual_pen = st.number_input("Int. Mensual PEN (%)", min_value=0.0, step=0.01, format="%.2f", value=float(registro.get('interes_mensual_pen', 0.0) or 0.0))
+        with col3:
+            interes_moratorio_pen = st.number_input("Int. Moratorio PEN (%)", min_value=0.0, step=0.01, format="%.2f", value=float(registro.get('interes_moratorio_pen', 0.0) or 0.0))
+        with col4:
+            comision_est_pen = st.number_input("Com. Estruct. PEN (Flat)", min_value=0.0, step=1.0, format="%.2f", value=float(registro.get('comision_estructuracion_pen', 0.0) or 0.0))
+
+        col5, col6, col7 = st.columns(3)
+        with col5:
+             interes_mensual_usd = st.number_input("Int. Mensual USD (%)", min_value=0.0, step=0.01, format="%.2f", value=float(registro.get('interes_mensual_usd', 0.0) or 0.0))
+        with col6:
+             interes_moratorio_usd = st.number_input("Int. Moratorio USD (%)", min_value=0.0, step=0.01, format="%.2f", value=float(registro.get('interes_moratorio_usd', 0.0) or 0.0))
+        with col7:
+             comision_est_usd = st.number_input("Com. Estruct. USD (Flat)", min_value=0.0, step=1.0, format="%.2f", value=float(registro.get('comision_estructuracion_usd', 0.0) or 0.0))
         
         submitted = st.form_submit_button("Guardar Cambios", type="primary")
         
@@ -341,7 +394,16 @@ def mostrar_formulario_editar():
                     'Numero de Cuenta PEN': numero_cuenta or None,
                     'Numero de CCI PEN': cci or None,
                     'Correo Electronico 1': correo_1 or None,
-                    'Correo Electronico 2': correo_2 or None
+                    'Correo Electronico 1': correo_1 or None,
+                    'Correo Electronico 2': correo_2 or None,
+                    # Campos Financieros
+                    'tasa_avance': tasa_avance,
+                    'interes_mensual_pen': interes_mensual_pen,
+                    'interes_moratorio_pen': interes_moratorio_pen,
+                    'interes_mensual_usd': interes_mensual_usd,
+                    'interes_moratorio_usd': interes_moratorio_usd,
+                    'comision_estructuracion_pen': comision_est_pen,
+                    'comision_estructuracion_usd': comision_est_usd
                 }
                 
                 success, message = db.update_emisor_deudor(registro['RUC'], data)

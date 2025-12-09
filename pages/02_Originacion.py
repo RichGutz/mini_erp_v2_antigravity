@@ -348,7 +348,59 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
                                 'initial_calc_result': None,
                                 'recalculate_result': None,
                                 'dias_minimos_interes_individual': 15,
+                                'initial_calc_result': None,
+                                'recalculate_result': None,
+                                'dias_minimos_interes_individual': 15,
                             }
+                            
+                            # --- AUTO-FILL RATES FROM DB ---
+                            try:
+                                db_rates = db.get_financial_conditions(parsed_data.get('emisor_ruc'))
+                                if db_rates:
+                                    moneda = parsed_data.get('moneda', 'PEN')
+                                    
+                                    # 1. Tasa de Avance (Universal)
+                                    if db_rates.get('tasa_avance', 0) > 0:
+                                        invoice_entry['tasa_de_avance'] = float(db_rates['tasa_avance'])
+                                        # Update Global Default if first item or not set
+                                        if i == 0: 
+                                            st.session_state.default_tasa_de_avance = float(db_rates['tasa_avance'])
+                                            st.session_state.tasa_avance_global = float(db_rates['tasa_avance'])
+
+                                    # 2. Intereses (Depende Moneda)
+                                    if moneda == 'USD':
+                                        new_int_mensual = float(db_rates.get('interes_mensual_usd', 0))
+                                        new_int_mora = float(db_rates.get('interes_moratorio_usd', 0))
+                                        new_com_est_min = float(db_rates.get('comision_estructuracion_usd', 0)) # Mapped to Min Struct Fee
+                                    else:
+                                        new_int_mensual = float(db_rates.get('interes_mensual_pen', 0))
+                                        new_int_mora = float(db_rates.get('interes_moratorio_pen', 0))
+                                        new_com_est_min = float(db_rates.get('comision_estructuracion_pen', 0))
+                                    
+                                    if new_int_mensual > 0:
+                                        invoice_entry['interes_mensual'] = new_int_mensual
+                                        if i == 0:
+                                            st.session_state.default_interes_mensual = new_int_mensual
+                                            st.session_state.interes_mensual_global = new_int_mensual
+                                    
+                                    if new_int_mora > 0:
+                                        invoice_entry['interes_moratorio'] = new_int_mora
+                                        if i == 0:
+                                            st.session_state.default_interes_moratorio = new_int_mora
+                                            st.session_state.interes_moratorio_global = new_int_mora
+
+                                    # 3. Comisiones Estructuración (Mínima)
+                                    # Note: We map the DB specific currency value to the corresponding Global Min
+                                    if i == 0:
+                                         if db_rates.get('comision_estructuracion_pen', 0) > 0:
+                                             st.session_state.comision_estructuracion_min_pen_global = float(db_rates['comision_estructuracion_pen'])
+                                         if db_rates.get('comision_estructuracion_usd', 0) > 0:
+                                             st.session_state.comision_estructuracion_min_usd_global = float(db_rates['comision_estructuracion_usd'])
+                                    
+                            except Exception as e_db:
+                                print(f"Error fetching DB rates: {e_db}")
+                                # Silently fail back to defaults
+                            # -------------------------------
                             st.session_state.invoices_data.append(invoice_entry)
                             st.success(f"Datos de {uploaded_file.name} cargados.")
                     except Exception as e:

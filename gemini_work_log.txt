@@ -1749,3 +1749,42 @@ ESTADO:  COMPLETADO
 
 [2025-12-08 21:36] DEBUG: Deployed Diagnostic Panel to Originacion UI.
 
+
+================================================================================
+FECHA: 2025-12-09 15:30:00
+SESIÓN: Debugging de Originación y Restauración de UI (Tabla Detallada)
+================================================================================
+
+PROBLEMA REPORTADO:
+-------------------
+1.  **Fallo de Conexión en Nube:** El módulo de Originación no recuperaba los nombres de las empresas (Emisor/Aceptante) en Streamlit Cloud, aunque funcionaba localmente.
+2.  **Regresión UI:** La tabla de 'Perfil de la Operación' (resultados de cálculo) se había simplificado excesivamente tras una refactorización previa, eliminando detalles críticos como fórmulas y desgloses.
+
+DIAGNÓSTICO Y SOLUCIÓN:
+-----------------------
+1.  **Conexión Supabase (Error 401 en Nube):**
+    *   **Causa:** La llave 'ANON' configurada en los Secrets de Streamlit Cloud era incorrecta/inválida, mientras que la local (Service Role) funcionaba.
+    *   **Acción:** Se implementó un 'Debug UI' mejorado en pages/02_Originacion.py que muestra el tipo de llave detectada (ANON vs SERVICE_ROLE) y una versión enmascarada de la llave para verificación visual.
+    *   **Resolución:** El usuario confirmó que la llave era ANON e inválida. Se instruyó actualizar los Secrets en la nube.
+    *   **Validación Local:** Se verificó que la llave ANON *correcta* sí tiene permisos (RLS permite lectura pública de EMISORES.ACEPTANTES), confirmando que el problema era puramente de configuración en la nube.
+
+2.  **Restauración de Tabla Detallada:**
+    *   **Acción:** Se recuperó el código de generación de tablas Markdown desde el backup (ackup/erp_funcionando_antes_refactor).
+    *   **Cambio:** Se reemplazó la tabla simplificada en pages/02_Originacion.py por la versión original que incluye columnas de 'Fórmula de Cálculo', 'Detalle', porcentajes de desglose y estructura completa de costos.
+
+ARCHIVOS MODIFICADOS:
+---------------------
+*   pages/02_Originacion.py:
+    *   Reubicado Debug UI debajo del cargador de archivos.
+    *   Agregado diagnóstico de conectividad y display de llave enmascarada.
+    *   Restaurada lógica de renderizado de tabla detallada (aprox. 100 líneas).
+*   src/data/supabase_client.py: Revertido a patrón Singleton Global (sin st.cache_resource) para mayor estabilidad.
+*   src/scripts/debug_repo.py: Actualizado para pruebas locales robustas.
+
+ESTADO: ✅ COMPLETADO Y PUSHEADO
+================================================================================
+
+2025-12-09 [FEAT] Implementación de Tasas Financieras Dinámicas
+- Base de Datos: Agregadas 7 columnas a EMISORES.ACEPTANTES.
+- UX: Inputs agregados en Registro.
+- Lógica: Auto-fill implementado en Originación.
