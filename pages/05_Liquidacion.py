@@ -691,7 +691,18 @@ def mostrar_liquidacion_universal():
     if st.session_state.get('show_email_liquidacion', False):
          st.markdown("---")
          st.subheader("📧 Enviar Reporte por Correo")
-         render_email_sender(key_suffix="liquidacion", documents=st.session_state.get('email_docs_liquidacion', []))
+         
+         # Try to get meaningful default subject
+         lote_id = "Lote"
+         if st.session_state.lote_encontrado_universal:
+             lote_id = st.session_state.lote_encontrado_universal[0].get('identificador_lote', 'Lote')
+         
+         render_email_sender(
+             key_suffix="liquidacion", 
+             documents=st.session_state.get('email_docs_liquidacion', []),
+             default_subject=f"Liquidación - {lote_id}",
+             default_email="" # Pending: Fetch client email from DB if available
+         )
     # ------------------------------------------------
 
 # --- Main App Logic Switcher ---
