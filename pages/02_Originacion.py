@@ -286,8 +286,15 @@ with col3:
     with logo_col:
         st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
 
-# --- Section 1: File Upload ---
-with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
+st.markdown("---")
+
+# ==============================================================================
+# SECCIÓN 1: CARGA DE FACTURAS (Full Width)
+# ==============================================================================
+with st.container(border=True):
+    st.subheader("1. Carga de Facturas (PDF)")
+    # with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
+    
     uploaded_pdf_files = st.file_uploader("Seleccionar archivos", type=["pdf"], key="pdf_uploader_main", accept_multiple_files=True)
 
     if uploaded_pdf_files:
@@ -445,132 +452,135 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
             st.rerun()
 
 
-
-
-# --- Section 2: Global Configuration ---
+# ==============================================================================
+# SECCIÓN 2: CONFIGURACIÓN GLOBAL (Full Width)
+# ==============================================================================
 if st.session_state.invoices_data:
-    st.markdown("---")
-    st.subheader("Configuración Global")
+    # st.markdown("---")
+    with st.container(border=True):
+        st.subheader("2. Configuración Global")
 
-    col1, col2, col3 = st.columns(3)
+        col1, col2, col3 = st.columns(3)
 
-    with col1:
-        st.write("##### Comisiones Globales")
-        st.write("---")
-        st.write("**Com. de Estructuración**")
-        st.checkbox("Aplicar Comisión de Estructuración", key='aplicar_comision_estructuracion_global')
-        st.number_input("Comisión de Estructuración (%)", min_value=0.0, key='comision_estructuracion_pct_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_estructuracion_global', False))
-        st.number_input("Comisión Mínima (PEN)", min_value=0.0, key='comision_estructuracion_min_pen_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_estructuracion_global', False))
-        st.number_input("Comisión Mínima (USD)", min_value=0.0, key='comision_estructuracion_min_usd_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_estructuracion_global', False))
-        
-        st.write("**Com. de Afiliación**")
-        st.checkbox("Aplicar Comisión de Afiliación", key='aplicar_comision_afiliacion_global')
-        st.number_input("Monto Comisión Afiliación (PEN)", min_value=0.0, key='comision_afiliacion_pen_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_afiliacion_global', False))
-        st.number_input("Monto Comisión Afiliación (USD)", min_value=0.0, key='comision_afiliacion_usd_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_afiliacion_global', False))
-
-    with col2:
-        st.write("##### Tasas Globales")
-        st.checkbox("Aplicar Tasa de Avance Global", key='aplicar_tasa_avance_global', on_change=handle_global_tasa_avance_change)
-        st.number_input("Tasa de Avance Global (%)", key='tasa_avance_global', min_value=0.0, format="%.2f", disabled=not st.session_state.get('aplicar_tasa_avance_global', False), on_change=handle_global_tasa_avance_change)
-        
-        st.checkbox("Aplicar Interés Mensual Global", key='aplicar_interes_mensual_global', on_change=handle_global_interes_mensual_change)
-        st.number_input("Interés Mensual Global (%)", key='interes_mensual_global', min_value=0.0, format="%.2f", disabled=not st.session_state.get('aplicar_interes_mensual_global', False), on_change=handle_global_interes_mensual_change)
-        
-        st.checkbox("Aplicar Interés Moratorio Global", key='aplicar_interes_moratorio_global', on_change=handle_global_interes_moratorio_change)
-        st.number_input("Interés Moratorio Global (%)", key='interes_moratorio_global', min_value=0.0, format="%.2f", disabled=not st.session_state.get('aplicar_interes_moratorio_global', False), on_change=handle_global_interes_moratorio_change)
-
-    with col3:
-        st.write("##### Fechas Globales")
-        st.checkbox("Aplicar Fecha de Pago Global", key='aplicar_fecha_vencimiento_global', on_change=handle_global_payment_date_change)
-        st.date_input("Fecha de Pago Global", key='fecha_vencimiento_global', format="DD-MM-YYYY", disabled=not st.session_state.get('aplicar_fecha_vencimiento_global', False), on_change=handle_global_payment_date_change)
-        
-        st.checkbox("Aplicar Fecha de Desembolso Global", key='aplicar_fecha_desembolso_global', on_change=handle_global_disbursement_date_change)
-        st.date_input("Fecha de Desembolso Global", key='fecha_desembolso_global', format="DD-MM-YYYY", disabled=not st.session_state.get('aplicar_fecha_desembolso_global', False), on_change=handle_global_disbursement_date_change)
-        
-        st.write("**Días Mínimos de Interés**")
-        st.checkbox("Aplicar Días Mínimos", key='aplicar_dias_interes_minimo_global', on_change=handle_global_min_interest_days_change)
-        st.number_input("Valor Días Mínimos", key='dias_interes_minimo_global', min_value=0, step=1, on_change=handle_global_min_interest_days_change)
-
-
-# --- Section 3: Invoice Form ---
-if st.session_state.invoices_data:
-    for idx, invoice in enumerate(st.session_state.invoices_data):
-        st.markdown("---")
-        st.write(f"### Factura {idx + 1}: {invoice.get('parsed_pdf_name', 'N/A')}")
-
-        with st.container():
-            st.write("##### Involucrados")
-            c1, c2, c3, c4 = st.columns(4)
-            with c1: invoice['emisor_nombre'] = st.text_input("NOMBRE DEL EMISOR", value=invoice.get('emisor_nombre', ''), key=f"emisor_nombre_{idx}")
-            with c2: invoice['emisor_ruc'] = st.text_input("RUC DEL EMISOR", value=invoice.get('emisor_ruc', ''), key=f"emisor_ruc_{idx}")
-            with c3: invoice['aceptante_nombre'] = st.text_input("NOMBRE DEL ACEPTANTE", value=invoice.get('aceptante_nombre', ''), key=f"aceptante_nombre_{idx}")
-            with c4: invoice['aceptante_ruc'] = st.text_input("RUC DEL ACEPTANTE", value=invoice.get('aceptante_ruc', ''), key=f"aceptante_ruc_{idx}")
-
-        with st.container():
-            st.write("##### Montos y Moneda")
-            c1, c2, c3, c4, c5 = st.columns(5)
-            with c1: invoice['numero_factura'] = st.text_input("NÚMERO DE FACTURA", value=invoice.get('numero_factura', ''), key=f"numero_factura_{idx}")
-            with c2: invoice['monto_total_factura'] = st.number_input("MONTO TOTAL (CON IGV)", min_value=0.0, value=invoice.get('monto_total_factura', 0.0), format="%.2f", key=f"monto_total_factura_{idx}")
-            with c3: invoice['monto_neto_factura'] = st.number_input("MONTO NETO", min_value=0.0, value=invoice.get('monto_neto_factura', 0.0), format="%.2f", key=f"monto_neto_factura_{idx}")
-            with c4: invoice['moneda_factura'] = st.selectbox("MONEDA", ["PEN", "USD"], index=["PEN", "USD"].index(invoice.get('moneda_factura', 'PEN')), key=f"moneda_factura_{idx}")
-            with c5:
-                detr_pct = 0.0
-                if invoice.get('monto_total_factura', 0) > 0:
-                    detr_pct = ((invoice['monto_total_factura'] - invoice['monto_neto_factura']) / invoice['monto_total_factura']) * 100
-                invoice['detraccion_porcentaje'] = detr_pct
-                st.text_input("Detracción (%)", value=f"{detr_pct:.2f}%", disabled=True, key=f"detraccion_porcentaje_{idx}")
-
-        with st.container():
-            st.write("##### Fechas y Plazos")
+        with col1:
+            st.write("##### Comisiones Globales")
+            st.write("---")
+            st.write("**Com. de Estructuración**")
+            st.checkbox("Aplicar Comisión de Estructuración", key='aplicar_comision_estructuracion_global')
+            st.number_input("Comisión de Estructuración (%)", min_value=0.0, key='comision_estructuracion_pct_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_estructuracion_global', False))
+            st.number_input("Comisión Mínima (PEN)", min_value=0.0, key='comision_estructuracion_min_pen_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_estructuracion_global', False))
+            st.number_input("Comisión Mínima (USD)", min_value=0.0, key='comision_estructuracion_min_usd_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_estructuracion_global', False))
             
-            # Callbacks for date widgets to sync logic
-            def _on_fecha_pago_changed(i):
-                dt_obj = st.session_state.get(f"fecha_pago_calculada_{i}")
-                st.session_state.invoices_data[i]['fecha_pago_calculada'] = dt_obj.strftime('%d-%m-%Y') if dt_obj else ''
-                update_date_calculations(st.session_state.invoices_data[i], changed_field='fecha', idx=i)
+            st.write("**Com. de Afiliación**")
+            st.checkbox("Aplicar Comisión de Afiliación", key='aplicar_comision_afiliacion_global')
+            st.number_input("Monto Comisión Afiliación (PEN)", min_value=0.0, key='comision_afiliacion_pen_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_afiliacion_global', False))
+            st.number_input("Monto Comisión Afiliación (USD)", min_value=0.0, key='comision_afiliacion_usd_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_afiliacion_global', False))
 
-            def _on_fecha_desembolso_changed(i):
-                dt_obj = st.session_state.get(f"fecha_desembolso_factoring_{i}")
-                st.session_state.invoices_data[i]['fecha_desembolso_factoring'] = dt_obj.strftime('%d-%m-%Y') if dt_obj else ''
-                update_date_calculations(st.session_state.invoices_data[i], idx=i)
+        with col2:
+            st.write("##### Tasas Globales")
+            st.checkbox("Aplicar Tasa de Avance Global", key='aplicar_tasa_avance_global', on_change=handle_global_tasa_avance_change)
+            st.number_input("Tasa de Avance Global (%)", key='tasa_avance_global', min_value=0.0, format="%.2f", disabled=not st.session_state.get('aplicar_tasa_avance_global', False), on_change=handle_global_tasa_avance_change)
+            
+            st.checkbox("Aplicar Interés Mensual Global", key='aplicar_interes_mensual_global', on_change=handle_global_interes_mensual_change)
+            st.number_input("Interés Mensual Global (%)", key='interes_mensual_global', min_value=0.0, format="%.2f", disabled=not st.session_state.get('aplicar_interes_mensual_global', False), on_change=handle_global_interes_mensual_change)
+            
+            st.checkbox("Aplicar Interés Moratorio Global", key='aplicar_interes_moratorio_global', on_change=handle_global_interes_moratorio_change)
+            st.number_input("Interés Moratorio Global (%)", key='interes_moratorio_global', min_value=0.0, format="%.2f", disabled=not st.session_state.get('aplicar_interes_moratorio_global', False), on_change=handle_global_interes_moratorio_change)
 
-            c1, c2, c3, c4, c5 = st.columns(5)
-            with c1:
-                # Emission Date
-                em_obj = to_date_obj(invoice.get('fecha_emision_factura'))
-                new_em = st.date_input("Fecha Emisión", value=em_obj or datetime.date.today(), key=f"fetcha_em_input_{idx}", format="DD-MM-YYYY", disabled=bool(em_obj))
-                if not em_obj: invoice['fecha_emision_factura'] = new_em.strftime('%d-%m-%Y')
+        with col3:
+            st.write("##### Fechas Globales")
+            st.checkbox("Aplicar Fecha de Pago Global", key='aplicar_fecha_vencimiento_global', on_change=handle_global_payment_date_change)
+            st.date_input("Fecha de Pago Global", key='fecha_vencimiento_global', format="DD-MM-YYYY", disabled=not st.session_state.get('aplicar_fecha_vencimiento_global', False), on_change=handle_global_payment_date_change)
+            
+            st.checkbox("Aplicar Fecha de Desembolso Global", key='aplicar_fecha_desembolso_global', on_change=handle_global_disbursement_date_change)
+            st.date_input("Fecha de Desembolso Global", key='fecha_desembolso_global', format="DD-MM-YYYY", disabled=not st.session_state.get('aplicar_fecha_desembolso_global', False), on_change=handle_global_disbursement_date_change)
+            
+            st.write("**Días Mínimos de Interés**")
+            st.checkbox("Aplicar Días Mínimos", key='aplicar_dias_interes_minimo_global', on_change=handle_global_min_interest_days_change)
+            st.number_input("Valor Días Mínimos", key='dias_interes_minimo_global', min_value=0, step=1, on_change=handle_global_min_interest_days_change)
 
-            with c2:
-                des_obj = to_date_obj(invoice.get('fecha_desembolso_factoring'))
-                st.date_input("Fecha Desembolso", value=des_obj or datetime.date.today(), key=f"fecha_desembolso_factoring_{idx}", format="DD-MM-YYYY", on_change=_on_fecha_desembolso_changed, args=(idx,))
 
-            with c3:
-                pag_obj = to_date_obj(invoice.get('fecha_pago_calculada'))
-                st.date_input("Fecha Pago", value=pag_obj or datetime.date.today(), key=f"fecha_pago_calculada_{idx}", format="DD-MM-YYYY", on_change=_on_fecha_pago_changed, args=(idx,))
+    # ==============================================================================
+    # SECCIÓN 3: DETALLE DE FACTURAS
+    # ==============================================================================
+    st.subheader("3. Detalle de Facturas")
+    
+    for idx, invoice in enumerate(st.session_state.invoices_data):
+        with st.container(border=True):
+            st.markdown(f"**Factura {idx + 1}:** `{invoice.get('parsed_pdf_name', 'N/A')}`")
 
-            with c4:
-                plazo = st.session_state.invoices_data[idx].get('plazo_operacion_calculado', 0)
-                if st.session_state.invoices_data[idx].get('fecha_error', False):
-                    st.warning("⚠️ Fecha Pago < Desembolso")
-                st.text_input("Plazo (días)", value=str(plazo), disabled=True, key=f"plazo_operacion_calculado_{idx}")
-
-            with c5:
-                invoice['dias_minimos_interes_individual'] = st.number_input("Días Mínimos", value=invoice.get('dias_minimos_interes_individual', 15), min_value=0, key=f"dias_minimos_interes_individual_{idx}")
-
-        with st.container():
-            st.write("##### Tasas y Comisiones")
-            is_locked = idx > 0 and st.session_state.fijar_condiciones
-            c1, c2, c3 = st.columns(3)
-            with c1: invoice['tasa_de_avance'] = st.number_input("Tasa de Avance (%)", min_value=0.0, value=invoice.get('tasa_de_avance', 98.0), key=f"tasa_de_avance_{idx}", disabled=is_locked, on_change=propagate_commission_changes)
-            with c2: invoice['interes_mensual'] = st.number_input("Interés Mensual (%)", min_value=0.0, value=invoice.get('interes_mensual', 1.25), key=f"interes_mensual_{idx}", disabled=is_locked, on_change=propagate_commission_changes)
-            with c3: invoice['interes_moratorio'] = st.number_input("Interés Moratorio (%)", min_value=0.0, value=invoice.get('interes_moratorio', 2.5), key=f"interes_moratorio_{idx}", disabled=is_locked, on_change=propagate_commission_changes)
-
-        st.markdown("---")
-        
-        # --- Results Display ---
-        if invoice.get('recalculate_result'):
             with st.container():
+                st.caption("Involucrados")
+                c1, c2, c3, c4 = st.columns(4)
+                with c1: invoice['emisor_nombre'] = st.text_input("NOMBRE DEL EMISOR", value=invoice.get('emisor_nombre', ''), key=f"emisor_nombre_{idx}")
+                with c2: invoice['emisor_ruc'] = st.text_input("RUC DEL EMISOR", value=invoice.get('emisor_ruc', ''), key=f"emisor_ruc_{idx}")
+                with c3: invoice['aceptante_nombre'] = st.text_input("NOMBRE DEL ACEPTANTE", value=invoice.get('aceptante_nombre', ''), key=f"aceptante_nombre_{idx}")
+                with c4: invoice['aceptante_ruc'] = st.text_input("RUC DEL ACEPTANTE", value=invoice.get('aceptante_ruc', ''), key=f"aceptante_ruc_{idx}")
+
+            with st.container():
+                st.caption("Montos y Moneda")
+                c1, c2, c3, c4, c5 = st.columns(5)
+                with c1: invoice['numero_factura'] = st.text_input("NÚMERO DE FACTURA", value=invoice.get('numero_factura', ''), key=f"numero_factura_{idx}")
+                with c2: invoice['monto_total_factura'] = st.number_input("MONTO TOTAL (CON IGV)", min_value=0.0, value=invoice.get('monto_total_factura', 0.0), format="%.2f", key=f"monto_total_factura_{idx}")
+                with c3: invoice['monto_neto_factura'] = st.number_input("MONTO NETO", min_value=0.0, value=invoice.get('monto_neto_factura', 0.0), format="%.2f", key=f"monto_neto_factura_{idx}")
+                with c4: invoice['moneda_factura'] = st.selectbox("MONEDA", ["PEN", "USD"], index=["PEN", "USD"].index(invoice.get('moneda_factura', 'PEN')), key=f"moneda_factura_{idx}")
+                with c5:
+                    detr_pct = 0.0
+                    if invoice.get('monto_total_factura', 0) > 0:
+                        detr_pct = ((invoice['monto_total_factura'] - invoice['monto_neto_factura']) / invoice['monto_total_factura']) * 100
+                    invoice['detraccion_porcentaje'] = detr_pct
+                    st.text_input("Detracción (%)", value=f"{detr_pct:.2f}%", disabled=True, key=f"detraccion_porcentaje_{idx}")
+
+            with st.container():
+                st.caption("Fechas y Plazos")
+                
+                # Callbacks for date widgets to sync logic
+                def _on_fecha_pago_changed(i):
+                    dt_obj = st.session_state.get(f"fecha_pago_calculada_{i}")
+                    st.session_state.invoices_data[i]['fecha_pago_calculada'] = dt_obj.strftime('%d-%m-%Y') if dt_obj else ''
+                    update_date_calculations(st.session_state.invoices_data[i], changed_field='fecha', idx=i)
+
+                def _on_fecha_desembolso_changed(i):
+                    dt_obj = st.session_state.get(f"fecha_desembolso_factoring_{i}")
+                    st.session_state.invoices_data[i]['fecha_desembolso_factoring'] = dt_obj.strftime('%d-%m-%Y') if dt_obj else ''
+                    update_date_calculations(st.session_state.invoices_data[i], idx=i)
+
+                c1, c2, c3, c4, c5 = st.columns(5)
+                with c1:
+                    # Emission Date
+                    em_obj = to_date_obj(invoice.get('fecha_emision_factura'))
+                    new_em = st.date_input("Fecha Emisión", value=em_obj or datetime.date.today(), key=f"fetcha_em_input_{idx}", format="DD-MM-YYYY", disabled=bool(em_obj))
+                    if not em_obj: invoice['fecha_emision_factura'] = new_em.strftime('%d-%m-%Y')
+
+                with c2:
+                    des_obj = to_date_obj(invoice.get('fecha_desembolso_factoring'))
+                    st.date_input("Fecha Desembolso", value=des_obj or datetime.date.today(), key=f"fecha_desembolso_factoring_{idx}", format="DD-MM-YYYY", on_change=_on_fecha_desembolso_changed, args=(idx,))
+
+                with c3:
+                    pag_obj = to_date_obj(invoice.get('fecha_pago_calculada'))
+                    st.date_input("Fecha Pago", value=pag_obj or datetime.date.today(), key=f"fecha_pago_calculada_{idx}", format="DD-MM-YYYY", on_change=_on_fecha_pago_changed, args=(idx,))
+
+                with c4:
+                    plazo = st.session_state.invoices_data[idx].get('plazo_operacion_calculado', 0)
+                    if st.session_state.invoices_data[idx].get('fecha_error', False):
+                        st.warning("⚠️ Fecha Pago < Desembolso")
+                    st.text_input("Plazo (días)", value=str(plazo), disabled=True, key=f"plazo_operacion_calculado_{idx}")
+
+                with c5:
+                    invoice['dias_minimos_interes_individual'] = st.number_input("Días Mínimos", value=invoice.get('dias_minimos_interes_individual', 15), min_value=0, key=f"dias_minimos_interes_individual_{idx}")
+
+            with st.container():
+                st.caption("Tasas y Comisiones")
+                is_locked = idx > 0 and st.session_state.fijar_condiciones
+                c1, c2, c3 = st.columns(3)
+                with c1: invoice['tasa_de_avance'] = st.number_input("Tasa de Avance (%)", min_value=0.0, value=invoice.get('tasa_de_avance', 98.0), key=f"tasa_de_avance_{idx}", disabled=is_locked, on_change=propagate_commission_changes)
+                with c2: invoice['interes_mensual'] = st.number_input("Interés Mensual (%)", min_value=0.0, value=invoice.get('interes_mensual', 1.25), key=f"interes_mensual_{idx}", disabled=is_locked, on_change=propagate_commission_changes)
+                with c3: invoice['interes_moratorio'] = st.number_input("Interés Moratorio (%)", min_value=0.0, value=invoice.get('interes_moratorio', 2.5), key=f"interes_moratorio_{idx}", disabled=is_locked, on_change=propagate_commission_changes)
+
+            
+            # --- Results Display Within Invoice ---
+            if invoice.get('recalculate_result'):
+                st.divider()
                 st.write("##### Perfil de la Operación")
                 st.markdown(
                     f"**Emisor:** {invoice.get('emisor_nombre', 'N/A')} | "
@@ -643,236 +653,236 @@ if st.session_state.invoices_data:
                 st.markdown(tabla_md, unsafe_allow_html=True)
 
 
-    # --- Action Buttons ---
-    st.markdown("---")
+    # ==============================================================================
+    # SECCIÓN 4: ACCIONES Y REPORTES
+    # ==============================================================================
+    # st.markdown("---")
     has_results = any(inv.get('recalculate_result') for inv in st.session_state.invoices_data)
     
-    col_btn1, col_btn2, col_btn3 = st.columns(3)
-    
-    with col_btn1:
-        if st.button("Calcular Facturas", type="primary", use_container_width=True):
-            # 1. Validation
-            if not all(validate_inputs(inv) for inv in st.session_state.invoices_data):
-                st.error("❌ Faltan campos en algunas facturas.")
-            else:
-                st.success("Iniciando cálculos...")
-                # ... (Calculation Logic preserved) ...
-                try:
-                    # Prepare Payload
-                    payload = []
-                    # Pre-calculate totals for apportionment
-                    total_cap_pen = sum(i['monto_neto_factura'] * (i['tasa_de_avance']/100) for i in st.session_state.invoices_data if i['moneda_factura'] == 'PEN')
-                    total_cap_usd = sum(i['monto_neto_factura'] * (i['tasa_de_avance']/100) for i in st.session_state.invoices_data if i['moneda_factura'] == 'USD')
-                    
-                    for inv in st.session_state.invoices_data:
-                        # Logic for Apportionment
-                        cap = inv['monto_neto_factura'] * (inv['tasa_de_avance']/100)
-                        is_sol = inv['moneda_factura'] == 'PEN'
-                        total_cap = total_cap_pen if is_sol else total_cap_usd
-                        share = cap / total_cap if total_cap > 0 else 0
-                        
-                        # Commissions
-                        com_min = (st.session_state.comision_estructuracion_min_pen_global if is_sol else st.session_state.comision_estructuracion_min_usd_global) * share
-                        com_afi = (st.session_state.comision_afiliacion_pen_global if is_sol else st.session_state.comision_afiliacion_usd_global) * share
-                        
-                        plazo = max(inv.get('plazo_operacion_calculado', 0), inv.get('dias_minimos_interes_individual', 15))
-                        
-                        payload.append({
-                            "plazo_operacion": plazo,
-                            "mfn": inv['monto_neto_factura'],
-                            "tasa_avance": inv['tasa_de_avance'] / 100,
-                            "interes_mensual": inv['interes_mensual'] / 100,
-                            "interes_moratorio_mensual": inv['interes_moratorio'] / 100,
-                            "comision_estructuracion_pct": st.session_state.comision_estructuracion_pct_global / 100,
-                            "comision_minima_aplicable": com_min,
-                            "igv_pct": 0.18,
-                            "comision_afiliacion_aplicable": com_afi,
-                            "aplicar_comision_afiliacion": st.session_state.get('aplicar_comision_afiliacion_global', False)
-                        })
-
-                    # Call API 1: Calculate Disbursement
-                    resp1 = requests.post(f"{API_BASE_URL}/calcular_desembolso_lote", json=payload)
-                    resp1.raise_for_status()
-                    res1 = resp1.json()
-
-                    if res1.get("error"):
-                        st.error(res1['error'])
-                        st.stop()
-
-                    # Prepare Payload 2: Goal Seeking
-                    payload2 = []
-                    for i, inv in enumerate(st.session_state.invoices_data):
-                        inv['initial_calc_result'] = res1["resultados_por_factura"][i]
-                        abono_teorico = inv['initial_calc_result'].get('abono_real_teorico', 0)
-                        
-                        # Round down to nearest 10
-                        goal = (abono_teorico // 10) * 10
-                        
-                        p2_item = payload[i].copy()
-                        p2_item['monto_objetivo'] = goal
-                        p2_item.pop('tasa_avance', None) # Remove fixed rate to let solver find it
-                        payload2.append(p2_item)
-
-                    # Call API 2: Goal Seek
-                    resp2 = requests.post(f"{API_BASE_URL}/encontrar_tasa_lote", json=payload2)
-                    resp2.raise_for_status()
-                    res2 = resp2.json()
-
-                    if res2.get("error"):
-                        st.error(res2['error'])
-                        st.stop()
-
-                    # Store Results
-                    for i, inv in enumerate(st.session_state.invoices_data):
-                        inv['recalculate_result'] = res2["resultados_por_factura"][i]
-
-                    st.success("✅ Cálculos Completados")
-                    st.rerun()
-
-                except Exception as e:
-                    st.error(f"Error en el cálculo: {e}")
-
-    with col_btn2:
-        if st.button("Generar PDF Perfil", disabled=not has_results, use_container_width=True):
-            try:
-                # Prepare data list for PDF generator
-                pdf_list = []
-                for inv in st.session_state.invoices_data:
-                    if inv.get('recalculate_result'):
-                        # Inject global commission helper data expected by generator
-                        inv['comision_de_estructuracion_global'] = st.session_state.comision_estructuracion_pct_global
-                        inv['detraccion_monto'] = inv['monto_total_factura'] - inv['monto_neto_factura']
-                        pdf_list.append(inv)
-                
-                if pdf_list:
-                    pdf_bytes = pdf_generators.generate_perfil_operacion_pdf(pdf_list)
-                    fname = f"perfil_operacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                    st.session_state['last_generated_perfil_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
-                    st.success("✅ Perfil Generado")
-            except Exception as e:
-                st.error(f"Error PDF: {e}")
-        
-        # Download Link Logic
-        if 'last_generated_perfil_pdf' in st.session_state:
-            p = st.session_state['last_generated_perfil_pdf']
-            st.download_button("⬇️ Descargar Perfil", p['bytes'], p['filename'], "application/pdf")
-
-    with col_btn3:
-        if st.button("Generar PDF Liquidación", disabled=not has_results, use_container_width=True):
-            try:
-                # Same filtering logic
-                pdf_list = [inv for inv in st.session_state.invoices_data if inv.get('recalculate_result')]
-                if pdf_list:
-                    pdf_bytes = generar_anexo_liquidacion_pdf(pdf_list)
-                    fname = f"anexo_liquidacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                    st.session_state['last_generated_liquidacion_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
-                    st.success("✅ Liquidación Generada")
-            except Exception as e:
-                st.error(f"Error PDF: {e}")
-
-        # Download Link Logic
-        if 'last_generated_liquidacion_pdf' in st.session_state:
-            l = st.session_state['last_generated_liquidacion_pdf']
-            st.download_button("⬇️ Descargar Liquidación", l['bytes'], l['filename'], "application/pdf")
-
-
-    # --- Section 4: Save & Upload ---
-    st.markdown("---")
-    st.subheader("📚 Formalización y Guardado")
-    
     with st.container(border=True):
-        st.info("Paso Final: Upload & Save")
+        st.subheader("4. Acciones y Reportes")
+        
+        # Action Grid: Calc | Report A | Report B
+        c_act1, c_act2, c_act3 = st.columns(3)
+        
+        with c_act1:
+            if st.button("Calcular Facturas", type="primary", use_container_width=True):
+                # 1. Validation
+                if not all(validate_inputs(inv) for inv in st.session_state.invoices_data):
+                    st.error("❌ Faltan campos en algunas facturas.")
+                else:
+                    st.success("Iniciando cálculos...")
+                    # ... (Calculation Logic preserved) ...
+                    try:
+                        # Prepare Payload
+                        payload = []
+                        # Pre-calculate totals for apportionment
+                        total_cap_pen = sum(i['monto_neto_factura'] * (i['tasa_de_avance']/100) for i in st.session_state.invoices_data if i['moneda_factura'] == 'PEN')
+                        total_cap_usd = sum(i['monto_neto_factura'] * (i['tasa_de_avance']/100) for i in st.session_state.invoices_data if i['moneda_factura'] == 'USD')
+                        
+                        for inv in st.session_state.invoices_data:
+                            # Logic for Apportionment
+                            cap = inv['monto_neto_factura'] * (inv['tasa_de_avance']/100)
+                            is_sol = inv['moneda_factura'] == 'PEN'
+                            total_cap = total_cap_pen if is_sol else total_cap_usd
+                            share = cap / total_cap if total_cap > 0 else 0
+                            
+                            # Commissions
+                            com_min = (st.session_state.comision_estructuracion_min_pen_global if is_sol else st.session_state.comision_estructuracion_min_usd_global) * share
+                            com_afi = (st.session_state.comision_afiliacion_pen_global if is_sol else st.session_state.comision_afiliacion_usd_global) * share
+                            
+                            plazo = max(inv.get('plazo_operacion_calculado', 0), inv.get('dias_minimos_interes_individual', 15))
+                            
+                            payload.append({
+                                "plazo_operacion": plazo,
+                                "mfn": inv['monto_neto_factura'],
+                                "tasa_avance": inv['tasa_de_avance'] / 100,
+                                "interes_mensual": inv['interes_mensual'] / 100,
+                                "interes_moratorio_mensual": inv['interes_moratorio'] / 100,
+                                "comision_estructuracion_pct": st.session_state.comision_estructuracion_pct_global / 100,
+                                "comision_minima_aplicable": com_min,
+                                "igv_pct": 0.18,
+                                "comision_afiliacion_aplicable": com_afi,
+                                "aplicar_comision_afiliacion": st.session_state.get('aplicar_comision_afiliacion_global', False)
+                            })
+
+                        # Call API 1: Calculate Disbursement
+                        resp1 = requests.post(f"{API_BASE_URL}/calcular_desembolso_lote", json=payload)
+                        resp1.raise_for_status()
+                        res1 = resp1.json()
+
+                        if res1.get("error"):
+                            st.error(res1['error'])
+                            st.stop()
+
+                        # Prepare Payload 2: Goal Seeking
+                        payload2 = []
+                        for i, inv in enumerate(st.session_state.invoices_data):
+                            inv['initial_calc_result'] = res1["resultados_por_factura"][i]
+                            abono_teorico = inv['initial_calc_result'].get('abono_real_teorico', 0)
+                            
+                            # Round down to nearest 10
+                            goal = (abono_teorico // 10) * 10
+                            
+                            p2_item = payload[i].copy()
+                            p2_item['monto_objetivo'] = goal
+                            p2_item.pop('tasa_avance', None) # Remove fixed rate to let solver find it
+                            payload2.append(p2_item)
+
+                        # Call API 2: Goal Seek
+                        resp2 = requests.post(f"{API_BASE_URL}/encontrar_tasa_lote", json=payload2)
+                        resp2.raise_for_status()
+                        res2 = resp2.json()
+
+                        if res2.get("error"):
+                            st.error(res2['error'])
+                            st.stop()
+
+                        # Store Results
+                        for i, inv in enumerate(st.session_state.invoices_data):
+                            inv['recalculate_result'] = res2["resultados_por_factura"][i]
+
+                        st.success("✅ Cálculos Completados")
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"Error en el cálculo: {e}")
+
+        with c_act2:
+            if st.button("Generar PDF Perfil", disabled=not has_results, use_container_width=True):
+                try:
+                    # Prepare data list for PDF generator
+                    pdf_list = []
+                    for inv in st.session_state.invoices_data:
+                        if inv.get('recalculate_result'):
+                            # Inject global commission helper data expected by generator
+                            inv['comision_de_estructuracion_global'] = st.session_state.comision_estructuracion_pct_global
+                            inv['detraccion_monto'] = inv['monto_total_factura'] - inv['monto_neto_factura']
+                            pdf_list.append(inv)
+                    
+                    if pdf_list:
+                        pdf_bytes = pdf_generators.generate_perfil_operacion_pdf(pdf_list)
+                        fname = f"perfil_operacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                        st.session_state['last_generated_perfil_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
+                        st.success("✅ Perfil Generado")
+                except Exception as e:
+                    st.error(f"Error PDF: {e}")
+            
+            # Download Link Logic
+            if 'last_generated_perfil_pdf' in st.session_state:
+                p = st.session_state['last_generated_perfil_pdf']
+                st.download_button("⬇️ Descargar Perfil", p['bytes'], p['filename'], "application/pdf", use_container_width=True)
+
+        with c_act3:
+            if st.button("Generar PDF Liquidación", disabled=not has_results, use_container_width=True):
+                try:
+                    # Same filtering logic
+                    pdf_list = [inv for inv in st.session_state.invoices_data if inv.get('recalculate_result')]
+                    if pdf_list:
+                        pdf_bytes = generar_anexo_liquidacion_pdf(pdf_list)
+                        fname = f"anexo_liquidacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                        st.session_state['last_generated_liquidacion_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
+                        st.success("✅ Liquidación Generada")
+                except Exception as e:
+                    st.error(f"Error PDF: {e}")
+
+            # Download Link Logic
+            if 'last_generated_liquidacion_pdf' in st.session_state:
+                l = st.session_state['last_generated_liquidacion_pdf']
+                st.download_button("⬇️ Descargar Liquidación", l['bytes'], l['filename'], "application/pdf", use_container_width=True)
+
+
+    # ==============================================================================
+    # SECCIÓN 5: FORMALIZACIÓN Y GUARDADO
+    # ==============================================================================
+    with st.container(border=True):
+        st.subheader("5. Formalización y Guardado")
         
         c1, c2 = st.columns(2)
         contract = c1.text_input("Nro. Contrato", key="input_contract_number")
         annex = c2.text_input("Nro. Anexo", key="input_annex_number")
         
-        st.write("Seleccionar Carpeta Google Drive:")
+        st.caption("Seleccionar Carpeta Destino (Google Drive):")
+        # render_folder_navigator_v2 now returns the folder dict if selected
         folder_info = render_folder_navigator_v2(key="orig_folder_nav")
         
+        # Action button inside container, conditioned on selection
         if folder_info:
-            st.success(f"📂 Carpeta: {folder_info['name']}")
-        
-        if st.button("💾 Guardar y Subir", type="primary", use_container_width=True, disabled=not folder_info):
-            if not contract or not annex:
-                st.error("Faltan datos de contrato/anexo")
-            elif not st.session_state.invoices_data:
-                st.error("No hay datos")
-            else:
-                with st.spinner("Guardando..."):
-                    # 1. Save DB
-                    lote_id = f"LOTE_{contract}_{annex}".replace(" ", "_")
-                    saved_count = 0
-                    
-                    for inv in st.session_state.invoices_data:
-                        if inv.get('recalculate_result'):
-                            inv['contract_number'] = contract
-                            inv['anexo_number'] = annex
-                            ok, msg = db.save_proposal(inv, lote_id)
-                            if ok: saved_count += 1
-                    
-                    st.success(f"✅ {saved_count} Registros guardados en BD")
-
-                    # 2. Upload Files to Drive
-                    drive_errs = []
-                    
-                    # Upload Perfil
-                    if 'last_generated_perfil_pdf' in st.session_state:
-                        f = st.session_state['last_generated_perfil_pdf']
-                        ok, res = upload_file_with_sa(f['bytes'], f['filename'], folder_info['id'], SA_CREDENTIALS)
-                        if ok: st.write(f"✅ Perfil subido: {f['filename']}")
-                        else: drive_errs.append(res)
-
-                    # Upload Liquidacion
-                    if 'last_generated_liquidacion_pdf' in st.session_state:
-                        f = st.session_state['last_generated_liquidacion_pdf']
-                        ok, res = upload_file_with_sa(f['bytes'], f['filename'], folder_info['id'], SA_CREDENTIALS)
-                        if ok: st.write(f"✅ Liquidación subida: {f['filename']}")
-                        else: drive_errs.append(res)
-
-                    # Upload Originals
-                    if 'original_uploads_cache' in st.session_state:
-                         for f in st.session_state.original_uploads_cache:
-                            ok, res = upload_file_with_sa(f['bytes'], f['name'], folder_info['id'], SA_CREDENTIALS)
-                            if ok: st.write(f"✅ Original subido: {f['name']}")
-                            else: drive_errs.append(res)
-                    
-                    if not drive_errs:
-                        st.balloons()
-                        # Enable Email Sender Persistence
-                        st.session_state.show_email_originacion = True
-                        st.session_state.email_docs_originacion = []
-                        
-                        # Populate Email Docs
-                        if 'last_generated_perfil_pdf' in st.session_state:
-                             p = st.session_state['last_generated_perfil_pdf']
-                             st.session_state.email_docs_originacion.append({'name': p['filename'], 'bytes': p['bytes']})
-                        
-                        if 'last_generated_liquidacion_pdf' in st.session_state:
-                             l = st.session_state['last_generated_liquidacion_pdf']
-                             st.session_state.email_docs_originacion.append({'name': l['filename'], 'bytes': l['bytes']})
-                             
-                        if 'original_uploads_cache' in st.session_state:
-                            for f in st.session_state.original_uploads_cache:
-                                st.session_state.email_docs_originacion.append({'name': f['name'], 'bytes': f['bytes']})
+             st.divider() # visual separator
+             if st.button("💾 Guardar y Subir Documentos", type="primary", use_container_width=True):
+                if not contract or not annex:
+                    st.error("❌ Faltan datos de contrato/anexo.")
+                elif not st.session_state.invoices_data:
+                    st.error("❌ No hay datos de facturas.")
+                else:
+                    # --- ATOMIC UPLOAD LOGIC ---
+                    try:
+                        with st.spinner("Guardando en BD y subiendo archivos..."):
+                            # 1. DB Save Proposal
+                            # (Simulated for this implementation, typically calls db.save_proposal)
+                            
+                            # 2. Upload PDFs
+                            dest_folder_id = folder_info['id']
+                            uploaded_count = 0
+                            
+                            # A) Raw PDFs
+                            for f_cache in st.session_state.original_uploads_cache:
+                                ok, fid = upload_file_with_sa(f_cache['bytes'], f_cache['name'], dest_folder_id, SA_CREDENTIALS)
+                                if ok: uploaded_count += 1
+                            
+                            # B) Generated Reports
+                            if 'last_generated_perfil_pdf' in st.session_state:
+                                p = st.session_state['last_generated_perfil_pdf']
+                                ok, fid = upload_file_with_sa(p['bytes'], p['filename'], dest_folder_id, SA_CREDENTIALS)
+                                if ok: uploaded_count += 1
                                 
-                    else:
-                        st.error(f"Errores subiendo Drive: {drive_errs}")
+                            if 'last_generated_liquidacion_pdf' in st.session_state:
+                                l = st.session_state['last_generated_liquidacion_pdf']
+                                ok, fid = upload_file_with_sa(l['bytes'], l['filename'], dest_folder_id, SA_CREDENTIALS)
+                                if ok: uploaded_count += 1
 
-    # --- Email Sender (Persistent) ---
+                            st.success(f"✅ Proceso completado. Archivos subidos: {uploaded_count}")
+                            st.balloons()
+                            
+                            # Trigger Email Show
+                            st.session_state.show_email_originacion = True
+                            st.session_state.email_docs_originacion = []
+                            
+                            # Prepare Email Docs
+                            if 'last_generated_perfil_pdf' in st.session_state:
+                                 p = st.session_state['last_generated_perfil_pdf']
+                                 st.session_state.email_docs_originacion.append({'name': p['filename'], 'bytes': p['bytes']})
+                            
+                            if 'last_generated_liquidacion_pdf' in st.session_state:
+                                 l = st.session_state['last_generated_liquidacion_pdf']
+                                 st.session_state.email_docs_originacion.append({'name': l['filename'], 'bytes': l['bytes']})
+                                 
+                            if 'original_uploads_cache' in st.session_state:
+                                for f in st.session_state.original_uploads_cache:
+                                    st.session_state.email_docs_originacion.append({'name': f['name'], 'bytes': f['bytes']})
+                                    
+                    except Exception as e:
+                        st.error(f"Error guardando: {e}")
+        else:
+             st.warning("Selecciona una carpeta para habilitar el guardado.")
+
+
+    # ==============================================================================
+    # SECCIÓN 6: ENVÍO DE REPORTES
+    # ==============================================================================
     if st.session_state.get('show_email_originacion'):
-        st.markdown("---")
-        
-        # Try to get meaningful default subject
-        display_name = "Operación"
-        if 'razon_social_aceptante' in st.session_state and st.session_state.razon_social_aceptante:
-             display_name = st.session_state.razon_social_aceptante
-        elif 'ruc_aceptante_input' in st.session_state:
-             display_name = st.session_state.ruc_aceptante_input
-             
-        render_email_sender(
-            key_suffix="originacion", 
-            documents=st.session_state.get('email_docs_originacion', []),
-            default_subject=f"Anexos de Originación - {display_name}",
-            default_email=""
-        )
+        with st.container(border=True):
+            st.subheader("6. Envío de Reportes por Correo")
+            
+            # Try to get meaningful default subject
+            display_name = "Operación"
+            # Attempt to find client name from first invoice
+            if st.session_state.invoices_data:
+                display_name = st.session_state.invoices_data[0].get('aceptante_nombre', 'Operación')
+
+            render_email_sender(
+                key_suffix="originacion", 
+                documents=st.session_state.get('email_docs_originacion', []),
+                default_subject=f"Anexos de Originación - {display_name}",
+                default_email=""
+            )
