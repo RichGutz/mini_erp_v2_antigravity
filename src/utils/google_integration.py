@@ -457,11 +457,9 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
 def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     """
     Renderiza un navegador de carpetas nativo (Streamlit puro) usando list_folders_with_sa.
-    Mejoras V2: Breadcrumbs visuales, Layout en Grid (3 columnas), Estilo 'Tarjeta'.
+    Mejoras V2: Breadcrumbs visuales, Layout en Grid, Botones unificados abajo.
     Retorna el dict de la carpeta seleccionada {'id': '...', 'name': '...'} o None.
     """
-    # Usar un contenedor con borde para darle estilo de "Componente Aislado"
-    # st.subheader(f"📂 {label}")
     
     # 1. Configuración de Session State
     nav_key_id = f"nav_folder_id_{key}"
@@ -478,46 +476,13 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     current_id = st.session_state[nav_key_id]
     current_name = st.session_state[nav_key_name]
     
-    # --- A. BREADCRUMBS (Ruta Visual) ---
-    path_text = " / ".join([h[1] for h in st.session_state[nav_key_history]] + [current_name])
-    st.caption(f"📍 Ruta actual: **{path_text}**")
-    
-    # --- B. ACCIONES PRINCIPALES ---
-    col_back, col_select = st.columns([1, 4])
-    with col_back:
-        if st.session_state[nav_key_history]:
-            if st.button("⬅️ Atrás", key=f"btn_back_{key}", use_container_width=True):
-                last_id, last_name = st.session_state[nav_key_history].pop()
-                st.session_state[nav_key_id] = last_id
-                st.session_state[nav_key_name] = last_name
-                st.rerun()
-        else:
-             st.button("🚫 Raíz", disabled=True, key=f"btn_root_{key}", use_container_width=True)
-             
-    with col_select:
-        # Botón para seleccionar la carpeta actual como destino
-        if st.button(f"✅ Seleccionar: [{current_name}]", key=f"btn_sel_{key}", type="primary", use_container_width=True):
-            st.session_state[sel_key] = {'id': current_id, 'name': current_name}
-            st.rerun()
+    # --- A. BREADCRUMBS (Título / Ruta) ---
+    # st.caption(f"📍 Ruta: **{' / '.join([h[1] for h in st.session_state[nav_key_history]] + [current_name])}**")
+    st.markdown(f"📂 **Explorando:** `{' / '.join([h[1] for h in st.session_state[nav_key_history]] + [current_name])}`")
 
-    st.markdown("---")
-
-    # --- C. VISTA DE CARPETAS (Explorador) ---
-    # Si ya hay selección, mostrarla arriba
-    if sel_key in st.session_state:
-        curr = st.session_state[sel_key]
-        st.success(f"🎯 Carpeta Destino Seleccionada: **{curr['name']}**")
-        if st.button("❌ Cancelar Selección", key=f"cancel_sel_{key}"):
-            del st.session_state[sel_key]
-            st.rerun()
-        return curr
-
-    # Listar contenido
+    # --- B. GRID DE CARPETAS (Contenido) ---
     with st.spinner(f"Cargando contenido de '{current_name}'..."):
         try:
-            # Usar st.secrets["google_drive"] directamente si está disponible, 
-            # o pasar un argumento si se prefiere desacoplar. 
-            # Por simplicidad en V2 asumimos st.secrets disponible.
             sa_creds = st.secrets["google_drive"]
             subfolders = list_folders_with_sa(current_id, sa_creds)
         except Exception as e:
@@ -527,20 +492,56 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     if not subfolders:
         st.info("📭 Esta carpeta no tiene subcarpetas.")
     else:
-        # GRID LAYOUT: 3 columnas
+        # GRID LAYOUT: 3 columnas para carpetas
         cols = st.columns(3)
         for i, folder in enumerate(subfolders):
             col = cols[i % 3]
             with col:
-                # Usamos un contenedor con borde para que parezca una "tarjeta"
                 with st.container(border=True):
                     st.write(f"📁 **{folder['name']}**")
                     if st.button("Abrir ➡️", key=f"open_{folder['id']}_{key}", use_container_width=True):
-                        # Navegar
                         st.session_state[nav_key_history].append((current_id, current_name))
                         st.session_state[nav_key_id] = folder['id']
                         st.session_state[nav_key_name] = folder['name']
                         st.rerun()
-                        
-    return None
+
+    st.markdown("---")
+
+    # --- C. BOTONES DE ACCIÓN (Fila Única: Atrás | Cancelar | Seleccionar) ---
+    c_back, c_cancel, c_select = st.columns([1, 1, 2])
+    
+    # 1. ATRÁS
+    with c_back:
+        if st.session_state[nav_key_history]:
+            if st.button("⬅️ Atrás", key=f"btn_back_{key}", use_container_width=True):
+                last_id, last_name = st.session_state[nav_key_history].pop()
+                st.session_state[nav_key_id] = last_id
+                st.session_state[nav_key_name] = last_name
+                st.rerun()
+        else:
+            st.button("Total", disabled=True, key=f"btn_root_{key}", use_container_width=True)
+
+    # 2. CANCELAR SELECCIÓN
+    with c_cancel:
+        is_selected = sel_key in st.session_state
+        if st.button("❌ Cancelar", key=f"btn_cancel_{key}", disabled=not is_selected, use_container_width=True):
+            if is_selected:
+                del st.session_state[sel_key]
+                st.rerun()
+
+    # 3. SELECCIONAR ACTUAL
+    with c_select:
+        # Texto dinámico según si ya está seleccionada esta carpeta específica
+        current_selection = st.session_state.get(sel_key)
+        is_current_selected = current_selection and current_selection['id'] == current_id
+        
+        btn_label = f"✅ Seleccionado: {current_name}" if is_current_selected else f"Seleccionar: {current_name}"
+        btn_type = "primary" if not is_current_selected else "secondary" # Highlight action if NOT selected
+        
+        if st.button(btn_label, key=f"btn_sel_{key}", type=btn_type, use_container_width=True):
+            st.session_state[sel_key] = {'id': current_id, 'name': current_name}
+            st.rerun()
+
+    # Retornamos la selección actual (sin bloquear el renderizado anterior)
+    return st.session_state.get(sel_key)
 
