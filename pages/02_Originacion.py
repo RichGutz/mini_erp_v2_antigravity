@@ -1012,20 +1012,31 @@ if st.session_state.invoices_data:
                             email_docs = []
                             # 1. Perfil
                             if 'last_generated_perfil_pdf' in st.session_state:
-                                email_docs.append(st.session_state['last_generated_perfil_pdf'])
+                                pdf = st.session_state['last_generated_perfil_pdf']
+                                email_docs.append({
+                                    'name': pdf.get('filename', pdf.get('name', 'perfil.pdf')), 
+                                    'bytes': pdf['bytes']
+                                })
                             else:
                                 st.write("DEBUG: No last_generated_perfil_pdf")
 
                             # 2. Liquidacion
                             if 'last_generated_liquidacion_pdf' in st.session_state:
-                                email_docs.append(st.session_state['last_generated_liquidacion_pdf'])
+                                pdf = st.session_state['last_generated_liquidacion_pdf']
+                                email_docs.append({
+                                    'name': pdf.get('filename', pdf.get('name', 'liquidacion.pdf')), 
+                                    'bytes': pdf['bytes']
+                                })
                             else:
                                 st.write("DEBUG: No last_generated_liquidacion_pdf")
 
                             # 3. Originales
                             if 'original_uploads_cache' in st.session_state:
                                 for orig in st.session_state.original_uploads_cache:
-                                    email_docs.append({'name': orig['name'], 'bytes': orig['bytes']})
+                                    email_docs.append({
+                                        'name': orig.get('name', orig.get('filename', 'original.pdf')), 
+                                        'bytes': orig['bytes']
+                                    })
                             else:
                                 st.write("DEBUG: No original_uploads_cache")
                             
