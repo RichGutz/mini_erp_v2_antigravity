@@ -302,7 +302,7 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
             st.session_state.original_uploads_cache = []
 
         if not st.session_state.pdf_datos_cargados:
-            for uploaded_file in uploaded_pdf_files:
+            for i, uploaded_file in enumerate(uploaded_pdf_files):
                 # 1. Cache raw content
                 file_bytes_content = uploaded_file.getvalue()
                 st.session_state.original_uploads_cache.append({
