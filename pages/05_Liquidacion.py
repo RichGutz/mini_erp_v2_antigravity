@@ -4,6 +4,7 @@ import streamlit as st
 import datetime
 import json
 from decimal import Decimal, InvalidOperation
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # --- Path Setup & Module Imports ---
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -20,6 +21,22 @@ st.set_page_config(
     page_title="Módulo de Liquidación INANDES",
     page_icon="💰"
 )
+
+# --- CSS HACK: FORZAR ANCHO COMPLETO REAL Y HEADER ALINEADO ---
+st.markdown("""
+<style>
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 2rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        max-width: 100% !important;
+    }
+    [data-testid="stHorizontalBlock"] { 
+        align-items: center; 
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # --- Configuración Service Account ---
 try:
@@ -42,6 +59,8 @@ def init_session_state():
         'usar_voucher_unico_liquidacion': False, # <--- NUEVO: Checkbox de control
         'fechas_pago_individuales': {}, # <--- NUEVO: Para almacenar fechas individuales por factura
         'previous_global_date': None, # <--- NUEVO: Para detectar cambios en la fecha global
+        'show_email_liquidacion': False,
+        'email_docs_liquidacion': [],
     }
     for key, default_value in states.items():
         if key not in st.session_state:
@@ -127,6 +146,19 @@ def serialize_resultado_for_json(resultado: dict) -> dict:
             serialized[key] = value
     return serialized
 
+def upload_helper(file_bytes, file_name, folder_id, sa_creds):
+    try:
+        if not file_bytes:
+            return False, f"Sin contenido: {file_name}"
+        # USA SERVICE ACCOUNT - Reusando la lógica de Desembolso
+        success, res_id = upload_file_with_sa(file_bytes, file_name, folder_id, sa_creds)
+        if success:
+             return True, f"Subido: {file_name}"
+        else:
+             return False, f"Error {file_name}: {res_id}" 
+    except Exception as e:
+        return False, f"Error {file_name}: {str(e)}"
+
 def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -> str:
     """
     Genera tabla markdown con desglose detallado de cálculos de liquidación.
@@ -181,7 +213,7 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     if factura_original:
         try:
             recalc_json = json.loads(factura_original.get('recalculate_result_json', '{}'))
-            desglose = recalc_json.get('desglose_final_detallado', {})
+            # desglose = recalc_json.get('desglose_final_detallado', {}) # Unused
             calculos = recalc_json.get('calculo_con_tasa_encontrada', {})
             
             # Interés original está en calculos, no en desglose
@@ -291,19 +323,12 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     
     return "\n".join(lines)
 
-# --- CSS para alineación del header ---
-st.markdown('''<style>
-[data-testid="stHorizontalBlock"] { 
-    align-items: center; 
-}
-</style>''', unsafe_allow_html=True)
-
 # --- Header Estándar ---
 col1, col2, col3 = st.columns([0.25, 0.5, 0.25])
 with col1:
     st.image(os.path.join(project_root, "static", "logo_geek.png"), width=200)
 with col2:
-    st.markdown("<h2 style='text-align: center;'>Módulo de Liquidación</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; font-size: 2.4em;'>Módulo de Liquidación</h2>", unsafe_allow_html=True)
 with col3:
     empty_col, logo_col = st.columns([2, 1])
     with logo_col:
@@ -333,6 +358,7 @@ def mostrar_busqueda_universal():
                         detalles_ordenados = sorted(detalles_filtrados, key=lambda x: extraer_numero_correlativo(x.get('proposal_id', '')))
                         st.session_state.lote_encontrado_universal = detalles_ordenados
                         st.session_state.vista_actual_universal = 'liquidacion'
+                        st.session_state.show_email_liquidacion = False # Reset email
                         st.rerun()
                 else:
                     st.warning("No se encontraron facturas para el identificador de lote proporcionado.")
@@ -348,6 +374,7 @@ def mostrar_liquidacion_universal():
         st.session_state.usar_voucher_unico_liquidacion = False # Resetear checkbox
         st.session_state.fechas_pago_individuales = {} # Limpiar fechas individuales
         st.session_state.previous_global_date = None # Resetear fecha previa
+        st.session_state.show_email_liquidacion = False
         st.rerun()
 
     # Inicializar fechas individuales si no existen (primera vez que se carga el lote)
@@ -544,6 +571,7 @@ def mostrar_liquidacion_universal():
         st.markdown("---")
         st.subheader("4. Selección de Carpeta Destino (Repositorio)")
         
+        # Render del Navegador (Importado de Utils)
         selected_folder = render_folder_navigator_v2(key="liquidacion_folder_navigator")
         
         if selected_folder:
@@ -553,197 +581,166 @@ def mostrar_liquidacion_universal():
 
         st.markdown("---")
         
-        # Botones de acción en columnas
-        col_actions = st.columns(1)[0]
-        
-        with col_actions:
-            if selected_folder:
-                if st.button("💾 Guardar Datos y Subir Documentos", type="primary", use_container_width=True):
-                    with st.spinner("Procesando Guardado Atómico (BD + Drive)..."):
+        # Botones de acción
+        if selected_folder:
+             if st.button("💾 GUARDAR LIQUIDACION Y ENVIAR", type="primary", use_container_width=True):
+                
+                with st.spinner("Procesando Guardado y Carga al Repositorio..."):
+                     # 1. Prepare Data
+                     if not st.session_state.resultados_liquidacion_universal:
+                         st.error("No hay resultados.")
+                         st.stop()
+                     
+                     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                     
+                     # 2. Upload Tasks (Prepare list)
+                     upload_tasks = []
+                     folder_id = selected_folder['id']
+
+                     # 2a. PDF Liquidacion Global
+                     pdf_bytes = generate_liquidacion_universal_pdf(
+                         st.session_state.resultados_liquidacion_universal,
+                         st.session_state.lote_encontrado_universal
+                     )
+                     pdf_name = f"LIQUIDACION_{timestamp}.pdf"
+                     upload_tasks.append((pdf_bytes, pdf_name))
+                     
+                     # 2b. Vouchers
+                     if st.session_state.usar_voucher_unico_liquidacion and st.session_state.voucher_global_liquidacion:
+                         v_file = st.session_state.voucher_global_liquidacion
+                         v_file.seek(0)
+                         upload_tasks.append((v_file.getvalue(), f"VOUCHER_GLOBAL_{timestamp}.pdf"))
+                     else:
+                         for pid, v_file in st.session_state.vouchers_universales.items():
+                             if v_file:
+                                 v_file.seek(0)
+                                 inv_num = parse_invoice_number(pid)
+                                 upload_tasks.append((v_file.getvalue(), f"VOUCHER_{inv_num}.pdf"))
+
+                     # 3. Parallel Uploads
+                     results_msg = []
+                     errors_count = 0
+                     
+                     if upload_tasks:
+                         curr_bar = st.progress(0, text="Iniciando subida de archivos...")
+                         total_files = len(upload_tasks)
+                         
+                         with ThreadPoolExecutor(max_workers=5) as executor:
+                             # Submit all
+                             future_to_file = {
+                                 executor.submit(upload_helper, b, n, folder_id, SA_CREDENTIALS): n 
+                                 for b, n in upload_tasks
+                             }
+                             
+                             for i, future in enumerate(as_completed(future_to_file)):
+                                 success, msg = future.result()
+                                 results_msg.append(msg)
+                                 if not success:
+                                     errors_count += 1
+                                 prog = (i + 1) / total_files
+                                 curr_bar.progress(prog, text=f"Subiendo {i+1}/{total_files}...")
+                         
+                         curr_bar.empty()
+                         st.write(results_msg)
+
+                     # 4. Save to DB
+                     count_saved = 0
+                     for resultado in st.session_state.resultados_liquidacion_universal:
+                        if resultado.get("error"): continue
+                        
+                        pid = resultado['id_operacion']
+                        factura_original = next((f for f in st.session_state.lote_encontrado_universal if f.get('proposal_id') == pid), None)
+                        if not factura_original: continue
+                        
                         try:
-                            # 1. GENERAR PDF DE LIQUIDACIÓN (En Memoria)
-                            if not st.session_state.resultados_liquidacion_universal:
-                                st.error("No hay resultados para procesar.")
-                                st.stop()
-
-                            pdf_bytes = generate_liquidacion_universal_pdf(
-                                st.session_state.resultados_liquidacion_universal,
-                                st.session_state.lote_encontrado_universal
-                            )
-                            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                            pdf_filename = f"liquidacion_universal_{timestamp}.pdf"
+                            resumen_id = db.get_or_create_liquidacion_resumen(pid, factura_original)
+                            res_json = serialize_resultado_for_json(resultado)
                             
-                            # 2. SUBIR PDF DE LIQUIDACIÓN
-                            ok_pdf, res_pdf = upload_file_with_sa(
-                                pdf_bytes, 
-                                pdf_filename, 
-                                selected_folder['id'], 
-                                SA_CREDENTIALS
+                            db.add_liquidacion_evento(
+                                liquidacion_resumen_id=resumen_id,
+                                tipo_evento="Liquidación Universal",
+                                fecha_evento=resultado.get('fecha_pago_individual', st.session_state.global_liquidation_date_universal),
+                                monto_recibido=resultado['monto_pagado'],
+                                dias_diferencia=resultado['dias_mora'],
+                                resultado_json=res_json
                             )
-                            if ok_pdf:
-                                st.success(f"✅ Reporte PDF subido: {pdf_filename}")
-                            else:
-                                st.error(f"❌ Error subiendo reporte PDF: {res_pdf}")
-
-                            # 3. SUBIR VOUCHERS (Si existen)
-                            # A. Voucher Global
-                            if st.session_state.usar_voucher_unico_liquidacion and st.session_state.voucher_global_liquidacion:
-                                v_glob = st.session_state.voucher_global_liquidacion
-                                # Reset pointer just in case
-                                v_glob.seek(0)
-                                v_bytes = v_glob.getvalue()
-                                v_name = f"VOUCHER_GLOBAL_{timestamp}_{v_glob.name}"
-                                
-                                ok_v, res_v = upload_file_with_sa(v_bytes, v_name, selected_folder['id'], SA_CREDENTIALS)
-                                if ok_v:
-                                    st.success(f"✅ Voucher Global subido: {v_name}")
-                                else:
-                                    st.warning(f"⚠️ Error subiendo Voucher Global: {res_v}")
-
-                            # B. Vouchers Individuales
-                            if not st.session_state.usar_voucher_unico_liquidacion:
-                                for pid, v_file in st.session_state.vouchers_universales.items():
-                                    if v_file:
-                                        try:
-                                            v_file.seek(0)
-                                            v_bytes = v_file.getvalue()
-                                            # Clean filename prefix
-                                            inv_num = parse_invoice_number(pid)
-                                            v_name = f"VOUCHER_{inv_num}_{v_file.name}"
-                                            
-                                            ok_v, res_v = upload_file_with_sa(v_bytes, v_name, selected_folder['id'], SA_CREDENTIALS)
-                                            if ok_v:
-                                                st.toast(f"Voucher {inv_num} subido.")
-                                            else:
-                                                st.warning(f"⚠️ Error voucher {inv_num}: {res_v}")
-                                        except Exception as ev:
-                                            st.warning(f"⚠️ Excepción voucher {pid}: {ev}")
-
-                            # 4. GUARDAR EN BD (SUPABASE)
-                            count_saved = 0
-                            for i, resultado in enumerate(st.session_state.resultados_liquidacion_universal):
-                                if resultado.get("error"):
-                                    continue
-                                
-                                proposal_id = resultado['id_operacion']
-                                factura_original = next((f for f in st.session_state.lote_encontrado_universal if f.get('proposal_id') == proposal_id), None)
-                                if not factura_original:
-                                    continue
-
-                                resumen_id = db.get_or_create_liquidacion_resumen(proposal_id, factura_original)
-                                resultado_serializado = serialize_resultado_for_json(resultado)
-
-                                db.add_liquidacion_evento(
-                                    liquidacion_resumen_id=resumen_id,
-                                    tipo_evento="Liquidación Universal",
-                                    fecha_evento=resultado.get('fecha_pago_individual', st.session_state.global_liquidation_date_universal),
-                                    monto_recibido=resultado['monto_pagado'],
-                                    dias_diferencia=resultado['dias_mora'],
-                                    resultado_json=resultado_serializado
-                                )
-
-                                db.update_liquidacion_resumen_saldo(resumen_id, resultado['saldo_global'])
-                                db.update_proposal_status(proposal_id, resultado['estado_operacion'])
-                                count_saved += 1
-                                
-                            if count_saved > 0:
-                                st.success(f"✅ {count_saved} Liquidaciones registradas en Base de Datos.")
-                                st.balloons()
-                                
-                                # --- EMAIL SENDER INTEGRATION (State Persistence) ---
-                                st.session_state.show_email_liquidacion = True
-                                st.session_state.email_docs_liquidacion = []
-                                
-                                # 1. PDF Liquidacion
-                                st.session_state.email_docs_liquidacion.append({'name': pdf_filename, 'bytes': pdf_bytes})
-
-                                # 2. Voucher Global
-                                if st.session_state.usar_voucher_unico_liquidacion and st.session_state.voucher_global_liquidacion:
-                                    v_glob = st.session_state.voucher_global_liquidacion
-                                    v_name_g = f"VOUCHER_GLOBAL_{timestamp}_{v_glob.name}"
-                                    st.session_state.email_docs_liquidacion.append({'name': v_name_g, 'bytes': v_glob.getvalue()})
-
-                                # 3. Vouchers Individuales
-                                if not st.session_state.usar_voucher_unico_liquidacion:
-                                    for pid, v_file in st.session_state.vouchers_universales.items():
-                                        if v_file:
-                                            inv_num = parse_invoice_number(pid)
-                                            v_name_i = f"VOUCHER_{inv_num}_{v_file.name}"
-                                            st.session_state.email_docs_liquidacion.append({'name': v_name_i, 'bytes': v_file.getvalue()})
-                                # ----------------------------------------------------
-
-                            else:
-                                st.warning("No se guardaron registros en BD (verificar errores previos).")
-
+                            db.update_liquidacion_resumen_saldo(resumen_id, resultado['saldo_global'])
+                            db.update_proposal_status(pid, resultado['estado_operacion'])
+                            count_saved += 1
                         except Exception as e:
-                            st.error(f"❌ Ocurrió un error crítico durante el proceso: {e}")
-            else:
-                 # Mensaje discreto si no hay carpeta
-                 st.caption("Seleccione una carpeta para habilitar el guardado.")
+                            st.error(f"Error DB {pid}: {e}")
+
+                     if count_saved > 0:
+                         st.balloons()
+                         st.success(f"✅ Proceso completado. {count_saved} registros actualizados.")
+                         
+                         # --- PREPARE EMAIL ---
+                         st.session_state.show_email_liquidacion = True
+                         st.session_state.email_docs_liquidacion = []
+                         # Add generated PDF
+                         st.session_state.email_docs_liquidacion.append({'name': pdf_name, 'bytes': pdf_bytes})
+                         # Add Vouchers logic if needed (reuse buffer or logic)
+                         
+                     else:
+                         st.warning("No se guardó nada en la BD.")
+
+        else:
+             st.warning("Selecciona carpeta para guardar.")
 
     # --- RENDER EMAIL SENDER OUTSIDE BUTTON SCOPE ---
     if st.session_state.get('show_email_liquidacion', False):
          st.markdown("---")
+         st.subheader("📧 Enviar Reporte por Correo")
          render_email_sender(key_suffix="liquidacion", documents=st.session_state.get('email_docs_liquidacion', []))
     # ------------------------------------------------
 
-# --- Main App Logic ---
+# --- Diagrama de Flujo de los 6 Casos ---
+if st.session_state.vista_actual_universal != 'busqueda':
+    st.markdown("---")
+    st.markdown("### 📊 Diagrama de Flujo: Los 6 Casos de Liquidación")
+    
+    from streamlit_mermaid import st_mermaid
+    mermaid_code = """
+    graph TD
+        Start([Inicio: Liquidación]) --> CalcDeltas[Calcular Deltas<br/>ΔInt = Devengado - Original<br/>ΔCap = Capital - Pagado<br/>Saldo = ΔInt + ΔCap]
+        
+        CalcDeltas --> CheckSaldo{Saldo Global}
+        
+        CheckSaldo -->|Saldo < 0| SaldoNeg[Saldo Negativo<br/>Cliente pagó de más]
+        CheckSaldo -->|Saldo > 0| SaldoPos[Saldo Positivo<br/>Cliente debe dinero]
+        
+        SaldoNeg --> CheckNeg1{ΔInt < 0 AND<br/>ΔCap < 0?}
+        CheckNeg1 -->|Sí| Caso1[CASO 1: LIQUIDADO<br/>Devolver todo el exceso]
+        CheckNeg1 -->|No| CheckNeg2{ΔInt > 0 AND<br/>ΔCap < 0?}
+        CheckNeg2 -->|Sí| Caso5[CASO 5: LIQUIDADO<br/>Facturar Int + Devolver Cap]
+        CheckNeg2 -->|No| Caso6[CASO 6: LIQUIDADO<br/>NC + Devolver saldo]
+        
+        SaldoPos --> CheckPos1{ΔInt < 0 AND<br/>ΔCap > 0?}
+        CheckPos1 -->|Sí| Caso2[CASO 2: EN PROCESO<br/>NC + Calendario]
+        CheckPos1 -->|No| CheckPos2{ΔInt > 0 AND<br/>ΔCap > 0?}
+        CheckPos2 -->|Sí| Caso3[CASO 3: EN PROCESO<br/>Facturar + Calendario]
+        CheckPos2 -->|No| Caso4[CASO 4: EN PROCESO<br/>Facturar Int + Evaluar]
+        
+        Caso1 --> End([Fin])
+        Caso2 --> End
+        Caso3 --> End
+        Caso4 --> End
+        Caso5 --> End
+        Caso6 --> End
+        
+        style Caso1 fill:#10b981,stroke:#059669,color:#fff
+        style Caso5 fill:#06b6d4,stroke:#0891b2,color:#fff
+        style Caso6 fill:#8b5cf6,stroke:#7c3aed,color:#fff
+        style Caso2 fill:#f59e0b,stroke:#d97706,color:#fff
+        style Caso3 fill:#ef4444,stroke:#dc2626,color:#fff
+        style Caso4 fill:#f97316,stroke:#ea580c,color:#fff
+        style SaldoNeg fill:#fef3c7,stroke:#f59e0b
+        style SaldoPos fill:#fee2e2,stroke:#ef4444
+    """
+    st_mermaid(mermaid_code, height=600)
 
+# --- Main App Logic Switcher ---
 if st.session_state.vista_actual_universal == 'busqueda':
     mostrar_busqueda_universal()
 elif st.session_state.vista_actual_universal == 'liquidacion':
     mostrar_liquidacion_universal()
-
-# --- Diagrama de Flujo de los 6 Casos ---
-st.markdown("---")
-st.markdown("### 📊 Diagrama de Flujo: Los 6 Casos de Liquidación")
-
-from streamlit_mermaid import st_mermaid
-
-mermaid_code = """
-graph TD
-    Start([Inicio: Liquidación]) --> CalcDeltas[Calcular Deltas<br/>ΔInt = Devengado - Original<br/>ΔCap = Capital - Pagado<br/>Saldo = ΔInt + ΔCap]
-    
-    CalcDeltas --> CheckSaldo{Saldo Global}
-    
-    CheckSaldo -->|Saldo < 0| SaldoNeg[Saldo Negativo<br/>Cliente pagó de más]
-    CheckSaldo -->|Saldo > 0| SaldoPos[Saldo Positivo<br/>Cliente debe dinero]
-    
-    SaldoNeg --> CheckNeg1{ΔInt < 0 AND<br/>ΔCap < 0?}
-    CheckNeg1 -->|Sí| Caso1[CASO 1: LIQUIDADO<br/>Devolver todo el exceso]
-    CheckNeg1 -->|No| CheckNeg2{ΔInt > 0 AND<br/>ΔCap < 0?}
-    CheckNeg2 -->|Sí| Caso5[CASO 5: LIQUIDADO<br/>Facturar Int + Devolver Cap]
-    CheckNeg2 -->|No| Caso6[CASO 6: LIQUIDADO<br/>NC + Devolver saldo]
-    
-    SaldoPos --> CheckPos1{ΔInt < 0 AND<br/>ΔCap > 0?}
-    CheckPos1 -->|Sí| Caso2[CASO 2: EN PROCESO<br/>NC + Calendario]
-    CheckPos1 -->|No| CheckPos2{ΔInt > 0 AND<br/>ΔCap > 0?}
-    CheckPos2 -->|Sí| Caso3[CASO 3: EN PROCESO<br/>Facturar + Calendario]
-    CheckPos2 -->|No| Caso4[CASO 4: EN PROCESO<br/>Facturar Int + Evaluar]
-    
-    Caso1 --> End([Fin])
-    Caso2 --> End
-    Caso3 --> End
-    Caso4 --> End
-    Caso5 --> End
-    Caso6 --> End
-    
-    style Caso1 fill:#10b981,stroke:#059669,color:#fff
-    style Caso5 fill:#06b6d4,stroke:#0891b2,color:#fff
-    style Caso6 fill:#8b5cf6,stroke:#7c3aed,color:#fff
-    style Caso2 fill:#f59e0b,stroke:#d97706,color:#fff
-    style Caso3 fill:#ef4444,stroke:#dc2626,color:#fff
-    style Caso4 fill:#f97316,stroke:#ea580c,color:#fff
-    style SaldoNeg fill:#fef3c7,stroke:#f59e0b
-    style SaldoPos fill:#fee2e2,stroke:#ef4444
-"""
-
-st_mermaid(mermaid_code, height=800)
-
-st.markdown("""
-**Leyenda:**
-- 🟢 **Verde/Cyan/Púrpura**: Casos LIQUIDADOS (saldo negativo)
-- 🟠 **Naranja/Rojo**: Casos EN PROCESO (saldo positivo)
-- **ΔInt**: Delta de Intereses
-- **ΔCap**: Delta de Capital
-""")
