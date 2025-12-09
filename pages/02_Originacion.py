@@ -862,4 +862,17 @@ if st.session_state.invoices_data:
     # --- Email Sender (Persistent) ---
     if st.session_state.get('show_email_originacion'):
         st.markdown("---")
-        render_email_sender(key_suffix="originacion", documents=st.session_state.get('email_docs_originacion', []))
+        
+        # Try to get meaningful default subject
+        display_name = "Operación"
+        if 'razon_social_aceptante' in st.session_state and st.session_state.razon_social_aceptante:
+             display_name = st.session_state.razon_social_aceptante
+        elif 'ruc_aceptante_input' in st.session_state:
+             display_name = st.session_state.ruc_aceptante_input
+             
+        render_email_sender(
+            key_suffix="originacion", 
+            documents=st.session_state.get('email_docs_originacion', []),
+            default_subject=f"Anexos de Originación - {display_name}",
+            default_email=""
+        )

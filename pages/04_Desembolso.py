@@ -447,7 +447,19 @@ else:
     # --- RENDER EMAIL SENDER OUTSIDE BUTTON SCOPE ---
     if st.session_state.get('show_email_desembolso', False):
          st.markdown("---")
-         render_email_sender(key_suffix="desembolso", documents=st.session_state.get('email_docs_desembolso', []))
+         st.subheader("📧 Enviar Reporte por Correo")
+         
+         # Try to get meaningful default subject
+         lote_id = "Lote"
+         if facturas_seleccionadas:
+             lote_id = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
+         
+         render_email_sender(
+             key_suffix="desembolso", 
+             documents=st.session_state.get('email_docs_desembolso', []),
+             default_subject=f"Sustentos de Desembolso - {lote_id}",
+             default_email=""
+         )
     # ------------------------------------------------
 
     elif facturas_seleccionadas and not selected_folder:
