@@ -286,23 +286,6 @@ with col3:
     with logo_col:
         st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
 
-# --- DEBUGGING UI ---
-if st.checkbox("🐞 Mostrar Debugging", value=True):
-    with st.expander("🔍 Inspector de Datos (Debug)", expanded=True):
-        st.write("Estado de Conexión Supabase (Simulado): OK")
-        if st.session_state.invoices_data:
-            st.write(f"Facturas Cargadas: {len(st.session_state.invoices_data)}")
-            for i, inv in enumerate(st.session_state.invoices_data):
-                st.code(f"""
-Factura #{i+1}: {inv.get('parsed_pdf_name')}
----------------------------------------------
-RUC Emisor Extraído:   '{inv.get('emisor_ruc')}' -> Nombre: '{inv.get('emisor_nombre')}'
-RUC Aceptante Extraído: '{inv.get('aceptante_ruc')}' -> Nombre: '{inv.get('aceptante_nombre')}'
-                """)
-        else:
-            st.info("No hay facturas cargadas para inspeccionar.")
-
-
 # --- Section 1: File Upload ---
 with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
     uploaded_pdf_files = st.file_uploader("Seleccionar archivos", type=["pdf"], key="pdf_uploader_main", accept_multiple_files=True)
@@ -374,6 +357,47 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
                         if os.path.exists(temp_file_path):
                             os.remove(temp_file_path)
             st.session_state.pdf_datos_cargados = True
+
+# --- DEBUGGING UI (Relocated) ---
+if st.checkbox("🐞 Mostrar Debugging", value=True):
+    with st.expander("🔍 Inspector de Datos (Debug)", expanded=True):
+        # 1. Test Connectivity
+        try:
+            client = db.get_supabase_client()
+            # Check key type safely
+            key_preview = "ANON"
+            if "service_role" in str(getattr(client, "supabase_key", "")):
+                key_preview = "SERVICE_ROLE (Super Admin)"
+            
+            st.write(f"🔑 Tipo de Llave Detectada: **{key_preview}**")
+
+            # Real Active Query
+            test_response = client.table('EMISORES.ACEPTANTES').select("count", count="exact").limit(1).execute()
+            st.success(f"✅ Conexión Supabase ACTIVA - Tabla EMISORES.ACEPTANTES accesible (Total filas: {test_response.count})")
+        except Exception as e:
+            st.error(f"❌ ERROR CRÍTICO DE CONEXIÓN: {e}")
+
+        # 2. Inspect Invoices
+        if st.session_state.invoices_data:
+            st.write(f"Facturas Cargadas: {len(st.session_state.invoices_data)}")
+            for i, inv in enumerate(st.session_state.invoices_data):
+                emisor_ruc = inv.get('emisor_ruc', '')
+                emisor_nombre = inv.get('emisor_nombre', '')
+                try:
+                    # Re-verify specific RUC lookup live
+                    live_lookup = db.get_razon_social_by_ruc(emisor_ruc)
+                except Exception as e:
+                    live_lookup = f"ERROR: {e}"
+
+                st.code(f"""
+Factura #{i+1}: {inv.get('parsed_pdf_name')}
+---------------------------------------------
+RUC Raw: '{emisor_ruc}'
+Nombre Cached: '{emisor_nombre}'
+Lookup en Vivo: '{live_lookup}'
+                """)
+        else:
+            st.info("No hay facturas cargadas para inspeccionar.")
 
 
 # --- Section 2: Global Configuration ---
