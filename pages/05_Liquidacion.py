@@ -694,7 +694,13 @@ def mostrar_liquidacion_universal():
          render_email_sender(key_suffix="liquidacion", documents=st.session_state.get('email_docs_liquidacion', []))
     # ------------------------------------------------
 
-# --- Diagrama de Flujo de los 6 Casos ---
+# --- Main App Logic Switcher ---
+if st.session_state.vista_actual_universal == 'busqueda':
+    mostrar_busqueda_universal()
+elif st.session_state.vista_actual_universal == 'liquidacion':
+    mostrar_liquidacion_universal()
+
+# --- Diagrama de Flujo (MOVIDO AL FINAL) ---
 if st.session_state.vista_actual_universal != 'busqueda':
     st.markdown("---")
     st.markdown("### 📊 Diagrama de Flujo: Los 6 Casos de Liquidación")
@@ -738,9 +744,3 @@ if st.session_state.vista_actual_universal != 'busqueda':
         style SaldoPos fill:#fee2e2,stroke:#ef4444
     """
     st_mermaid(mermaid_code, height=600)
-
-# --- Main App Logic Switcher ---
-if st.session_state.vista_actual_universal == 'busqueda':
-    mostrar_busqueda_universal()
-elif st.session_state.vista_actual_universal == 'liquidacion':
-    mostrar_liquidacion_universal()
