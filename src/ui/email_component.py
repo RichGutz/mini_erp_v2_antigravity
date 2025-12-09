@@ -11,7 +11,7 @@ def render_email_sender(key_suffix: str, documents: list, default_email: str = "
         default_email (str): Email por defecto.
         default_subject (str): Asunto por defecto.
     """
-    st.markdown("### 📧 Envío de Documentos por Correo")
+    st.markdown("### Envío de Documentos por Correo")
     st.info("Selecciona los documentos adjuntos y envía el correo directamente al cliente.")
     
     if not documents:

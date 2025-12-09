@@ -143,7 +143,7 @@ st.markdown("---")
 # SECCIÓN 1: FACTURAS PENDIENTES (Full Width)
 # ==============================================================================
 with st.container(border=True):
-    st.subheader("Facturas Pendientes")
+    st.subheader("1. Facturas Pendientes")
     
     # Filtrar seleccionadas
     facturas_seleccionadas = [
@@ -191,7 +191,7 @@ else:
     # SECCIÓN 2: GENERAR VOUCHER (Full Width)
     # ==============================================================================
     with st.container(border=True):
-        st.subheader("Generar Voucher")
+        st.subheader("2. Generar Voucher")
         monto_total = sum(get_monto_a_desembolsar(f) for f in facturas_seleccionadas)
         moneda = facturas_seleccionadas[0].get('moneda_factura', 'PEN')
         
@@ -245,7 +245,7 @@ else:
     # SECCIÓN 3: FORMALIZACIÓN (Full Width)
     # ==============================================================================
     with st.container(border=True):
-        st.subheader("Formalización")
+        st.subheader("3. Formalización")
         
         # Configuración Global
         col_g1, col_g2 = st.columns(2)
@@ -290,7 +290,7 @@ else:
     # SECCIÓN 4: SELECCIÓN DE CARPETA (Full Width - Abajo)
     # ==============================================================================
     with st.container(border=True):
-        st.subheader("Selección de Carpeta Destino")
+        st.subheader("4. Selección de Carpeta Destino")
         
         # Render del Navegador
         selected_folder = render_folder_navigator_v2(key="native_browser_final")
@@ -439,10 +439,9 @@ else:
              st.warning("Navega y selecciona una carpeta destino para habilitar el botón final.")
 
 
-    # --- RENDER EMAIL SENDER (En su Propio Contenedor) ---
     if st.session_state.get('show_email_desembolso', False):
          with st.container(border=True):
-             st.subheader("Envío de Reportes por Correo")
+             st.subheader("5. Envío de Reportes por Correo")
              
              # Try to get meaningful default subject
              lote_id = "Lote"
