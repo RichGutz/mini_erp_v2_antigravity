@@ -1,7 +1,7 @@
 import streamlit as st
 from src.utils.email_integration import send_email_with_attachments
 
-def render_email_sender(key_suffix: str, documents: list, default_email: str = "", default_subject: str = ""):
+def render_email_sender(key_suffix: str, documents: list, default_email: str = "", default_subject: str = "", default_body: str = ""):
     """
     Renderiza el componente de envío de correos.
     
@@ -10,6 +10,7 @@ def render_email_sender(key_suffix: str, documents: list, default_email: str = "
         documents (list): Lista de diccionarios [{'name': 'X', 'bytes': b'...'}, ...]
         default_email (str): Email por defecto.
         default_subject (str): Asunto por defecto.
+        default_body (str): Cuerpo por defecto.
     """
     st.markdown("### Envío de Documentos por Correo")
     st.info("Selecciona los documentos adjuntos y envía el correo directamente al cliente.")
@@ -37,7 +38,10 @@ def render_email_sender(key_suffix: str, documents: list, default_email: str = "
         to_email = c1.text_input("Destinatario", value=default_email, placeholder="cliente@empresa.com", key=f"to_{key_suffix}")
         subject = c2.text_input("Asunto", value=default_subject, placeholder="Envío de Documentos - Operación XYZ", key=f"sub_{key_suffix}")
         
-        body = st.text_area("Mensaje", value="Estimados,\n\nAdjunto encontrarán los documentos relacionados a la operación reciente.\n\nSaludos formales,", height=200, key=f"body_{key_suffix}")
+        if not default_body:
+             default_body = "Estimados,\n\nAdjunto encontrarán los documentos relacionados a la operación reciente.\n\nSaludos formales,"
+        
+        body = st.text_area("Mensaje", value=default_body, height=200, key=f"body_{key_suffix}")
         
         # 3. Botón de Envío
         if st.button("📤 Enviar Correo", key=f"btn_send_{key_suffix}", type="primary", use_container_width=True):
