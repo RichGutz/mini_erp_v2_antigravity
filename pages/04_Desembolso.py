@@ -143,7 +143,7 @@ st.markdown("---")
 # SECCIÓN 1: FACTURAS PENDIENTES (Full Width)
 # ==============================================================================
 with st.container(border=True):
-    st.subheader("1. Facturas Pendientes")
+    st.subheader("Facturas Pendientes")
     
     # Filtrar seleccionadas
     facturas_seleccionadas = [
@@ -191,7 +191,7 @@ else:
     # SECCIÓN 2: GENERAR VOUCHER (Full Width)
     # ==============================================================================
     with st.container(border=True):
-        st.subheader("2. Generar Voucher")
+        st.subheader("Generar Voucher")
         monto_total = sum(get_monto_a_desembolsar(f) for f in facturas_seleccionadas)
         moneda = facturas_seleccionadas[0].get('moneda_factura', 'PEN')
         
@@ -245,7 +245,7 @@ else:
     # SECCIÓN 3: FORMALIZACIÓN (Full Width)
     # ==============================================================================
     with st.container(border=True):
-        st.subheader("3. Formalización")
+        st.subheader("Formalización")
         
         # Configuración Global
         col_g1, col_g2 = st.columns(2)
@@ -290,177 +290,171 @@ else:
     # SECCIÓN 4: SELECCIÓN DE CARPETA (Full Width - Abajo)
     # ==============================================================================
     with st.container(border=True):
-        st.subheader("4. Selección de Carpeta Destino (Repositorio)")
+        st.subheader("Selección de Carpeta Destino")
         
-        # Render del Navegador (Importado de Utils)
-        # Importante: Este componente gestiona su propio estado
+        # Render del Navegador
         selected_folder = render_folder_navigator_v2(key="native_browser_final")
         
-        # Espacio para info de la carpeta seleccionada
         if selected_folder:
              st.info(f"📂 **Destino Seleccionado:** `{selected_folder['name']}`")
+             
+             # MOVIDO: Botón dentro del contenedor y condicional a la carpeta
+             st.markdown("---")
+             if st.button("REGISTRAR DESEMBOLSO Y SUBIR ARCHIVOS", type="primary", use_container_width=True):
+                
+                # Validaciones de sustento
+                if st.session_state.sustento_unico and not st.session_state.consolidated_proof_file:
+                     st.error("Falta el archivo de sustento consolidado.")
+                     st.stop()
+                
+                with st.spinner("Procesando Desembolsos (API + Drive + BD)..."):
+                    # A) API Call
+                    desembolsos_info = []
+                    for factura in facturas_seleccionadas:
+                        pid = factura['proposal_id']
+                        monto = st.session_state.get(f"monto_desembolso_{pid}", 0.0)
+                        fecha_fmt = st.session_state.global_desembolso_vars['fecha_desembolso'].strftime('%d-%m-%Y')
+                        desembolsos_info.append({
+                            "proposal_id": pid,
+                            "monto_desembolsado": monto,
+                            "fecha_desembolso_real": fecha_fmt,
+                        })
+                    
+                    payload = {
+                        "usuario_id": USUARIO_ID_TEST,
+                        "desembolsos": desembolsos_info
+                    }
+                    
+                    api_success = False
+                    try:
+                        if API_BASE_URL:
+                             response = requests.post(f"{API_BASE_URL}/desembolsar_lote", json=payload)
+                             response.raise_for_status()
+                             st.session_state.resultados_desembolso = response.json()
+                             api_success = True
+                        else:
+                             st.error("No API URL")
+                    except Exception as e:
+                        st.error(f"Error API: {e}")
+                    
+                    # B) Upload Files (Si API OK)
+                    if api_success:
+                        folder_id = selected_folder['id']
+                        upload_tasks = []
+                        
+                        # 1. Voucher
+                        if st.session_state.current_voucher_bytes:
+                                first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
+                                v_name = f"{first_lote}_Voucher_Transferencia.pdf"
+                                upload_tasks.append((st.session_state.current_voucher_bytes, v_name))
+                        
+                        # 2. Sustentos
+                        if st.session_state.sustento_unico:
+                            f_obj = st.session_state.consolidated_proof_file
+                            if f_obj:
+                                    first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
+                                    s_name = f"{first_lote}_Sustento_Global.pdf"
+                                    upload_tasks.append((f_obj.getvalue(), s_name))
+                        else:
+                            for factura in facturas_seleccionadas:
+                                pid = factura['proposal_id']
+                                f_obj = st.session_state.individual_proof_files.get(pid)
+                                if f_obj:
+                                    lote = factura.get('identificador_lote', 'Lote')
+                                    inv = parse_invoice_number(pid)
+                                    i_name = f"{lote}_{inv}_Sustento.pdf"
+                                    upload_tasks.append((f_obj.getvalue(), i_name))
+                        
+                        # 3. Execute
+                        results_msg = []
+                        errors_count = 0
+                        
+                        if upload_tasks:
+                            curr_bar = st.progress(0, text="Iniciando carga de archivos...")
+                            total_files = len(upload_tasks)
+                            
+                            with ThreadPoolExecutor(max_workers=5) as executor:
+                                future_to_file = {
+                                    executor.submit(upload_helper, b, n, folder_id, SA_CREDENTIALS): n 
+                                    for b, n in upload_tasks
+                                }
+                                
+                                for i, future in enumerate(as_completed(future_to_file)):
+                                    success, msg = future.result()
+                                    results_msg.append(msg)
+                                    if not success:
+                                        errors_count += 1
+                                    prog = (i + 1) / total_files
+                                    curr_bar.progress(prog, text=f"Subiendo {i+1}/{total_files}...")
+                            
+                            curr_bar.empty()
+                            
+                            with st.expander("Resultados de Carga", expanded=errors_count > 0):
+                                for msg in results_msg:
+                                    if "Error" in msg: st.error(msg)
+                                    else: st.write(msg)
+                        
+                        st.balloons()
+                        st.success("¡Desembolso Completado Exitosamente!")
+
+                        # --- EMAIL SENDER INTEGRATION (State Persistence) ---
+                        st.session_state.show_email_desembolso = True
+                        st.session_state.email_docs_desembolso = []
+                        
+                        # 1. Voucher
+                        if st.session_state.current_voucher_bytes:
+                                first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
+                                v_name = f"{first_lote}_Voucher_Transferencia.pdf"
+                                st.session_state.email_docs_desembolso.append({'name': v_name, 'bytes': st.session_state.current_voucher_bytes})
+                        
+                        # 2. Sustentos
+                        if st.session_state.sustento_unico:
+                            f_obj = st.session_state.consolidated_proof_file
+                            if f_obj:
+                                    first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
+                                    s_name = f"{first_lote}_Sustento_Global.pdf"
+                                    st.session_state.email_docs_desembolso.append({'name': s_name, 'bytes': f_obj.getvalue()})
+                        else:
+                            for factura in facturas_seleccionadas:
+                                pid = factura['proposal_id']
+                                f_obj = st.session_state.individual_proof_files.get(pid)
+                                if f_obj:
+                                    lote = factura.get('identificador_lote', 'Lote')
+                                    inv = parse_invoice_number(pid)
+                                    i_name = f"{lote}_{inv}_Sustento.pdf"
+                                    st.session_state.email_docs_desembolso.append({'name': i_name, 'bytes': f_obj.getvalue()})
+                        # ----------------------------------------------------
+                        
+                        # Actualizar estados visualmente
+                        for res in st.session_state.resultados_desembolso.get('resultados_del_lote', []):
+                                if res.get('status') == 'SUCCESS':
+                                    pass
+                        
+                        if st.button("Recargar Página"):
+                            st.session_state.reload_data = True
+                            st.session_state.show_email_desembolso = False # Reset on reload
+                            st.rerun()
+
         else:
              st.warning("Navega y selecciona una carpeta destino para habilitar el botón final.")
 
 
-    # --- FOOTER / ACCIONES FINALES ---
-    st.markdown("---")
-
-    # Botón de Ejecución Global
-    if selected_folder:
-        if st.button("REGISTRAR DESEMBOLSO Y SUBIR ARCHIVOS", type="primary", use_container_width=True):
-            
-            # Validaciones de sustento
-            if st.session_state.sustento_unico and not st.session_state.consolidated_proof_file:
-                 st.error("Falta el archivo de sustento consolidado.")
-                 st.stop()
-            
-            with st.spinner("Procesando Desembolsos (API + Drive + BD)..."):
-                # A) API Call
-                desembolsos_info = []
-                for factura in facturas_seleccionadas:
-                    pid = factura['proposal_id']
-                    monto = st.session_state.get(f"monto_desembolso_{pid}", 0.0)
-                    fecha_fmt = st.session_state.global_desembolso_vars['fecha_desembolso'].strftime('%d-%m-%Y')
-                    desembolsos_info.append({
-                        "proposal_id": pid,
-                        "monto_desembolsado": monto,
-                        "fecha_desembolso_real": fecha_fmt,
-                    })
-                
-                payload = {
-                    "usuario_id": USUARIO_ID_TEST,
-                    "desembolsos": desembolsos_info
-                }
-                
-                api_success = False
-                try:
-                    # Simulamos o llamamos API real
-                    if API_BASE_URL:
-                         response = requests.post(f"{API_BASE_URL}/desembolsar_lote", json=payload)
-                         response.raise_for_status()
-                         st.session_state.resultados_desembolso = response.json()
-                         api_success = True
-                    else:
-                         st.error("No API URL")
-                except Exception as e:
-                    st.error(f"Error API: {e}")
-                
-                # B) Upload Files (Si API OK)
-                if api_success:
-                    folder_id = selected_folder['id'] # DEL NATIVE BROWSER
-                    upload_tasks = []
-                    
-                    # 1. Voucher
-                    if st.session_state.current_voucher_bytes:
-                            first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
-                            v_name = f"{first_lote}_Voucher_Transferencia.pdf"
-                            upload_tasks.append((st.session_state.current_voucher_bytes, v_name))
-                    
-                    # 2. Sustentos
-                    if st.session_state.sustento_unico:
-                        f_obj = st.session_state.consolidated_proof_file
-                        if f_obj:
-                                first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
-                                s_name = f"{first_lote}_Sustento_Global.pdf"
-                                upload_tasks.append((f_obj.getvalue(), s_name))
-                    else:
-                        for factura in facturas_seleccionadas:
-                            pid = factura['proposal_id']
-                            f_obj = st.session_state.individual_proof_files.get(pid)
-                            if f_obj:
-                                lote = factura.get('identificador_lote', 'Lote')
-                                inv = parse_invoice_number(pid)
-                                i_name = f"{lote}_{inv}_Sustento.pdf"
-                                upload_tasks.append((f_obj.getvalue(), i_name))
-                    
-                    # 3. Execute
-                    results_msg = []
-                    errors_count = 0
-                    
-                    if upload_tasks:
-                        curr_bar = st.progress(0, text="Iniciando carga de archivos...")
-                        total_files = len(upload_tasks)
-                        
-                        with ThreadPoolExecutor(max_workers=5) as executor:
-                            future_to_file = {
-                                executor.submit(upload_helper, b, n, folder_id, SA_CREDENTIALS): n 
-                                for b, n in upload_tasks
-                            }
-                            
-                            for i, future in enumerate(as_completed(future_to_file)):
-                                success, msg = future.result()
-                                results_msg.append(msg)
-                                if not success:
-                                    errors_count += 1
-                                prog = (i + 1) / total_files
-                                curr_bar.progress(prog, text=f"Subiendo {i+1}/{total_files}...")
-                        
-                        curr_bar.empty()
-                        
-                        with st.expander("Resultados de Carga", expanded=errors_count > 0):
-                            for msg in results_msg:
-                                if "Error" in msg: st.error(msg)
-                                else: st.write(msg)
-                    
-                    st.balloons()
-                    st.success("¡Desembolso Completado Exitosamente!")
-
-                    # --- EMAIL SENDER INTEGRATION (State Persistence) ---
-                    st.session_state.show_email_desembolso = True
-                    st.session_state.email_docs_desembolso = []
-                    
-                    # 1. Voucher
-                    if st.session_state.current_voucher_bytes:
-                            first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
-                            v_name = f"{first_lote}_Voucher_Transferencia.pdf"
-                            st.session_state.email_docs_desembolso.append({'name': v_name, 'bytes': st.session_state.current_voucher_bytes})
-                    
-                    # 2. Sustentos
-                    if st.session_state.sustento_unico:
-                        f_obj = st.session_state.consolidated_proof_file
-                        if f_obj:
-                                first_lote = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
-                                s_name = f"{first_lote}_Sustento_Global.pdf"
-                                st.session_state.email_docs_desembolso.append({'name': s_name, 'bytes': f_obj.getvalue()})
-                    else:
-                        for factura in facturas_seleccionadas:
-                            pid = factura['proposal_id']
-                            f_obj = st.session_state.individual_proof_files.get(pid)
-                            if f_obj:
-                                lote = factura.get('identificador_lote', 'Lote')
-                                inv = parse_invoice_number(pid)
-                                i_name = f"{lote}_{inv}_Sustento.pdf"
-                                st.session_state.email_docs_desembolso.append({'name': i_name, 'bytes': f_obj.getvalue()})
-                    # ----------------------------------------------------
-                    
-                    # Actualizar estados visualmente
-                    for res in st.session_state.resultados_desembolso.get('resultados_del_lote', []):
-                            if res.get('status') == 'SUCCESS':
-                                pass
-                    
-                    if st.button("Recargar Página"):
-                        st.session_state.reload_data = True
-                        st.session_state.show_email_desembolso = False # Reset on reload
-                        st.rerun()
-
-    # --- RENDER EMAIL SENDER OUTSIDE BUTTON SCOPE ---
+    # --- RENDER EMAIL SENDER (En su Propio Contenedor) ---
     if st.session_state.get('show_email_desembolso', False):
-         st.markdown("---")
-         st.subheader("📧 Enviar Reporte por Correo")
-         
-         # Try to get meaningful default subject
-         lote_id = "Lote"
-         if facturas_seleccionadas:
-             lote_id = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
-         
-         render_email_sender(
-             key_suffix="desembolso", 
-             documents=st.session_state.get('email_docs_desembolso', []),
-             default_subject=f"Sustentos de Desembolso - {lote_id}",
-             default_email=""
-         )
-    # ------------------------------------------------
-
+         with st.container(border=True):
+             st.subheader("Envío de Reportes por Correo")
+             
+             # Try to get meaningful default subject
+             lote_id = "Lote"
+             if facturas_seleccionadas:
+                 lote_id = facturas_seleccionadas[0].get('identificador_lote', 'Lote')
+             
+             render_email_sender(
+                 key_suffix="desembolso", 
+                 documents=st.session_state.get('email_docs_desembolso', []),
+                 default_subject=f"Sustentos de Desembolso - {lote_id}",
+                 default_email=""
+             )
+    
     elif facturas_seleccionadas and not selected_folder:
-        st.warning("Faltas seleccionar una carpeta de destino en la Sección 4.")
+        pass # Warning already shown above
