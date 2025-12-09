@@ -444,59 +444,7 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
             st.session_state.pdf_datos_cargados = True
             st.rerun()
 
-# --- DEBUGGING UI (Relocated) ---
-if st.checkbox("🐞 Mostrar Debugging", value=True):
-    with st.expander("🔍 Inspector de Datos (Debug)", expanded=True):
-        # 1. Test Connectivity
-        try:
-            client = db.get_supabase_client()
-            # Check key type safely
-            key_preview = "ANON"
-            raw_key = str(getattr(client, "supabase_key", ""))
-            
-            if "service_role" in raw_key:
-                key_preview = "SERVICE_ROLE (Super Admin)"
-            
-            # Create masked key for visual verification
-            if len(raw_key) > 10:
-                masked_key = f"{raw_key[:5]}...{raw_key[-5:]}"
-            else:
-                masked_key = "INVALID/SHORT"
 
-            st.write(f"🔑 Tipo de Llave Detectada: **{key_preview}**")
-            st.code(f"Llave en uso: {masked_key}", language="text")
-
-            # Real Active Query
-            test_response = client.table('EMISORES.ACEPTANTES').select("count", count="exact").limit(1).execute()
-            st.success(f"✅ Conexión Supabase ACTIVA - Tabla EMISORES.ACEPTANTES accesible (Total filas: {test_response.count})")
-        except Exception as e:
-            st.error(f"❌ ERROR CRÍTICO DE CONEXIÓN: {e}")
-
-        # 2. Inspect Invoices
-        if st.session_state.invoices_data:
-            st.write(f"Facturas Cargadas: {len(st.session_state.invoices_data)}")
-            for i, inv in enumerate(st.session_state.invoices_data):
-                emisor_ruc = inv.get('emisor_ruc', '')
-                emisor_nombre = inv.get('emisor_nombre', '')
-                try:
-                    # Re-verify specific RUC lookup live
-                    live_lookup = db.get_razon_social_by_ruc(emisor_ruc)
-                    # Debug Financial Conditions
-                    live_financials = db.get_financial_conditions(emisor_ruc)
-                except Exception as e:
-                    live_lookup = f"ERROR: {e}"
-                    live_financials = f"ERROR: {e}"
-
-                st.code(f"""
-Factura #{i+1}: {inv.get('parsed_pdf_name')}
----------------------------------------------
-RUC Raw: '{emisor_ruc}'
-Nombre Cached: '{emisor_nombre}'
-Lookup en Vivo: '{live_lookup}'
-Condiciones Financieras BD: {json.dumps(live_financials, indent=2, default=str) if isinstance(live_financials, dict) else live_financials}
-                """)
-        else:
-            st.info("No hay facturas cargadas para inspeccionar.")
 
 
 # --- Section 2: Global Configuration ---
