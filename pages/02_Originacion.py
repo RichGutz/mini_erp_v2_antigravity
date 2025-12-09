@@ -1004,49 +1004,45 @@ if st.session_state.invoices_data:
                             st.balloons()
                             st.success("✨ ¡Proceso Completado Exitosamente!")
                             
-                            # --- EMAIL SENDER INTEGRATION ---
-                            st.markdown("---")
-                            # DEBUG: Verificar si entra aquí
-                            st.write("DEBUG: Iniciando bloque de email sender...") 
+                            # --- EMAIL SENDER INTEGRATION (State Persistence) ---
+                            st.session_state.show_email_originacion = True
+                            st.session_state.email_docs_originacion = []
                             
-                            email_docs = []
                             # 1. Perfil
                             if 'last_generated_perfil_pdf' in st.session_state:
                                 pdf = st.session_state['last_generated_perfil_pdf']
-                                email_docs.append({
+                                st.session_state.email_docs_originacion.append({
                                     'name': pdf.get('filename', pdf.get('name', 'perfil.pdf')), 
                                     'bytes': pdf['bytes']
                                 })
-                            else:
-                                st.write("DEBUG: No last_generated_perfil_pdf")
 
                             # 2. Liquidacion
                             if 'last_generated_liquidacion_pdf' in st.session_state:
                                 pdf = st.session_state['last_generated_liquidacion_pdf']
-                                email_docs.append({
+                                st.session_state.email_docs_originacion.append({
                                     'name': pdf.get('filename', pdf.get('name', 'liquidacion.pdf')), 
                                     'bytes': pdf['bytes']
                                 })
-                            else:
-                                st.write("DEBUG: No last_generated_liquidacion_pdf")
 
                             # 3. Originales
                             if 'original_uploads_cache' in st.session_state:
                                 for orig in st.session_state.original_uploads_cache:
-                                    email_docs.append({
+                                    st.session_state.email_docs_originacion.append({
                                         'name': orig.get('name', orig.get('filename', 'original.pdf')), 
                                         'bytes': orig['bytes']
                                     })
-                            else:
-                                st.write("DEBUG: No original_uploads_cache")
-                            
-                            st.write(f"DEBUG: Docs encontrados: {len(email_docs)}")
-                            
-                            render_email_sender(key_suffix="originacion", documents=email_docs)
-                            # -------------------------------
+                            # ----------------------------------------------------
 
                         else:
                             st.error(f"Hubo errores subiendo archivos: {drive_errors}")
+    
+    # --- RENDER EMAIL SENDER OUTSIDE BUTTON SCOPE ---
+    if st.session_state.get('show_email_originacion', False):
+         st.markdown("---")
+         # DEBUG: Verificar persistencia
+         # st.write(f"DEBUG: Rendering Persistent Email Sender. Docs: {len(st.session_state.email_docs_originacion)}") 
+         render_email_sender(key_suffix="originacion", documents=st.session_state.get('email_docs_originacion', []))
+    # ------------------------------------------------
     
     st.markdown("---")
     st.write("#### Descripción de las Acciones:")

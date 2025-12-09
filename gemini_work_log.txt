@@ -1734,3 +1734,6 @@ ESTADO:  COMPLETADO
 
 [2025-12-08 19:27] BUGFIX: Corregido KeyError 'name' en Originacion Email Integration.
 
+
+[2025-12-08 19:30] BLOGFIX: Implementado persistencia de estado para Email Sender en Originacion (evita desaparición al interactuar).
+
