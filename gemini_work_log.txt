@@ -1788,3 +1788,135 @@ ESTADO: ✅ COMPLETADO Y PUSHEADO
 - Base de Datos: Agregadas 7 columnas a EMISORES.ACEPTANTES.
 - UX: Inputs agregados en Registro.
 - Lógica: Auto-fill implementado en Originación.
+
+================================================================================
+FECHA: 2025-12-09 16:50:00
+SESIÓN: Implementación de Tasas Financieras Dinámicas (DB -> Registro -> Originación)
+================================================================================
+
+RESUMEN EJECUTIVO:
+------------------
+Se implementó exitosamente la funcionalidad de 'Tasas Dinámicas', permitiendo que 
+el sistema cargue automáticamente las condiciones financieras (tasas de interés, 
+comisiones, días mínimos, etc.) desde la base de datos (tabla EMISORES.ACEPTANTES) 
+basado en el RUC del emisor detectado en la factura.
+
+Esto reemplaza la carga manual de datos y asegura que las reglas de negocio 
+específicas por cliente se apliquen consistentemente.
+
+DETALLE DE LA IMPLEMENTACIÓN:
+------------------------------
+
+Fase 1: Base de Datos (Schema Update)
+--------------------------------------
+Se agregaron 11 nuevas columnas a la tabla 'EMISORES.ACEPTANTES' para soportar 
+la granularidad requerida.
+
+1. Parte 1 (Inicial):
+   - tasa_avance, interes_mensual_pen, interes_moratorio_pen
+   - interes_mensual_usd, interes_moratorio_usd
+   - comision_estructuracion_pen, comision_estructuracion_usd
+
+2. Parte 2 (Refinamiento):
+   - comision_estructuracion_pct (%)
+   - comision_afiliacion_pen, comision_afiliacion_usd
+   - dias_minimos_interes
+
+Fase 2: Backend (Repository)
+-----------------------------
+- Archivo: 'src/data/supabase_repository.py'
+- Nueva función: 'get_financial_conditions(ruc)'
+- Lógica: Realiza un SELECT de las 11 columnas financieras para el RUC dado.
+
+Fase 3: Frontend - Gestión (Registro UI)
+----------------------------------------
+- Archivo: 'pages/01_Registro.py'
+- Formularios: Crear y Editar Emisor/Aceptante.
+- UI: Se agregaron inputs numéricos para las 11 variables.
+- Lógica: Mapeo completo en 'create_emisor_deudor' y 'update_emisor_deudor'.
+
+Fase 4: Frontend - Operativa (Originación Logic & Debugging)
+------------------------------------------------------------
+El núcleo de la lógica. Al procesar un PDF:
+1. Se extrae el RUC.
+2. Se consultan las tasas a la BD.
+3. Se inyectan en 'invoice_entry' (datos de la factura).
+4. Se inyectan en 'st.session_state' (datos globales) y se activan los checkboxes.
+
+🐛 CRÓNICA DEL DEBUGGING (Lecciones Aprendidas):
+-------------------------------------------------
+
+1. El Error de Indentación:
+   - Problema: Al insertar el bloque de lógica, se duplicó código generando un 'IndentationError'.
+   - Solución: Limpieza manual del archivo usando un script Python para asegurar la estructura correcta.
+
+2. El 'Lag' de UI (State Lag):
+   - Problema: Los datos se cargaban correctamente (visto en logs), pero los widgets visuales 
+     aparecían vacíos o con valores por defecto.
+   - Causa: Streamlit renderiza los widgets antes de que el código actualice el 'session_state'.
+   - Solución: Implementar 'st.rerun()' forzado inmediatamente después de cargar los datos de la BD.
+
+3. La Validación de Ceros (Zero Values):
+   - Problema: Valores legítimos de '0' (ej. 0% comisión, 0 días mínimos) eran ignorados 
+     y reemplazados por los defaults del sistema (ej. 15 días).
+   - Causa: La validación era 'if value > 0:'.
+   - Solución: Cambiar la validación a 'if value >= 0:' para respetar la configuración explícita de 'gratuidad'.
+
+4. EL BUG CRÍTICO (Variable Indefinida):
+   - Problema: A pesar de todas las correcciones, los globales a veces no se actualizaban.
+   - Causa Raíz: El loop de procesamiento era 'for uploaded_file in files:'. 
+     Dentro del loop, la lógica usaba 'if i == 0:' para actualizar los globales solo en la primera factura.
+     Al no existir 'i', Python lanzaba 'NameError', pero el bloque 'try...except' genérico lo silenciaba.
+   - Solución: Cambiar el loop a 'for i, uploaded_file in enumerate(files):'.
+
+ESTADO FINAL:
+-------------
+✅ Base de Datos actualizada.
+✅ Registro UI permite configurar todas las tasas.
+✅ Originación detecta RUC y carga tasas.
+✅ Originación actualiza visualmente los Globales (Checks y Valores).
+✅ Soporta valores '0' correctamente.
+✅ Debugging panel muestra datos en vivo.
+
+ARCHIVOS DEPLOYADOS:
+--------------------
+- src/scripts/add_financial_columns.sql
+- src/scripts/add_more_financial_columns.sql
+- src/data/supabase_repository.py
+- pages/01_Registro.py
+- pages/02_Originacion.py
+
+================================================================================
+
+
+================================================================================
+FECHA: 2025-12-09 17:15:00
+SESIÓN: Documentación de Lecciones Aprendidas y Refactorización
+================================================================================
+
+LECCIONES APRENDIDAS (Resumen Final):
+--------------------------------------
+
+1. INFRAESTRUCTURA & SEGURIDAD (SMTP & GIT):
+   - Problema: Streamlit Cloud Community (Gratuito) NO tiene acceso a repositorios privados de GitHub de forma nativa para 'secrets' auto-inyectados si no es la cuenta dueña.
+   - Limitación: El archivo 'secrets.toml' local es ignorado por git (correctamente), por lo que no sube a la nube.
+   - Solución: Manejo MANUAL de secrets en el dashboard de Streamlit Cloud. Se generaron scripts para imprimir los secretos locales de forma segura y copiarlos al portapapeles.
+   - Google SMTP: Se requiere generar 'App Passwords' si 2FA está activo. Clave crítica en st.secrets: usar 'user' y NO 'email' si la librería espera 'user'.
+
+2. SUPABASE RLS (Row Level Security):
+   - Desafío: Al intentar operar desde el backend sin autenticación de usuario final (Service Role vs Anon), RLS puede bloquear lecturas/escrituras silenciosamente.
+   - Solución: Para este MVP, asegurar que las políticas permitan acceso o usar la clave 'service_role' para operaciones administrativas críticas si fuera necesario (aunque aquí usamos 'anon' con políticas abiertas por ahora).
+
+3. LÓGICA DE VARIABLES GLOBALES (Streamlit Session State):
+   - El Problema del '0': Validaciones tipo if value > 0 descartan configuraciones legítimas de coste cero (ej. 0% comisión). Siempre usar if value >= 0.
+   - El Problema del Lag de UI: Modificar st.session_state no actualiza los widgets en pantalla instantáneamente si ya fueron renderizados. Solución: st.rerun() forzado tras la carga de datos.
+   - El Bug Fantasma: Bucles or sin numerate impiden el uso de índices (i), causando fallos silenciosos en bloques 	ry-except.
+
+ACCIONES DE REFACTORIZACIÓN:
+-----------------------------
+1. Limpieza de Código: Se elimina la sección 'Inspector de Datos (Debug)' de  2_Originacion.py para producción.
+2. Limpieza de Archivos: Se mueven todos los archivos *.backup, *.bak, y *_ref.py de la carpeta pages/ a una carpeta de archivo para mantener limpio el directorio de despliegue.
+3. Control de Versiones: Se crea rama Originacion-Refactorizado para congelar este estado estable.
+
+================================================================================
+
