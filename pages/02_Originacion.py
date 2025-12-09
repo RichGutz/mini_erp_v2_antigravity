@@ -364,8 +364,13 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
                                         invoice_entry['tasa_de_avance'] = float(db_rates['tasa_avance'])
                                         # Update Global Default if first item or not set
                                         if i == 0: 
+                                        # Update Global Default if first item or not set
+                                        if i == 0: 
                                             st.session_state.default_tasa_de_avance = float(db_rates['tasa_avance'])
                                             st.session_state.tasa_avance_global = float(db_rates['tasa_avance'])
+                                            st.session_state.aplicar_tasa_avance_global = True
+
+                                    # 2. Intereses (Depende Moneda)
 
                                     # 2. Intereses (Depende Moneda)
                                     if moneda == 'USD':
@@ -379,23 +384,33 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
                                     
                                     if new_int_mensual > 0:
                                         invoice_entry['interes_mensual'] = new_int_mensual
+                                    if new_int_mensual > 0:
+                                        invoice_entry['interes_mensual'] = new_int_mensual
                                         if i == 0:
                                             st.session_state.default_interes_mensual = new_int_mensual
                                             st.session_state.interes_mensual_global = new_int_mensual
+                                            st.session_state.aplicar_interes_mensual_global = True
                                     
                                     if new_int_mora > 0:
                                         invoice_entry['interes_moratorio'] = new_int_mora
                                         if i == 0:
                                             st.session_state.default_interes_moratorio = new_int_mora
                                             st.session_state.interes_moratorio_global = new_int_mora
+                                            st.session_state.aplicar_interes_moratorio_global = True
 
                                     # 3. Comisiones Estructuración (Mínima)
                                     # Note: We map the DB specific currency value to the corresponding Global Min
                                     if i == 0:
+                                         found_struct = False
                                          if db_rates.get('comision_estructuracion_pen', 0) > 0:
                                              st.session_state.comision_estructuracion_min_pen_global = float(db_rates['comision_estructuracion_pen'])
+                                             found_struct = True
                                          if db_rates.get('comision_estructuracion_usd', 0) > 0:
                                              st.session_state.comision_estructuracion_min_usd_global = float(db_rates['comision_estructuracion_usd'])
+                                             found_struct = True
+                                         
+                                         if found_struct:
+                                             st.session_state.aplicar_comision_estructuracion_global = True
                                     
                             except Exception as e_db:
                                 print(f"Error fetching DB rates: {e_db}")
