@@ -442,6 +442,7 @@ with st.expander("📂 Carga de Facturas (PDF)", expanded=True):
                         if os.path.exists(temp_file_path):
                             os.remove(temp_file_path)
             st.session_state.pdf_datos_cargados = True
+            st.rerun()
 
 # --- DEBUGGING UI (Relocated) ---
 if st.checkbox("🐞 Mostrar Debugging", value=True):
