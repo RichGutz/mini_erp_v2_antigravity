@@ -76,13 +76,11 @@ if 'user_info' not in st.session_state:
                 c1, c2 = st.columns(2)
                 
                 with c1:
-                    # Centering the image within the column using explicit width
-                    # and Streamlit's default alignment (which is left, but in a small col it looks centered)
-                    # To be safe, we rely on the container width being close to the image width
-                    st.image(os.path.join(project_root, "static", "logo_geek.png"), use_container_width=True) 
+                    # Using relative path "static/..." which is safer for Streamlit Cloud
+                    st.image("static/logo_geek.png", use_container_width=True) 
                 
                 with c2:
-                    st.image(os.path.join(project_root, "static", "logo_inandes.png"), use_container_width=True)
+                    st.image("static/logo_inandes.png", use_container_width=True)
         
         st.markdown("<h3 style='text-align: center; color: #666; font-weight: normal;'>Acceso Corporativo</h3>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
