@@ -267,6 +267,9 @@ with st.container(border=True):
                 body_text += f"- {item}\n"
                 
         body_text += "\nSaludos cordiales,\nGerencia"
+    else:
+        # Fallback para cuando no hay facturas recientes (evitar texto de 'Adjuntos')
+        body_text = "Estimados,\n\nSe notifica la aprobación de operaciones.\n\nSaludos cordiales,"
     
     render_email_sender(
         key_suffix="aprobacion",
