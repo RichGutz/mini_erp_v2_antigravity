@@ -29,6 +29,10 @@ if 'reload_data' not in st.session_state:
     st.session_state.reload_data = True
 if 'last_approved_invoices' not in st.session_state:
     st.session_state.last_approved_invoices = [] # List of strings (Invoice Numbers)
+if 'last_approved_total' not in st.session_state:
+    st.session_state.last_approved_total = 0.0
+if 'last_approved_emisor' not in st.session_state:
+    st.session_state.last_approved_emisor = ""
 
 # --- Funciones de Ayuda ---
 def parse_invoice_number(proposal_id: str) -> str:
@@ -45,6 +49,19 @@ def safe_decimal(value, default=0.0):
         return float(value) if value is not None else default
     except (ValueError, TypeError):
         return default
+
+def get_monto_a_desembolsar(factura: dict) -> float:
+    """Calcula el monto a desembolsar desde el JSON de recálculo"""
+    try:
+        recalc_json = factura.get('recalculate_result_json', '{}')
+        if isinstance(recalc_json, dict):
+             recalc_data = recalc_json
+        else:
+             recalc_data = json.loads(recalc_json)
+        
+        return recalc_data.get('desglose_final_detallado', {}).get('abono', {}).get('monto', 0.0)
+    except (json.JSONDecodeError, AttributeError, TypeError):
+        return 0.0
 
 # --- UI: CSS ---
 st.markdown('''<style>
@@ -112,17 +129,19 @@ else:
                 st.markdown(f"**📦 Lote:** `{lote_id}` | **Emisor:** {emisor_name} | **Cant:** {len(invoices_in_batch)}")
                 
                 # Header de la Tablita
-                col_check, col_factura, col_aceptante, col_monto, col_fecha_desembolso = st.columns([0.5, 1.5, 2.5, 1.5, 1.5])
+                # Adjusted Columns: Added 'Monto Desembolso'
+                col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_fecha = st.columns([0.5, 1.5, 2.0, 1.5, 1.5, 1.0])
                 
-                with col_check: st.markdown("**Aprobar**")
+                with col_check: st.markdown("**OK**")
                 with col_factura: st.markdown("**Factura**")
                 with col_aceptante: st.markdown("**Aceptante**")
                 with col_monto: st.markdown("**Monto Neto**")
-                with col_fecha_desembolso: st.markdown("**F. Desembolso**")
+                with col_desembolso: st.markdown("**A Desembolsar**")
+                with col_fecha: st.markdown("**F. Desemb.**")
                 
                 # Filas
                 for idx, factura in enumerate(invoices_in_batch):
-                    col_check, col_factura, col_aceptante, col_monto, col_fecha_desembolso = st.columns([0.5, 1.5, 2.5, 1.5, 1.5])
+                    col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_fecha = st.columns([0.5, 1.5, 2.0, 1.5, 1.5, 1.0])
                     
                     with col_check:
                         # Usamos el ID real como key del checkbox
@@ -140,7 +159,13 @@ else:
                         monto = safe_decimal(factura.get('monto_neto_factura', 0))
                         moneda = factura.get('moneda_factura', 'PEN')
                         st.markdown(f"{moneda} {monto:,.2f}")
-                    with col_fecha_desembolso: st.markdown(factura.get('fecha_desembolso_factoring', 'N/A'))
+                    with col_desembolso:
+                        monto_des = get_monto_a_desembolsar(factura)
+                        moneda = factura.get('moneda_factura', 'PEN')
+                        # Resaltar en negrita si es > 0, es el valor clave
+                        val_str = f"**{moneda} {monto_des:,.2f}**" if monto_des > 0 else f"{moneda} 0.00"
+                        st.markdown(val_str)
+                    with col_fecha: st.markdown(factura.get('fecha_desembolso_factoring', 'N/A'))
 
         st.markdown("---")
         
@@ -155,12 +180,19 @@ else:
             
     # Procesar Aprobaciones
     if submit_button:
-        ids_seleccionados = [
+        # Recuperar objetos completos de facturas seleccionadas para calcular totales
+        # Tenemos que buscarlas en facturas_activas
+        selected_ids = [
             pid for pid, selected in st.session_state.facturas_seleccionadas_aprobacion.items()
             if selected
         ]
         
-        if not ids_seleccionados:
+        selected_invoices_objs = [
+            f for f in st.session_state.facturas_activas 
+            if f['proposal_id'] in selected_ids
+        ]
+        
+        if not selected_invoices_objs:
             st.warning("⚠️ No has seleccionado ninguna factura para aprobar.")
         else:
             st.markdown("---")
@@ -169,28 +201,44 @@ else:
             success_count = 0
             error_count = 0
             approved_list_temp = []
+            total_desembolso_temp = 0.0
+            last_emisor_temp = ""
             
-            for proposal_id in ids_seleccionados:
+            # Asumimos que si se aprueban varias, suelen ser del mismo emisor
+            if selected_invoices_objs:
+                last_emisor_temp = selected_invoices_objs[0].get('emisor_nombre', 'Desconocido')
+            
+            for invoice in selected_invoices_objs:
+                proposal_id = invoice['proposal_id']
                 try:
                     db.update_proposal_status(proposal_id, 'APROBADO')
-                    # st.success(f"✅ Factura aprobada.") # Reduce noise
+                    
                     inv_num = parse_invoice_number(proposal_id)
+                    mont_des = get_monto_a_desembolsar(invoice)
+                    
                     approved_list_temp.append(inv_num)
+                    total_desembolso_temp += mont_des
+                    
                     success_count += 1
                 except Exception as e:
                     st.error(f"❌ Error al aprobar: {e}")
                     error_count += 1
             
             if success_count > 0:
-                st.session_state.last_approved_invoices = approved_list_temp # Store for email body
+                # Actualizar estado para el email
+                st.session_state.last_approved_invoices = approved_list_temp
+                st.session_state.last_approved_total = total_desembolso_temp
+                st.session_state.last_approved_emisor = last_emisor_temp
+                
                 st.success(f"🎉 Se aprobaron {success_count} factura(s) exitosamente.")
+                st.balloons()
             
             if error_count > 0:
                 st.error(f"⚠️ Hubo errores en {error_count} factura(s).")
             
+            # Recargar y rerun automático (sin botón Continuar)
             st.session_state.reload_data = True
-            if st.button("Continuar"):
-                st.rerun()
+            st.rerun()
 
 
 # --- Sección 2: Notificación por Correo (Reemplaza Información) ---
@@ -201,7 +249,11 @@ with st.container(border=True):
     # Construct Body
     body_text = ""
     if st.session_state.last_approved_invoices:
-        body_text = "Estimados,\n\nSe informa que se han aprobado las siguientes facturas para proceso de desembolso:\n\n"
+        emisor = st.session_state.last_approved_emisor
+        total = st.session_state.last_approved_total
+        # Moneda asumida PEN por simplicidad en el mensaje global, o genérica
+        
+        body_text = f"Estimados,\n\nSe informa que se han aprobado las siguientes facturas del emisor **{emisor}** por un monto total a desembolsar de **S/ {total:,.2f}**:\n\n"
         for inv_num in st.session_state.last_approved_invoices:
             body_text += f"- {inv_num}\n"
         body_text += "\nSaludos cordiales,\nGerencia"
@@ -209,7 +261,7 @@ with st.container(border=True):
     render_email_sender(
         key_suffix="aprobacion",
         documents=[], # No attachments typically for just approval notification
-        default_subject="Notificación de Aprobación de Facturas",
+        default_subject=f"Notificación de Aprobación - {st.session_state.last_approved_emisor}" if st.session_state.last_approved_emisor else "Notificación de Aprobación",
         default_body=body_text
     )
 
