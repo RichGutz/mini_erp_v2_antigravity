@@ -23,20 +23,7 @@ st.set_page_config(
 )
 
 # --- CSS HACK: FORZAR ANCHO COMPLETO REAL Y HEADER ALINEADO ---
-st.markdown("""
-<style>
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 2rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
-        max-width: 100% !important;
-    }
-    [data-testid="stHorizontalBlock"] { 
-        align-items: center; 
-    }
-</style>
-""", unsafe_allow_html=True)
+# --- CSS HACK REMOVED (Conflicted with Header) ---
 
 # --- Configuración Service Account ---
 try:

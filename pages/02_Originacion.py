@@ -48,11 +48,8 @@ except Exception as e:
 
 
 # --- Custom CSS ---
-st.markdown("""
-<style>
-    [data-testid="stHorizontalBlock"] { 
-        align-items: flex-start; 
-    }
+# --- Custom CSS ---
+# Removed conflicting CSS that forces flex-start globally, affecting header.
     .stButton>button.red-button {
         background-color: #FF4B4B;
         color: white;

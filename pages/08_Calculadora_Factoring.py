@@ -194,7 +194,8 @@ if 'aplicar_interes_mensual_global' not in st.session_state: st.session_state.ap
 if 'interes_mensual_global' not in st.session_state: st.session_state.interes_mensual_global = st.session_state.default_interes_mensual
 
 # --- UI: Título y CSS ---
-st.markdown("<style>\n[data-testid=\"stHorizontalBlock\"] { \n    align-items: flex-start; \n}\n</style>", unsafe_allow_html=True)
+# --- UI: Título y CSS ---
+# Removed conflicting CSS
 
 # --- Header ---
 from src.ui.header import render_header
