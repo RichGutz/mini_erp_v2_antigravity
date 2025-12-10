@@ -36,7 +36,8 @@ def render_header(title: str):
     # Use a container to group the header elements
     with st.container(border=False):
         # 3-Column Layout: [Logo Geek (1), Title (2), Right Stack (1)]
-        col1, col2, col3 = st.columns([1, 2, 1], vertical_alignment="center")
+        # Removed vertical_alignment="center" to allow the button to sit at the top ("más arriba")
+        col1, col2, col3 = st.columns([1, 2, 1])
         
         # --- Left: Geesoft Logo ---
         with col1:
@@ -59,10 +60,10 @@ def render_header(title: str):
             
             with right_content:
                 # 1. Logout Button (Discreet, Top)
-                # Using a callback to handle logout logic
-                if st.button("🔒 Cerrar Sesión", key="header_logout_btn", help="Cerrar sesión actual", use_container_width=True):
+                # Removed use_container_width=True to make it smaller ("mitad de ancho")
+                if st.button("🔒 Cerrar Sesión", key="header_logout_btn", help="Cerrar sesión actual"):
                     st.session_state.clear()
-                    st.rerun()
+                    st.switch_page("00_Home.py")
                 
                 # 2. Inandes Logo (Bottom)
                 st.markdown(
