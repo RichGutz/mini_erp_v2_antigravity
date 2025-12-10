@@ -216,7 +216,11 @@ else:
                     inv_num = parse_invoice_number(proposal_id)
                     mont_des = get_monto_a_desembolsar(invoice)
                     
-                    approved_list_temp.append(inv_num)
+                    # Store dict for detailed listing
+                    approved_list_temp.append({
+                        'num': inv_num,
+                        'amount': mont_des
+                    })
                     total_desembolso_temp += mont_des
                     
                     success_count += 1
@@ -251,11 +255,17 @@ with st.container(border=True):
     if st.session_state.last_approved_invoices:
         emisor = st.session_state.last_approved_emisor
         total = st.session_state.last_approved_total
-        # Moneda asumida PEN por simplicidad en el mensaje global, o genérica
+        currency = "S/" # Default hardcoded for now or fetch from last invoice
         
-        body_text = f"Estimados,\n\nSe informa que se han aprobado las siguientes facturas del emisor **{emisor}** por un monto total a desembolsar de **S/ {total:,.2f}**:\n\n"
-        for inv_num in st.session_state.last_approved_invoices:
-            body_text += f"- {inv_num}\n"
+        body_text = f"Estimados,\n\nSe informa que se han aprobado las siguientes facturas del emisor **{emisor}** por un monto total a desembolsar de **{currency} {total:,.2f}**:\n\n"
+        
+        for item in st.session_state.last_approved_invoices:
+            # Handle if it was legacy string list or new dict list
+            if isinstance(item, dict):
+                body_text += f"- Factura {item['num']} ({currency} {item['amount']:,.2f})\n"
+            else:
+                body_text += f"- {item}\n"
+                
         body_text += "\nSaludos cordiales,\nGerencia"
     
     render_email_sender(
