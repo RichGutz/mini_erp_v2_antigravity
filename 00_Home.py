@@ -65,22 +65,30 @@ if 'user_info' not in st.session_state:
     with col2:
         st.markdown("<br><br><br>", unsafe_allow_html=True) # Top spacing
         
-        # Logos Container - Table 2x1 Structure
-        with st.container(border=False):
-            # 1. Create a centered wrapper (middle 50% of screen approx)
-            _, center_wrapper, _ = st.columns([1, 2, 1])
+        # Logos Container - HTML/Flexbox Approach for Perfect Alignment
+        # Reading images as base64 to ensure they display correctly and can be styled with CSS
+        def get_base64_image(image_path):
+            with open(image_path, "rb") as img_file:
+                return base64.b64encode(img_file.read()).decode()
+
+        try:
+            logo1_path = os.path.join(project_root, "static", "logo_geek.png")
+            logo2_path = os.path.join(project_root, "static", "logo_inandes.png")
             
-            with center_wrapper:
-                # 2. Create the 2x1 "Table" inside the wrapper
-                # This ensures they are side-by-side but contained in the center
-                c1, c2 = st.columns(2)
-                
-                with c1:
-                    # Using relative path "static/..." which is safer for Streamlit Cloud
-                    st.image("static/logo_geek.png", use_container_width=True) 
-                
-                with c2:
-                    st.image("static/logo_inandes.png", use_container_width=True)
+            logo1_b64 = get_base64_image(logo1_path)
+            logo2_b64 = get_base64_image(logo2_path)
+            
+            st.markdown(
+                f"""
+                <div style="display: flex; justify-content: center; align-items: center; gap: 40px; padding: 20px 0;">
+                    <img src="data:image/png;base64,{logo1_b64}" width="220" style="object-fit: contain;">
+                    <img src="data:image/png;base64,{logo2_b64}" width="220" style="object-fit: contain;">
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        except Exception as e:
+            st.error(f"Error loading logos: {e}")
         
         st.markdown("<h3 style='text-align: center; color: #666; font-weight: normal;'>Acceso Corporativo</h3>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
