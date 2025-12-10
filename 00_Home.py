@@ -349,3 +349,62 @@ else:
         class SW_MODULO_CLIENTES,SW_MODULO_OPERACIONES,SW_MODULO_DESEMBOLSO,SW_MODULO_LIQUIDACION,MODULO_REPORTE,REPORTES_GERENCIALES,REPORTES_TRIBUTARIOS,SW_CALCULADORA_FACTORING module
     """
     st_mermaid(mermaid_code, height="800px")
+
+    st.markdown("---")
+    st.subheader("Flujo Operativo Detallado (Roles e Inputs)", divider='green')
+    
+    mermaid_detailed_flow = """graph TD
+    %% Estilos
+    classDef usuarioOp fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef usuarioGer fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef usuarioTes fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef usuarioCob fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+
+    %% --- ETAPA 1: ORIGINACIÓN ---
+    subgraph ORIGINACION [Módulo Originación]
+        direction TB
+        N1("<b>Paso 1: Carga y Cálculo</b><br>User: Analista Operaciones"):::usuarioOp
+        N2("<b>Paso 2: Generación Documental</b><br>User: Analista Operaciones"):::usuarioOp
+    end
+
+    %% --- ETAPA 2: APROBACIÓN ---
+    subgraph APROBACION [Módulo Aprobación]
+        direction TB
+        N3("<b>Paso 3: Revisión Gerencial</b><br>User: Gerencia"):::usuarioGer
+    end
+
+    %% --- ETAPA 3: DESEMBOLSO ---
+    subgraph DESEMBOLSO [Módulo Desembolso]
+        direction TB
+        N4("<b>Paso 4: Formalización del Desembolso</b><br>User: Tesorería"):::usuarioTes
+    end
+
+    %% --- ETAPA 4: LIQUIDACIÓN ---
+    subgraph LIQUIDACION [Módulo Liquidación]
+        direction TB
+        N5("<b>Paso 5: Recepción de Pago</b><br>User: Operaciones/Cobranza"):::usuarioCob
+        N6("<b>Paso 6: Liquidación Final</b><br>User: Operaciones/Cobranza"):::usuarioCob
+    end
+
+    %% FLUJO
+    Start((Inicio)) -->|"Input: Facturas XML/PDF + Tasas"| N1
+    
+    N1 -->|"Input: Selección de Cliente y Condiciones"| N2
+    
+    N2 -->|"Input: Confirmación de Guardado (Data en BD)"| N3
+    
+    N3 -->|"Input: Clic en 'Aprobar' (Visto Bueno)"| N4
+    
+    N4 -->|"Input: Voucher de Transferencia (PDF) + Fecha"| N5
+    
+    N5 -->|"Input: Comprobante de Pago del Cliente + Fecha Real"| N6
+    
+    N6 -->|"Input: Confirmación de Cierre"| End((Fin del Proceso))
+
+    %% Leyenda de Colores
+    %% Azul: Analista
+    %% Amarillo: Gerencia
+    %% Verde: Tesorería
+    %% Morado: Cobranza
+    """
+    st_mermaid(mermaid_detailed_flow, height="800px")
