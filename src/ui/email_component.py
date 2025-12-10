@@ -12,26 +12,33 @@ def render_email_sender(key_suffix: str, documents: list, default_email: str = "
         default_subject (str): Asunto por defecto.
         default_body (str): Cuerpo por defecto.
     """
-    st.markdown("### Envío de Documentos por Correo")
-    st.info("Selecciona los documentos adjuntos y envía el correo directamente al cliente.")
+    st.markdown("### Notificación por Correo")
     
-    if not documents:
-        st.warning("No hay documentos disponibles para enviar en este contexto.")
-        return
+    # Validation: documents is optional now
+    has_documents = len(documents) > 0
+    
+    if has_documents:
+        st.info("Selecciona los documentos adjuntos y envía el correo directamente al cliente.")
+    else:
+        st.info("Redacta y envía la notificación por correo.")
 
     with st.expander("✉️ Redactar Correo", expanded=True):
-        # 1. Selector de Documentos
-        st.caption("Selecciona los adjuntos:")
         selected_docs = []
         
-        # Checkbox para cada doc
-        cols = st.columns(2)
-        for i, doc in enumerate(documents):
-            # Por defecto seleccionados
-            if cols[i % 2].checkbox(f"📎 {doc['name']}", value=True, key=f"chk_{i}_{key_suffix}"):
-                selected_docs.append(doc)
-        
-        st.divider()
+        if has_documents:
+            # 1. Selector de Documentos
+            st.caption("Selecciona los adjuntos:")
+            
+            # Checkbox para cada doc
+            cols = st.columns(2)
+            for i, doc in enumerate(documents):
+                # Por defecto seleccionados
+                if cols[i % 2].checkbox(f"📎 {doc['name']}", value=True, key=f"chk_{i}_{key_suffix}"):
+                    selected_docs.append(doc)
+            st.divider()
+        else:
+             # Just a small separator if no docs
+             pass
 
         # 2. Campos del Correo
         c1, c2 = st.columns([1, 2])
@@ -55,7 +62,8 @@ def render_email_sender(key_suffix: str, documents: list, default_email: str = "
                 st.error(f"❌ La dirección de correo '{to_email}' no parece válida.")
                 return
             
-            if not selected_docs:
+            # Warn only if documents were available but none selected
+            if has_documents and not selected_docs:
                 st.warning("⚠️ No has seleccionado ningún archivo adjunto (puedes enviar igual si lo deseas).")
             
             with st.spinner("Conectando con servidor SMTP y enviando..."):
