@@ -73,17 +73,8 @@ st.markdown('''<style>
 </style>''', unsafe_allow_html=True)
 
 # --- UI: Header con Logos ---
-col1, col2, col3 = st.columns([0.25, 0.5, 0.25])
-with col1:
-    st.image(os.path.join(project_root, "static", "logo_geek.png"), width=200)
-with col2:
-    st.markdown("<h2 style='text-align: center; font-size: 2.4em;'>Módulo de Aprobación</h2>", unsafe_allow_html=True)
-with col3:
-    empty_col, logo_col = st.columns([2, 1])
-    with logo_col:
-        st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
-
-st.markdown("---")
+from src.ui.header import render_header
+render_header("Módulo de Aprobación")
 
 # --- Cargar Facturas Activas Automáticamente ---
 if st.session_state.reload_data:

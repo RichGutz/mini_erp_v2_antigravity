@@ -324,15 +324,9 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     return "\n".join(lines)
 
 # --- Header Estándar ---
-col1, col2, col3 = st.columns([0.25, 0.5, 0.25])
-with col1:
-    st.image(os.path.join(project_root, "static", "logo_geek.png"), width=200)
-with col2:
-    st.markdown("<h2 style='text-align: center; font-size: 2.4em;'>Módulo de Liquidación</h2>", unsafe_allow_html=True)
-with col3:
-    empty_col, logo_col = st.columns([2, 1])
-    with logo_col:
-        st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
+# --- Header Estándar ---
+from src.ui.header import render_header
+render_header("Módulo de Liquidación")
 
 # --- UI Views ---
 def mostrar_busqueda_universal():

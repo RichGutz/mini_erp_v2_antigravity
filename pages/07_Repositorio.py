@@ -15,15 +15,9 @@ st.set_page_config(
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 # --- UI: Header ---
-col1, col2, col3 = st.columns([0.25, 0.5, 0.25])
-with col1:
-    st.image(os.path.join(project_root, "static", "logo_geek.png"), width=200)
-with col2:
-    st.markdown("<h2 style='text-align: center; font-size: 2.4em;'>📁 Repositorio INANDES</h2>", unsafe_allow_html=True)
-with col3:
-    empty_col, logo_col = st.columns([2, 1])
-    with logo_col:
-        st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
+# --- Header ---
+from src.ui.header import render_header
+render_header("📁 Repositorio INANDES")
 
 st.markdown("---")
 

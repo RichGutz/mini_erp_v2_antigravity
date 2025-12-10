@@ -196,15 +196,9 @@ if 'interes_mensual_global' not in st.session_state: st.session_state.interes_me
 # --- UI: Título y CSS ---
 st.markdown("<style>\n[data-testid=\"stHorizontalBlock\"] { \n    align-items: flex-start; \n}\n</style>", unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([0.25, 0.5, 0.25], vertical_alignment="center")
-with col1:
-    st.image(os.path.join(project_root, "static", "logo_geek.png"), width=200)
-with col2:
-    st.markdown("<h2 style='text-align: center; font-size: 2.4em;'>Calculadora de Factoring</h2>", unsafe_allow_html=True)
-with col3:
-    empty_col, logo_col = st.columns([2, 1])
-    with logo_col:
-        st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=195)
+# --- Header ---
+from src.ui.header import render_header
+render_header("Calculadora de Factoring")
 
 # --- UI: Número de Facturas a Simular ---
 with st.expander("Configuración de Simulación", expanded=True):

@@ -31,9 +31,9 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🧪 Testing Liquidación Universal")
-st.markdown("**Auditoría Visual: Tabla Día a Día con Interés Compuesto**")
-st.markdown("---")
+# --- Header ---
+from src.ui.header import render_header
+render_header("Testing Liquidación Universal")
 
 # ============================================================================
 # FUNCIONES DE CÁLCULO CON INTERÉS COMPUESTO

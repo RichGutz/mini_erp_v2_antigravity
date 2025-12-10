@@ -22,9 +22,9 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🗑️ Limpieza de Base de Datos")
-st.markdown("**Herramienta para limpiar datos operacionales de Supabase**")
-st.markdown("---")
+# --- Header y Configuración ---
+from src.ui.header import render_header
+render_header("Limpieza de Base de Datos")
 
 # ============================================================================
 # FUNCIONES

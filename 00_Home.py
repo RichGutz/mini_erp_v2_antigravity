@@ -195,13 +195,18 @@ else:
             st.rerun()
         st.divider()
 
+    # --- MODULES CONFIG ---
+    import sys
+    import os
+    # Ensure src is in path for imports if not already
+    sys.path.append(os.path.abspath("."))
+    from src.ui.header import render_header
+
+    # Render Standard Header
+    render_header("Módulos del Sistema")
+    
     st.write(f"Bienvenido al ERP, *{user_info.get('name', 'User')}*!")
     
-    # --- NAVIGATION HELPER ---
-    def switch_page(page_name):
-        st.switch_page(f"pages/{page_name}.py")
-
-    # --- MODULES CONFIG ---
     MODULES = {
         "Registro": {"status": "✅ En Producción", "help": "Gestión de emisores y aceptantes. Permite crear, consultar y modificar registros de clientes.", "page": "01_Registro"},
         "Originación": {"status": "✅ En Producción", "help": "Gestión de operaciones para clientes existentes. Permite crear anexos, procesar facturas y generar los perfiles de la operación.", "page": "02_Originacion"},
@@ -216,7 +221,7 @@ else:
     }
 
     # --- MODULE NAVIGATION GRID ---
-    st.subheader("Mapa de Módulos del Sistema", divider='blue')
+    st.subheader("", divider='blue')
 
     grid_layout = [
         ["Registro", "Originación", "Aprobación", "Desembolso"],
