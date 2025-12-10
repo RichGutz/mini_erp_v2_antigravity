@@ -67,16 +67,16 @@ if 'user_info' not in st.session_state:
         
         # Logos Container - Centered and Resized
         with st.container(border=False):
-            # Use 4 columns to create centered effect for the 2 logos: [gap, logo1, logo2, gap]
-            # Adjusting ratios to bring them closer and reduce apparent size
-            lc1, lc2, lc3, lc4 = st.columns([1, 2, 2, 1])
+            # Using [2, 3, 3, 2] to center the two logos horizontally
+            # This pushes them towards the center while giving them enough space (30% width each)
+            lc1, lc2, lc3, lc4 = st.columns([2, 3, 3, 2])
             
             with lc2:
-                # Align right to be close to the center
-                st.image(os.path.join(project_root, "static", "logo_geek.png"), width=180) 
+                # Logo Geesoft
+                st.image(os.path.join(project_root, "static", "logo_geek.png"), width=220) 
             with lc3:
-                # Align left to be close to the center
-                st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=180)
+                # Logo Inandes
+                st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=220)
         
         st.markdown("<h3 style='text-align: center; color: #666; font-weight: normal;'>Acceso Corporativo</h3>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
