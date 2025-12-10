@@ -60,7 +60,7 @@ def render_header(title: str):
             with right_content:
                 # 1. Logout Button (Discreet, Top, Right Aligned)
                 # CSS hack:
-                # 1. Pull up significantly (-35px)
+                # 1. Pull up significantly (-45px)
                 # 2. Force the button element to float right / align right
                 st.markdown("""
                     <style>
@@ -70,9 +70,15 @@ def render_header(title: str):
                         height: auto;
                         min-height: 0px;
                         line-height: 1.2;
+                        background-color: #f0f2f6; /* Soft grey */
+                        border-color: #d1d5db; /* Subtle border */
+                    }
+                    div.stButton > button[kind="secondary"]:hover {
+                        background-color: #e5e7eb;
+                        border-color: #9ca3af;
                     }
                     </style>
-                    <div style="margin-top: -35px;"></div>
+                    <div style="margin-top: -45px;"></div>
                 """, unsafe_allow_html=True)
                 
                 # Using a container/column that is naturally right-aligned is tricky in Streamlit.
