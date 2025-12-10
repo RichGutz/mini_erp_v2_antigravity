@@ -121,7 +121,13 @@ render_header("Módulo de Desembolso")
 # SECCIÓN 1: FACTURAS PENDIENTES (Full Width)
 # ==============================================================================
 with st.container(border=True):
-    st.subheader("1. Facturas Pendientes")
+    c_head, c_btn = st.columns([5, 1])
+    with c_head:
+        st.subheader("1. Facturas Pendientes")
+    with c_btn:
+        if st.button("🔄 Actualizar", key="btn_refresh_desembolso", help="Recargar lista desde Base de Datos"):
+            st.session_state.reload_data = True
+            st.rerun()
     
     # Filtrar seleccionadas
     facturas_seleccionadas = [

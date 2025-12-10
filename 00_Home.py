@@ -254,7 +254,7 @@ else:
                         st.markdown("&nbsp;")
                         
                         if st.button(f"Abrir", help=details["help"], key=f"btn_{module_name}", use_container_width=True):
-                            switch_page(details['page'])
+                            st.switch_page(details['page'])
 
     # --- INTERACTIVE FLOWCHART ---
     st.markdown("&nbsp;")
