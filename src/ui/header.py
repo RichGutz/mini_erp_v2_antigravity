@@ -36,7 +36,6 @@ def render_header(title: str):
     # Use a container to group the header elements
     with st.container(border=False):
         # 3-Column Layout: [Logo Geek (1), Title (2), Right Stack (1)]
-        # Removed vertical_alignment="center" to allow the button to sit at the top ("más arriba")
         col1, col2, col3 = st.columns([1, 2, 1])
         
         # --- Left: Geesoft Logo ---
@@ -55,19 +54,32 @@ def render_header(title: str):
         # --- Right: Logout + Inandes Logo Stack ---
         with col3:
             # Create a 2-column layout inside the right column to push content to the far right
-            # [Spacer, Content]
-            _, right_content = st.columns([1, 2]) 
+            # [Spacer (Large), Content (Small)] -> Pushes content flush right
+            _, right_content = st.columns([3, 2]) 
             
             with right_content:
-                # 1. Logout Button (Discreet, Top)
-                # Removed use_container_width=True to make it smaller ("mitad de ancho")
+                # 1. Logout Button (Discreet, Top, Right Aligned)
+                # CSS hack to pull it up ("un pelo más arriba") and ensure right alignment visuals
+                st.markdown("""
+                    <style>
+                    div.stButton > button[kind="secondary"] {
+                        padding-top: 0px; 
+                        padding-bottom: 0px;
+                        height: auto;
+                        min-height: 0px;
+                    }
+                    /* Specific targetting might be needed, using a container-based margin pull */
+                    </style>
+                    <div style="margin-top: -15px;"></div>
+                """, unsafe_allow_html=True)
+                
                 if st.button("🔒 Cerrar Sesión", key="header_logout_btn", help="Cerrar sesión actual"):
                     st.session_state.clear()
                     st.switch_page("00_Home.py")
                 
                 # 2. Inandes Logo (Bottom)
                 st.markdown(
-                    f"""<div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                    f"""<div style="display: flex; justify-content: flex-end; margin-top: 5px;">
                     <img src="data:image/png;base64,{logo_inandes_b64}" style="max-width: 150px; width: 100%; object-fit: contain;">
                     </div>""",
                     unsafe_allow_html=True
