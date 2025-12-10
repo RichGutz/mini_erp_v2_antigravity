@@ -1,22 +1,17 @@
 import sys
 import os
-# --- PATH SETUP ---
-# Add the project root to the Python path. This allows absolute imports from 'src'.
-project_root = os.path.dirname(os.path.abspath(__file__))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-# Now imports like `from src.services import ...` will work from any script.
-
 import streamlit as st
-
-
-
 from streamlit_mermaid import st_mermaid
 from streamlit_oauth import OAuth2Component
 import base64
 import json
 from src.data import supabase_repository as db
+
+# --- PATH SETUP ---
+# Add the project root to the Python path. This allows absolute imports from 'src'.
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -31,14 +26,13 @@ AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 
-# --- AUTHENTICATION ---
+# --- AUTHENTICATION SETUP ---
 # 1. Load credentials from secrets.toml
 credentials = st.secrets['google_oauth']
 client_id = credentials['client_id']
 client_secret = credentials['client_secret']
 
 # --- Lógica de Redirección Dinámica ---
-# Si st.secrets tiene una URI, úsala (para la nube). Si no, usa la local.
 try:
     # This will be used in the cloud
     redirect_uri = credentials['redirect_uri']
@@ -46,122 +40,146 @@ except KeyError:
     # This will be used for local development
     redirect_uri = "http://localhost:8504"
 
-# authorized_users = credentials['authorized_users'] # No longer needed, managed by Supabase
+# ==========================================
+# MAIN APP LOGIC
+# ==========================================
 
-# 2. Check if user is authenticated
 if 'user_info' not in st.session_state:
-    # Create an oauth2 component
-    oauth2 = OAuth2Component(client_id, client_secret, AUTHORIZE_URL, TOKEN_URL, REVOKE_URL)
-    result = oauth2.authorize_button(
-        name="Continue with Google",
-        icon="https://www.google.com.tw/favicon.ico",
-        redirect_uri=redirect_uri,
-        scope="openid email profile https://www.googleapis.com/auth/drive",
-        key="google",
-        use_container_width=True,
-        pkce='S256',
-    )
+    # ------------------------------------------
+    # CASE 1: NOT AUTHENTICATED -> LANDING PAGE
+    # ------------------------------------------
     
-    if result:
-        # The result contains the token, decode the id_token to get user info
-        id_token = result['token']['id_token']
-        
-        # Verify the signature is an optional step for security
-        # Here we just decode the payload to get user info
-        payload = id_token.split('.')[1]
-        # Add padding if needed
-        payload += '=' * (-len(payload) % 4)
-        decoded_payload = json.loads(base64.b64decode(payload))
-        
-        user_email = decoded_payload.get('email')
-        if user_email:
-            # 1. Check if user exists in authorized_users table
-            user_record = db.get_user_by_email(user_email)
+    # 1. Hide Sidebar
+    st.markdown(
+        """
+        <style>
+            [data-testid="stSidebar"] {display: none;}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
-            if user_record is None:
-                # User not found, add them to authorized_users
-                st.info(f"Registrando nuevo usuario: {user_email}")
-                user_record = db.add_new_authorized_user(user_email)
-                if user_record:
-                    user_id = user_record['id']
-                    # Automatically grant access to 'Home' module for new users
-                    home_module = db.get_module_by_name("Home")
-                    if home_module is None:
-                        # If 'Home' module doesn't exist, create it (one-time setup)
-                        st.warning("Módulo 'Home' no encontrado. Creándolo automáticamente.")
-                        home_module = db.add_module("Home", "Página de inicio de la aplicación.")
-                    
-                    if home_module:
-                        db.add_user_module_access(user_id, home_module['id'], 'viewer')
-                        st.success(f"Usuario {user_email} registrado y acceso a 'Home' concedido.")
-                    else:
-                        st.error("Error al configurar el módulo 'Home'. Contacte al administrador.")
-                        st.stop() # Stop execution if critical setup fails
-                else:
-                    st.error("Error al registrar el nuevo usuario. Contacte al administrador.")
-                    st.stop() # Stop execution if critical setup fails
+    # 2. Centered Layout
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("<br><br><br>", unsafe_allow_html=True) # Top spacing
+        
+        # Logos Container
+        with st.container(border=False):
+            l_col1, l_col2 = st.columns(2)
+            with l_col1:
+                st.image(os.path.join(project_root, "static", "logo_geek.png"), use_container_width=True)
+            with l_col2:
+                st.image(os.path.join(project_root, "static", "logo_inandes.png"), use_container_width=True)
+        
+        st.markdown("<h3 style='text-align: center; color: #666; font-weight: normal;'>Acceso Corporativo</h3>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # 3. Login Button & Logic
+        oauth2 = OAuth2Component(client_id, client_secret, AUTHORIZE_URL, TOKEN_URL, REVOKE_URL)
+        result = oauth2.authorize_button(
+            name="Iniciar Sesión con Google",
+            icon="https://www.google.com.tw/favicon.ico",
+            redirect_uri=redirect_uri,
+            scope="openid email profile https://www.googleapis.com/auth/drive",
+            key="google",
+            use_container_width=True,
+            pkce='S256',
+        )
+        
+        if result:
+            # The result contains the token, decode the id_token to get user info
+            id_token = result['token']['id_token']
             
-            # Ensure user_record is valid after potential creation
-            if user_record:
-                # 2. Check if user is active
-                if not user_record.get('is_active', False):
-                    st.error("Su cuenta está inactiva. Por favor, contacte al administrador.")
-                    st.stop() # Stop execution for inactive users
+            # Decode payload
+            payload = id_token.split('.')[1]
+            payload += '=' * (-len(payload) % 4)
+            decoded_payload = json.loads(base64.b64decode(payload))
+            
+            user_email = decoded_payload.get('email')
+            if user_email:
+                # 1. Check if user exists in authorized_users table
+                user_record = db.get_user_by_email(user_email)
 
-                # 3. Check module access (for 'Home' module in this case)
-                # First, ensure 'Home' module exists and get its ID
-                home_module = db.get_module_by_name("Home")
-                if home_module is None:
-                    st.error("Módulo 'Home' no configurado en la base de datos. Contacte al administrador.")
-                    st.stop() # Stop execution if module not configured
-
-                user_access = db.get_user_module_access(user_record['id'], home_module['id'])
-                if user_access is None:
-                    st.error("Acceso denegado al módulo 'Home'. Por favor, contacte al administrador.")
-                    st.stop() # Stop execution if no access record
-
-                # Assuming 'viewer' is the minimum hierarchy_level for basic access
-                # You might want more granular checks here based on hierarchy_level
-                # For now, any access record means they can proceed.
-
-                # If all checks pass, store user info in session state
-                st.session_state.user_info = decoded_payload
+                if user_record is None:
+                    # User not found, attempt autoregistration
+                    st.info(f"Registrando nuevo usuario: {user_email}")
+                    user_record = db.add_new_authorized_user(user_email)
+                    if user_record:
+                        user_id = user_record['id']
+                        # Grant Home access
+                        home_module = db.get_module_by_name("Home")
+                        if home_module is None:
+                            st.warning("Módulo 'Home' no encontrado. Creándolo automáticamente.")
+                            home_module = db.add_module("Home", "Página de inicio de la aplicación.")
+                        
+                        if home_module:
+                            db.add_user_module_access(user_id, home_module['id'], 'viewer')
+                            st.success(f"Usuario registrado correctamente.")
+                        else:
+                            st.error("Error crítico: No se pudo configurar acceso a 'Home'.")
+                            st.stop()
+                    else:
+                        st.error("Error al registrar el nuevo usuario en base de datos.")
+                        st.stop()
                 
-                # CORRECCIÓN CRÍTICA: Guardar solo el access_token (string), no el dict completo
-                # Esto asegura que el Picker reciba el token correcto
-                if isinstance(result['token'], dict):
-                    st.session_state.token = result['token'].get('access_token')
-                else:
-                    st.session_state.token = result['token']
-                    
-                st.session_state.user_db_id = user_record['id'] # Store DB ID for future use
-                st.session_state.user_hierarchy_level = user_access['hierarchy_level'] # Store hierarchy for current module
+                # Verify active status and access
+                if user_record:
+                    if not user_record.get('is_active', False):
+                        st.error("Su cuenta está inactiva. Contacte al administrador.")
+                        st.stop()
 
-                # Clear query parameters and rerun
-                st.query_params.clear()
-                st.rerun()
+                    home_module = db.get_module_by_name("Home")
+                    if home_module:
+                        user_access = db.get_user_module_access(user_record['id'], home_module['id'])
+                        if user_access is None:
+                            st.error("No tiene permisos para acceder al módulo 'Home'.")
+                            st.stop()
+
+                        # --- SUCCESSFUL LOGIN ---
+                        st.session_state.user_info = decoded_payload
+                        
+                        # Store token (string only)
+                        if isinstance(result['token'], dict):
+                            st.session_state.token = result['token'].get('access_token')
+                        else:
+                            st.session_state.token = result['token']
+                            
+                        st.session_state.user_db_id = user_record['id']
+                        st.session_state.user_hierarchy_level = user_access['hierarchy_level']
+
+                        st.query_params.clear()
+                        st.rerun()
+                    else:
+                         st.error("Configuración de sistema incompleta (Módulo Home missing).")
             else:
-                st.error("Error inesperado al procesar el usuario. Contacte al administrador.")
-        else:
-            st.error("No se pudo obtener la dirección de correo electrónico del usuario. Intente de nuevo.")
+                st.error("No se pudo obtener el email del proveedor de identidad.")
 
 else:
-    # User is authenticated, show the main app
-    user_info = st.session_state.user_info
-    st.write(f"Welcome, *{user_info.get('name', 'User')}*!")
+    # ------------------------------------------
+    # CASE 2: AUTHENTICATED -> DASHBOARD
+    # ------------------------------------------
     
-    if st.button("Logout"):
-        del st.session_state.user_info
-        del st.session_state.token
-        st.rerun()
+    user_info = st.session_state.user_info
+    
+    # Sidebar Logout
+    with st.sidebar:
+        st.write(f"Hola, *{user_info.get('name', 'User')}*")
+        if st.button("Cerrar Sesión", use_container_width=True, type="primary"):
+            del st.session_state.user_info
+            if 'token' in st.session_state:
+                del st.session_state.token
+            st.rerun()
+        st.divider()
 
-    # --- NAVIGATION ---
+    st.write(f"Bienvenido al ERP, *{user_info.get('name', 'User')}*!")
+    
+    # --- NAVIGATION HELPER ---
     def switch_page(page_name):
-        # For manual switching, we must provide the full path from the root.
         st.switch_page(f"pages/{page_name}.py")
 
-    # --- DATA & ORDER ---
-    # --- DATA & ORDER ---
+    # --- MODULES CONFIG ---
     MODULES = {
         "Registro": {"status": "✅ En Producción", "help": "Gestión de emisores y aceptantes. Permite crear, consultar y modificar registros de clientes.", "page": "01_Registro"},
         "Originación": {"status": "✅ En Producción", "help": "Gestión de operaciones para clientes existentes. Permite crear anexos, procesar facturas y generar los perfiles de la operación.", "page": "02_Originacion"},
@@ -175,14 +193,9 @@ else:
         "Testing Liq.": {"status": "🧪 Testing", "help": "Módulo de pruebas unitarias y validación para el motor de liquidaciones.", "page": "10_Testing_Liquidacion_Universal"}
     }
 
-    # --- MODULE NAVIGATION ---
-    st.subheader("Map de Módulos del Sistema", divider='blue')
+    # --- MODULE NAVIGATION GRID ---
+    st.subheader("Mapa de Módulos del Sistema", divider='blue')
 
-    # Define the 4x3 grid layout based on pages/ order
-    # Row 1: 01, 02, 03, 04
-    # Row 2: 05, 06, 07, 08
-    # Row 3: 09, 10, Empty, Empty
-    
     grid_layout = [
         ["Registro", "Originación", "Aprobación", "Desembolso"],
         ["Liquidación", "Reporte", "Repositorio", "Calculadora"],
@@ -190,17 +203,15 @@ else:
     ]
 
     for row in grid_layout:
-        cols = st.columns(4) # 4 Columns
+        cols = st.columns(4)
         for i, module_name in enumerate(row):
             with cols[i]:
                 if module_name is None:
-                    # Empty cell
                     st.write("")
                 else:
                     details = MODULES[module_name]
                     status_text = details['status']
                     
-                    # Color logic
                     if "✅" in status_text:
                         title_color = "green"
                     elif "⚠️" in status_text:
@@ -213,9 +224,8 @@ else:
                     with st.container(border=True):
                         st.markdown(f'<h4 style="color:{title_color}; text-align:center;">{module_name}</h4>', unsafe_allow_html=True)
                         st.caption(f"Status: {status_text}")
-                        st.markdown("&nbsp;") # Spacer
+                        st.markdown("&nbsp;")
                         
-                        # Button
                         if st.button(f"Abrir", help=details["help"], key=f"btn_{module_name}", use_container_width=True):
                             switch_page(details['page'])
 
