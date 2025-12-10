@@ -49,7 +49,8 @@ except Exception as e:
 
 # --- Custom CSS ---
 # --- Custom CSS ---
-# Removed conflicting CSS that forces flex-start globally, affecting header.
+st.markdown("""
+<style>
     .stButton>button.red-button {
         background-color: #FF4B4B;
         color: white;
