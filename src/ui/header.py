@@ -54,12 +54,14 @@ def render_header(title: str):
         # --- Right: Logout + Inandes Logo Stack ---
         with col3:
             # Create a 2-column layout inside the right column to push content to the far right
-            # [Spacer (Large), Content (Small)] -> Pushes content flush right
-            _, right_content = st.columns([3, 2]) 
+            # [Spacer (Very Large), Content (Small)] -> Pushes content tight match right margin
+            _, right_content = st.columns([5, 3]) 
             
             with right_content:
                 # 1. Logout Button (Discreet, Top, Right Aligned)
-                # CSS hack to pull it up ("un pelo más arriba") and ensure right alignment visuals
+                # CSS hack:
+                # 1. Pull up significantly (-35px)
+                # 2. Force the button element to float right / align right
                 st.markdown("""
                     <style>
                     div.stButton > button[kind="secondary"] {
@@ -67,13 +69,17 @@ def render_header(title: str):
                         padding-bottom: 0px;
                         height: auto;
                         min-height: 0px;
+                        line-height: 1.2;
                     }
-                    /* Specific targetting might be needed, using a container-based margin pull */
                     </style>
-                    <div style="margin-top: -15px;"></div>
+                    <div style="margin-top: -35px;"></div>
                 """, unsafe_allow_html=True)
                 
-                if st.button("🔒 Cerrar Sesión", key="header_logout_btn", help="Cerrar sesión actual"):
+                # Using a container/column that is naturally right-aligned is tricky in Streamlit.
+                # The tight column [5, 3] combined with "use_container_width=True" might actually fill the space better 
+                # OR we just rely on the tight column being on the right.
+                
+                if st.button("🔒 Cerrar Sesión", key="header_logout_btn", help="Cerrar sesión actual", use_container_width=True):
                     st.session_state.clear()
                     st.switch_page("00_Home.py")
                 
