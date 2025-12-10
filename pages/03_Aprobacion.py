@@ -10,6 +10,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 # --- Module Imports from `src` ---
 from src.data import supabase_repository as db
+from src.ui.email_component import render_email_sender
 
 # --- Configuración de la Página ---
 st.set_page_config(
@@ -26,6 +27,8 @@ if 'facturas_seleccionadas_aprobacion' not in st.session_state:
     st.session_state.facturas_seleccionadas_aprobacion = {}
 if 'reload_data' not in st.session_state:
     st.session_state.reload_data = True
+if 'last_approved_invoices' not in st.session_state:
+    st.session_state.last_approved_invoices = [] # List of strings (Invoice Numbers)
 
 # --- Funciones de Ayuda ---
 def parse_invoice_number(proposal_id: str) -> str:
@@ -165,17 +168,21 @@ else:
             
             success_count = 0
             error_count = 0
+            approved_list_temp = []
             
             for proposal_id in ids_seleccionados:
                 try:
                     db.update_proposal_status(proposal_id, 'APROBADO')
                     # st.success(f"✅ Factura aprobada.") # Reduce noise
+                    inv_num = parse_invoice_number(proposal_id)
+                    approved_list_temp.append(inv_num)
                     success_count += 1
                 except Exception as e:
                     st.error(f"❌ Error al aprobar: {e}")
                     error_count += 1
             
             if success_count > 0:
+                st.session_state.last_approved_invoices = approved_list_temp # Store for email body
                 st.success(f"🎉 Se aprobaron {success_count} factura(s) exitosamente.")
             
             if error_count > 0:
@@ -186,17 +193,23 @@ else:
                 st.rerun()
 
 
-# --- Información Adicional ---
+# --- Sección 2: Notificación por Correo (Reemplaza Información) ---
 # st.markdown("---")
 with st.container(border=True):
-    st.subheader("2. Información del Módulo")
-    # with st.expander("ℹ️ Información del Módulo"):
-    st.markdown("""
-    Este módulo permite a gerencia revisar y aprobar operaciones antes de que pasen a desembolso.
+    st.subheader("2. Notificación de Aprobación")
     
-    **Flujo de trabajo:**
-    1. Las operaciones creadas en **Originación** quedan en estado `ACTIVO`
-    2. Gerencia revisa y aprueba las operaciones en este módulo (Agrupadas por Lote)
-    3. Al aprobar, el estado cambia a `APROBADO`
-    4. Solo las operaciones `APROBADAS` están disponibles para **Desembolso**
-    """)
+    # Construct Body
+    body_text = ""
+    if st.session_state.last_approved_invoices:
+        body_text = "Estimados,\n\nSe informa que se han aprobado las siguientes facturas para proceso de desembolso:\n\n"
+        for inv_num in st.session_state.last_approved_invoices:
+            body_text += f"- {inv_num}\n"
+        body_text += "\nSaludos cordiales,\nGerencia"
+    
+    render_email_sender(
+        key_suffix="aprobacion",
+        documents=[], # No attachments typically for just approval notification
+        default_subject="Notificación de Aprobación de Facturas",
+        default_body=body_text
+    )
+
