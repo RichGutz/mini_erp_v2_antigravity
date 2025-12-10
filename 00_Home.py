@@ -94,16 +94,21 @@ if 'user_info' not in st.session_state:
         st.markdown("<br>", unsafe_allow_html=True)
 
         # 3. Login Button & Logic
-        oauth2 = OAuth2Component(client_id, client_secret, AUTHORIZE_URL, TOKEN_URL, REVOKE_URL)
-        result = oauth2.authorize_button(
-            name="Iniciar Sesión con Google",
-            icon="https://www.google.com.tw/favicon.ico",
-            redirect_uri=redirect_uri,
-            scope="openid email profile https://www.googleapis.com/auth/drive",
-            key="google",
-            use_container_width=True,
-            pkce='S256',
-        )
+        # Centering the button and reducing its width by using columns
+        # The main column is already 50% of screen. Nested [1, 2, 1] makes the button 50% of that (25% total).
+        _, btn_col, _ = st.columns([1, 2, 1])
+        
+        with btn_col:
+            oauth2 = OAuth2Component(client_id, client_secret, AUTHORIZE_URL, TOKEN_URL, REVOKE_URL)
+            result = oauth2.authorize_button(
+                name="Iniciar Sesión con Google",
+                icon="https://www.google.com.tw/favicon.ico",
+                redirect_uri=redirect_uri,
+                scope="openid email profile https://www.googleapis.com/auth/drive",
+                key="google",
+                use_container_width=True,
+                pkce='S256',
+            )
         
         if result:
             # The result contains the token, decode the id_token to get user info
