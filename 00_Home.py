@@ -65,18 +65,24 @@ if 'user_info' not in st.session_state:
     with col2:
         st.markdown("<br><br><br>", unsafe_allow_html=True) # Top spacing
         
-        # Logos Container - Centered and Resized
+        # Logos Container - Table 2x1 Structure
         with st.container(border=False):
-            # Using [2, 3, 3, 2] to center the two logos horizontally
-            # This pushes them towards the center while giving them enough space (30% width each)
-            lc1, lc2, lc3, lc4 = st.columns([2, 3, 3, 2])
+            # 1. Create a centered wrapper (middle 50% of screen approx)
+            _, center_wrapper, _ = st.columns([1, 2, 1])
             
-            with lc2:
-                # Logo Geesoft
-                st.image(os.path.join(project_root, "static", "logo_geek.png"), width=220) 
-            with lc3:
-                # Logo Inandes
-                st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=220)
+            with center_wrapper:
+                # 2. Create the 2x1 "Table" inside the wrapper
+                # This ensures they are side-by-side but contained in the center
+                c1, c2 = st.columns(2)
+                
+                with c1:
+                    # Centering the image within the column using explicit width
+                    # and Streamlit's default alignment (which is left, but in a small col it looks centered)
+                    # To be safe, we rely on the container width being close to the image width
+                    st.image(os.path.join(project_root, "static", "logo_geek.png"), use_container_width=True) 
+                
+                with c2:
+                    st.image(os.path.join(project_root, "static", "logo_inandes.png"), use_container_width=True)
         
         st.markdown("<h3 style='text-align: center; color: #666; font-weight: normal;'>Acceso Corporativo</h3>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
