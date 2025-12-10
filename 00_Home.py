@@ -65,13 +65,18 @@ if 'user_info' not in st.session_state:
     with col2:
         st.markdown("<br><br><br>", unsafe_allow_html=True) # Top spacing
         
-        # Logos Container
+        # Logos Container - Centered and Resized
         with st.container(border=False):
-            l_col1, l_col2 = st.columns(2)
-            with l_col1:
-                st.image(os.path.join(project_root, "static", "logo_geek.png"), use_container_width=True)
-            with l_col2:
-                st.image(os.path.join(project_root, "static", "logo_inandes.png"), use_container_width=True)
+            # Use 4 columns to create centered effect for the 2 logos: [gap, logo1, logo2, gap]
+            # Adjusting ratios to bring them closer and reduce apparent size
+            lc1, lc2, lc3, lc4 = st.columns([1, 2, 2, 1])
+            
+            with lc2:
+                # Align right to be close to the center
+                st.image(os.path.join(project_root, "static", "logo_geek.png"), width=180) 
+            with lc3:
+                # Align left to be close to the center
+                st.image(os.path.join(project_root, "static", "logo_inandes.png"), width=180)
         
         st.markdown("<h3 style='text-align: center; color: #666; font-weight: normal;'>Acceso Corporativo</h3>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
