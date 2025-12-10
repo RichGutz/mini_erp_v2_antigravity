@@ -808,7 +808,42 @@ if st.session_state.invoices_data:
                     try:
                         with st.spinner("Guardando en BD y subiendo archivos..."):
                             # 1. DB Save Proposal
-                            # (Simulated for this implementation, typically calls db.save_proposal)
+                            lote_id = f"LOTE_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+                            saved_count = 0
+                            
+                            for inv in st.session_state.invoices_data:
+                                # Update invoice with form data
+                                inv['contract_number'] = contract
+                                inv['anexo_number'] = annex
+                                
+                                # Attempt save
+                                success, msg = db.save_proposal(inv, lote_id)
+                                if success:
+                                    saved_count += 1
+                                    # Update session state with proposal_id if returned (msg contains it)
+                                    # Ideally save_proposal should return the ID, but it returns a msg string with ID. 
+                                    # We can rely on the fact that save_proposal updates the dict passed to it if it modifies it?
+                                    # Checking save_proposal: it modifies 'data_to_insert' but that's a copy unless... 
+                                    # It does: `session_data` is passed. Function code: `data_to_insert = { ... }`. 
+                                    # It does NOT modify `session_data` in place except for generating ID, but that ID is in `data_to_insert`.
+                                    # LIMITATION: `save_proposal` does not update the `session_data` dict reference. 
+                                    # The ID is in `data_to_insert['proposal_id']`. 
+                                    # Fix: modifying save_proposal is outside scope (user rule: don't modify stable backend unless necessary).
+                                    # But I can't get the proposal_id back easily without parsing the message or modifying the repo.
+                                    # Wait, `save_proposal` computes `proposal_id` deterministically:
+                                    # `emisor_nombre_id-numero_factura-fecha_propuesta`.
+                                    # Actually, `fecha_propuesta` is `now()`. So I can't reconstruct it exactly.
+                                    # Review `save_proposal`:
+                                    # It returns `True, f"Propuesta con ID {data_to_insert['proposal_id']} guardada ..."`
+                                    pass 
+                                else:
+                                    st.error(f"Error guardando factura {inv.get('numero_factura')}: {msg}")
+                                    # Determine if we should stop. For now, continue but flag error.
+                            
+                            if saved_count < len(st.session_state.invoices_data):
+                                st.warning(f"⚠️ Se guardaron {saved_count} de {len(st.session_state.invoices_data)} facturas en la BD.")
+                            else:
+                                st.info(f"✅ Se guardaron {saved_count} facturas en la Base de Datos.")
                             
                             # 2. Upload PDFs
                             dest_folder_id = folder_info['id']
