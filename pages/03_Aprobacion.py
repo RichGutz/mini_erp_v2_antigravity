@@ -120,85 +120,85 @@ else:
     
     st.markdown("---")
     
-    with st.form(key="approval_form"):
-        # Iterar por cada grupo (Lote)
-        for lote_id, invoices_in_batch in grouped_invoices.items():
+    # with st.form(key="approval_form"):  <-- DELETED FORM WRAPPER
+    # Iterar por cada grupo (Lote)
+    for lote_id, invoices_in_batch in grouped_invoices.items():
+        
+        # Obtener datos del lote (Emisor fecha) del primer elemento
+        first_inv = invoices_in_batch[0]
+        emisor_name = first_inv.get('emisor_nombre', 'N/A')
+        created_at = first_inv.get('created_at', '') # Si existe
+        
+        # IDs de este lote
+        batch_pids = [inv['proposal_id'] for inv in invoices_in_batch]
+        
+        # Calcular estado actual del "Select All" para este lote
+        # True si TODOS los del lote están en True
+        all_selected = all(st.session_state.facturas_seleccionadas_aprobacion.get(pid, False) for pid in batch_pids)
+        
+        with st.container(border=True):
+            # Header del Lote
+            st.markdown(f"**📦 Lote:** `{lote_id}` | **Emisor:** {emisor_name} | **Cant:** {len(invoices_in_batch)}")
             
-            # Obtener datos del lote (Emisor fecha) del primer elemento
-            first_inv = invoices_in_batch[0]
-            emisor_name = first_inv.get('emisor_nombre', 'N/A')
-            created_at = first_inv.get('created_at', '') # Si existe
+            # Header de la Tablita
+            # Adjusted Columns: Added 'Monto Desembolso'
+            col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_fecha = st.columns([0.5, 1.5, 2.0, 1.5, 1.5, 1.0])
             
-            # IDs de este lote
-            batch_pids = [inv['proposal_id'] for inv in invoices_in_batch]
+            with col_check: 
+                # Checkbox Maestro para este lote
+                batch_key = f"select_all_{lote_id}"
+                st.checkbox(
+                    "Todo", # Label corto o vacío
+                    value=all_selected,
+                    key=batch_key,
+                    on_change=toggle_batch_selection,
+                    args=(batch_key, batch_pids),
+                    label_visibility="collapsed"
+                )
+            with col_factura: st.markdown("**Factura**")
+            with col_aceptante: st.markdown("**Aceptante**")
+            with col_monto: st.markdown("**Monto Neto**")
+            with col_desembolso: st.markdown("**A Desembolsar**")
+            with col_fecha: st.markdown("**F. Desemb.**")
             
-            # Calcular estado actual del "Select All" para este lote
-            # True si TODOS los del lote están en True
-            all_selected = all(st.session_state.facturas_seleccionadas_aprobacion.get(pid, False) for pid in batch_pids)
-            
-            with st.container(border=True):
-                # Header del Lote
-                st.markdown(f"**📦 Lote:** `{lote_id}` | **Emisor:** {emisor_name} | **Cant:** {len(invoices_in_batch)}")
-                
-                # Header de la Tablita
-                # Adjusted Columns: Added 'Monto Desembolso'
+            # Filas
+            for idx, factura in enumerate(invoices_in_batch):
                 col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_fecha = st.columns([0.5, 1.5, 2.0, 1.5, 1.5, 1.0])
                 
-                with col_check: 
-                    # Checkbox Maestro para este lote
-                    batch_key = f"select_all_{lote_id}"
-                    st.checkbox(
-                        "Todo", # Label corto o vacío
-                        value=all_selected,
-                        key=batch_key,
-                        on_change=toggle_batch_selection,
-                        args=(batch_key, batch_pids),
+                with col_check:
+                    # Usamos el ID real como key del checkbox
+                    pid = factura['proposal_id']
+                    st.session_state.facturas_seleccionadas_aprobacion[pid] = st.checkbox(
+                        "",
+                        value=st.session_state.facturas_seleccionadas_aprobacion.get(pid, False),
+                        key=f"chk_app_{pid}", # Unique Key per invoice
                         label_visibility="collapsed"
                     )
-                with col_factura: st.markdown("**Factura**")
-                with col_aceptante: st.markdown("**Aceptante**")
-                with col_monto: st.markdown("**Monto Neto**")
-                with col_desembolso: st.markdown("**A Desembolsar**")
-                with col_fecha: st.markdown("**F. Desemb.**")
                 
-                # Filas
-                for idx, factura in enumerate(invoices_in_batch):
-                    col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_fecha = st.columns([0.5, 1.5, 2.0, 1.5, 1.5, 1.0])
-                    
-                    with col_check:
-                        # Usamos el ID real como key del checkbox
-                        pid = factura['proposal_id']
-                        st.session_state.facturas_seleccionadas_aprobacion[pid] = st.checkbox(
-                            "",
-                            value=st.session_state.facturas_seleccionadas_aprobacion.get(pid, False),
-                            key=f"chk_app_{pid}", # Unique Key per invoice
-                            label_visibility="collapsed"
-                        )
-                    
-                    with col_factura: st.markdown(f"`{parse_invoice_number(factura['proposal_id'])}`")
-                    with col_aceptante: st.markdown(factura.get('aceptante_nombre', 'N/A'))
-                    with col_monto:
-                        monto = safe_decimal(factura.get('monto_neto_factura', 0))
-                        moneda = factura.get('moneda_factura', 'PEN')
-                        st.markdown(f"{moneda} {monto:,.2f}")
-                    with col_desembolso:
-                        monto_des = get_monto_a_desembolsar(factura)
-                        moneda = factura.get('moneda_factura', 'PEN')
-                        # Resaltar en negrita si es > 0, es el valor clave
-                        val_str = f"**{moneda} {monto_des:,.2f}**" if monto_des > 0 else f"{moneda} 0.00"
-                        st.markdown(val_str)
-                    with col_fecha: st.markdown(factura.get('fecha_desembolso_factoring', 'N/A'))
+                with col_factura: st.markdown(f"`{parse_invoice_number(factura['proposal_id'])}`")
+                with col_aceptante: st.markdown(factura.get('aceptante_nombre', 'N/A'))
+                with col_monto:
+                    monto = safe_decimal(factura.get('monto_neto_factura', 0))
+                    moneda = factura.get('moneda_factura', 'PEN')
+                    st.markdown(f"{moneda} {monto:,.2f}")
+                with col_desembolso:
+                    monto_des = get_monto_a_desembolsar(factura)
+                    moneda = factura.get('moneda_factura', 'PEN')
+                    # Resaltar en negrita si es > 0, es el valor clave
+                    val_str = f"**{moneda} {monto_des:,.2f}**" if monto_des > 0 else f"{moneda} 0.00"
+                    st.markdown(val_str)
+                with col_fecha: st.markdown(factura.get('fecha_desembolso_factoring', 'N/A'))
 
-        st.markdown("---")
-        
-        # Botón Maestro
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            submit_button = st.form_submit_button(
-                "✅ Aprobar Facturas Seleccionadas",
-                type="primary",
-                use_container_width=True
-            )
+    st.markdown("---")
+    
+    # Botón Maestro
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        submit_button = st.button(
+            "✅ Aprobar Facturas Seleccionadas",
+            type="primary",
+            use_container_width=True
+        )
             
     # Procesar Aprobaciones
     if submit_button:
