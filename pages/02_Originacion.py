@@ -77,27 +77,42 @@ st.markdown("""
     }
     
     /* --- HACK: Style Native File Uploader --- */
-    /* 1. Grid Layout (2 Columns) for the file list */
-    [data-testid='stFileUploader'] ul[role="list"] {
+    
+    /* 1. Grid Layout for the file list */
+    [data-testid='stFileUploader'] section[role="list"] {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
         gap: 8px !important;
     }
     
-    /* 2. Hide the decorative "file" icon to save space */
-    /* Target the SVG that is NOT inside the delete button */
-    [data-testid='stFileUploader'] ul[role="list"] li [data-testid="stFileUploaderFileIcon"] {
+    /* Also target the UL inside if structure varies */
+    [data-testid='stFileUploader'] ul {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+
+    /* 2. Hide the decorative "file" icon */
+    /* Target the SVG that is a direct child of the uploaded file item container */
+    [data-testid="stUploadedFile"] > div > svg {
         display: none !important;
     }
-    
-    /* 3. Ensure the file name uses available space */
-    [data-testid='stFileUploader'] ul[role="list"] li > div {
-        width: 100% !important;
+    /* Fallback for older Streamlit versions or different structures */
+    [data-testid='stFileUploader'] div[role="listitem"] > div > svg {
+        display: none !important;
     }
-    
-    /* 4. Hide Pagination (Show all) - Attempt to expand container */
-    /* Note: Streamlit logic might still force pagination, but we can try to hide the footer */
-    [data-testid='stFileUploader'] div[class*="pagination"] {
+
+    /* 3. Make sure the name takes available space */
+    [data-testid="stUploadedFile"] > div {
+        width: 100% !important;
+        align-items: center !important;
+    }
+
+    /* 4. Hide Pagination Footer */
+    [data-testid='stFileUploader'] div:has(button[title="View more"]) {
+        display: none !important;
+    }
+    .stFileUploaderPagination {
         display: none !important;
     }
 </style>
