@@ -75,6 +75,31 @@ st.markdown("""
         margin-bottom: 10px;
         border-left: 5px solid #2196F3;
     }
+    
+    /* --- HACK: Style Native File Uploader --- */
+    /* 1. Grid Layout (2 Columns) for the file list */
+    [data-testid='stFileUploader'] ul[role="list"] {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+    
+    /* 2. Hide the decorative "file" icon to save space */
+    /* Target the SVG that is NOT inside the delete button */
+    [data-testid='stFileUploader'] ul[role="list"] li [data-testid="stFileUploaderFileIcon"] {
+        display: none !important;
+    }
+    
+    /* 3. Ensure the file name uses available space */
+    [data-testid='stFileUploader'] ul[role="list"] li > div {
+        width: 100% !important;
+    }
+    
+    /* 4. Hide Pagination (Show all) - Attempt to expand container */
+    /* Note: Streamlit logic might still force pagination, but we can try to hide the footer */
+    [data-testid='stFileUploader'] div[class*="pagination"] {
+        display: none !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -358,22 +383,6 @@ with st.container(border=True):
             
             if uploaded:
                 total_files_count += len(uploaded)
-                
-                # Custom Compact List (2 Columns) to show ALL files
-                st.markdown(f"<div style='font-size: 0.8em; color: gray; margin-bottom: 5px;'>Total: {len(uploaded)} archivos</div>", unsafe_allow_html=True)
-                uc1, uc2 = st.columns(2)
-                
-                # Split files for columns
-                split_idx = (len(uploaded) + 1) // 2
-                files_c1 = uploaded[:split_idx]
-                files_c2 = uploaded[split_idx:]
-                
-                with uc1:
-                    for f in files_c1:
-                         st.markdown(f"<div style='font-size: 0.75em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' title='{f.name}'>📄 {f.name}</div>", unsafe_allow_html=True)
-                with uc2:
-                    for f in files_c2:
-                         st.markdown(f"<div style='font-size: 0.75em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' title='{f.name}'>📄 {f.name}</div>", unsafe_allow_html=True)
 
     st.divider()
     
