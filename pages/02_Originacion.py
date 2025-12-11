@@ -358,6 +358,22 @@ with st.container(border=True):
             
             if uploaded:
                 total_files_count += len(uploaded)
+                
+                # Custom Compact List (2 Columns) to show ALL files
+                st.markdown(f"<div style='font-size: 0.8em; color: gray; margin-bottom: 5px;'>Total: {len(uploaded)} archivos</div>", unsafe_allow_html=True)
+                uc1, uc2 = st.columns(2)
+                
+                # Split files for columns
+                split_idx = (len(uploaded) + 1) // 2
+                files_c1 = uploaded[:split_idx]
+                files_c2 = uploaded[split_idx:]
+                
+                with uc1:
+                    for f in files_c1:
+                         st.markdown(f"<div style='font-size: 0.75em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' title='{f.name}'>📄 {f.name}</div>", unsafe_allow_html=True)
+                with uc2:
+                    for f in files_c2:
+                         st.markdown(f"<div style='font-size: 0.75em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' title='{f.name}'>📄 {f.name}</div>", unsafe_allow_html=True)
 
     st.divider()
     
