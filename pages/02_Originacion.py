@@ -787,10 +787,10 @@ if st.session_state.invoices_data:
     has_results = any(inv.get('recalculate_result') for inv in st.session_state.invoices_data)
     
     with st.container(border=True):
-        st.subheader("4. Acciones y Reportes")
+        st.subheader("4. Resultados, Simulación y Formalización")
         
-        # Action Grid: Calc | Report A | Report B
-        c_act1, c_act2, c_act3 = st.columns(3)
+        # Action Grid: Calc | ...
+        c_act1, c_act2, c_act3 = st.columns([1, 1, 1])
         
         with c_act1:
             if st.button("Calcular Facturas", type="primary", use_container_width=True):
@@ -875,8 +875,49 @@ if st.session_state.invoices_data:
                     except Exception as e:
                         st.error(f"Error en el cálculo: {e}")
 
+        # --- DRIVE PICKER & METADATA EXTRACTION (Moved Up) ---
+        if has_results:
+            st.divider()
+            st.markdown("##### 📂 Selección de Destino (Google Drive)")
+            st.info("Selecciona la carpeta del ANEXO donde se guardarán los PDFs. El sistema detectará automáticamente el Nro de Contrato y Anexo.")
+            
+            # Using the v2 valid picker
+            folder_info = render_folder_navigator_v2(key="orig_folder_nav")
+            
+            if folder_info:
+                st.success(f"📂 Carpeta Seleccionada: **{folder_info['name']}**")
+                
+                # --- AUTO-PARSE METADATA ---
+                import re
+                c_num_match = re.search(r'(?i)Contrato\s*(\d+)', folder_info['name'])
+                a_num_match = re.search(r'(?i)Anexo\s*(\d+)', folder_info['name'])
+                
+                contract_detected = c_num_match.group(1) if c_num_match else ""
+                annex_detected = a_num_match.group(1) if a_num_match else ""
+                
+                # Update Session State
+                if contract_detected and contract_detected != st.session_state.contract_number:
+                    st.session_state.contract_number = contract_detected
+                    st.toast(f"✅ Contrato detectado: {contract_detected}")
+                    
+                if annex_detected and annex_detected != st.session_state.anexo_number:
+                    st.session_state.anexo_number = annex_detected
+                    st.toast(f"✅ Anexo detectado: {annex_detected}")
+                
+                # Visual Confirmation
+                mc1, mc2 = st.columns(2)
+                mc1.info(f"📋 **Nro Contrato:** {st.session_state.contract_number if st.session_state.contract_number else '-----'}")
+                mc2.info(f"📑 **Nro Anexo:** {st.session_state.anexo_number if st.session_state.anexo_number else '-----'}")
+                
+                if not st.session_state.contract_number or not st.session_state.anexo_number:
+                    st.warning("⚠️ No se pudieron detectar los números automáticamente. Verifica el nombre de la carpeta (Ej: 'Contrato 123 - Anexo 45')")
+
+        # --- PDF ACTIONS (Now depend on folder selection) ---
         with c_act2:
-            if st.button("Generar PDF Perfil", disabled=not has_results, use_container_width=True):
+            # Only enable if calculation done AND folder selected (detected metadata)
+            can_gen_pdf = has_results and st.session_state.get('contract_number') and st.session_state.get('anexo_number')
+            
+            if st.button("Generar PDF Perfil", disabled=not can_gen_pdf, use_container_width=True):
                 try:
                     # Prepare data list for PDF generator
                     pdf_list = []
@@ -885,6 +926,11 @@ if st.session_state.invoices_data:
                             # Inject global commission helper data expected by generator
                             inv['comision_de_estructuracion_global'] = st.session_state.comision_estructuracion_pct_global
                             inv['detraccion_monto'] = inv['monto_total_factura'] - inv['monto_neto_factura']
+                            
+                            # Inject Detected Metadata
+                            inv['contract_number'] = st.session_state.contract_number
+                            inv['anexo_number'] = st.session_state.anexo_number
+                            
                             pdf_list.append(inv)
                     
                     if pdf_list:
@@ -901,10 +947,20 @@ if st.session_state.invoices_data:
                 st.download_button("⬇️ Descargar Perfil", p['bytes'], p['filename'], "application/pdf", use_container_width=True)
 
         with c_act3:
-            if st.button("Generar PDF Liquidación", disabled=not has_results, use_container_width=True):
+             # Only enable if calculation done AND folder selected (detected metadata)
+            can_gen_pdf_liq = has_results and st.session_state.get('contract_number') and st.session_state.get('anexo_number')
+            
+            if st.button("Generar PDF Liquidación", disabled=not can_gen_pdf_liq, use_container_width=True):
                 try:
                     # Same filtering logic
-                    pdf_list = [inv for inv in st.session_state.invoices_data if inv.get('recalculate_result')]
+                    pdf_list = [] 
+                    for inv in st.session_state.invoices_data:
+                         if inv.get('recalculate_result'):
+                            # Inject Detected Metadata logic might be needed inside generator or obj
+                            inv['contract_number'] = st.session_state.contract_number
+                            inv['anexo_number'] = st.session_state.anexo_number
+                            pdf_list.append(inv)
+                            
                     if pdf_list:
                         pdf_bytes = generar_anexo_liquidacion_pdf(pdf_list)
                         fname = f"anexo_liquidacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
@@ -919,37 +975,21 @@ if st.session_state.invoices_data:
                 st.download_button("⬇️ Descargar Liquidación", l['bytes'], l['filename'], "application/pdf", use_container_width=True)
 
 
-    # ==============================================================================
-    # SECCIÓN 5: FORMALIZACIÓN Y GUARDADO
-    # ==============================================================================
-    with st.container(border=True):
-        st.subheader("5. Formalización y Guardado")
-        
-        c1, c2 = st.columns(2)
-        contract = c1.text_input("Nro. Contrato", key="input_contract_number")
-        annex = c2.text_input("Nro. Anexo", key="input_annex_number")
-        
-        st.caption("Seleccionar Carpeta Destino (Google Drive):")
-        # render_folder_navigator_v2 now returns the folder dict if selected
-        folder_info = render_folder_navigator_v2(key="orig_folder_nav")
-        
-        # Action button inside container, conditioned on selection
-        if folder_info:
-             st.divider() # visual separator
-             if st.button(f"💾 Guardar Facturas en: {folder_info['name']}", type="primary", use_container_width=True):
-                if not has_results:
-                     st.error("⚠️ Primero debes calcular las facturas.")
-                elif not contract or not annex:
-                     st.error("⚠️ Ingresa Nro. Contrato y Anexo.")
-                else:
+        # --- FINAL SAVE BUTTON (Merged Action) ---
+        if has_results and folder_info:
+             st.divider()
+             # Logic check for metadata
+             ready_to_save = st.session_state.get('contract_number') and st.session_state.get('anexo_number')
+             
+             if st.button(f"💾 Guardar y Subir Todo a: {folder_info['name']}", type="primary", use_container_width=True, disabled=not ready_to_save):
                     # START SAVING PROCESS
                     st.session_state.lote_id = f"LOC-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}" # Generate new lote_id
                     
                     saved_count = 0
                     for idx, inv in enumerate(st.session_state.invoices_data):
                         # 1. Update metadata
-                        inv['contract_number'] = contract
-                        inv['anexo_number'] = annex
+                        inv['contract_number'] = st.session_state.contract_number
+                        inv['anexo_number'] = st.session_state.anexo_number
                         inv['lote_id'] = st.session_state.lote_id
                         
                         # 2. Upload to Drive (if not already uploaded - optimize later)
