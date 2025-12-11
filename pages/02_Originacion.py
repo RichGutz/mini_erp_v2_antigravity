@@ -312,25 +312,20 @@ with st.container(border=True):
         with col:
             st.markdown(f"**GRUPO {grp_id}**")
             
-            # ROW 1: Browse Files
-            uploaded = st.file_uploader(f"📂 Archivos G{grp_id}", type=["pdf"], key=f"uploader_grp_{grp_id}", accept_multiple_files=True, label_visibility="collapsed")
+            # ROW 1: Fecha Desembolso
+            f_desem = st.date_input(f"Fecha de Desembolso", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}")
             
-            # ROW 2: Fecha Desembolso
-            f_desem = st.date_input(f"Desembolso G{grp_id}", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}")
+            # ROW 2: Fecha Pago
+            f_pago = st.date_input(f"Fecha de Pago", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}")
             
-            # ROW 3: Fecha Pago
-            f_pago = st.date_input(f"Pago G{grp_id}", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}")
+            # ROW 3: Días Mínimos (Explicit Label)
+            dias_min = st.number_input(f"Días Mínimos", min_value=0, value=15, step=1, key=f"dias_min_grp_{grp_id}")
+
+            # ROW 4: Browse Files (Bottom)
+            uploaded = st.file_uploader(f"Cargar Facturas G{grp_id}", type=["pdf"], key=f"uploader_grp_{grp_id}", accept_multiple_files=True, label_visibility="visible")
             
-            # ROW 4: BRICKS
             if uploaded:
-                brick_html = ""
-                for up_file in uploaded:
-                    # Simple heuristic: extraction of name or invoice ID if feasible, here just filename
-                    brick_html += f"<div class='invoice-brick' style='display:block; margin-bottom:2px;'>📄 {up_file.name[:15]}...</div>"
-                st.markdown(brick_html, unsafe_allow_html=True)
                 total_files_count += len(uploaded)
-            else:
-                st.markdown("<div style='color:grey; font-size:0.8em; font-style:italic;'>Sin archivos</div>", unsafe_allow_html=True)
 
     st.divider()
     
