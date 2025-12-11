@@ -93,6 +93,36 @@ st.markdown("""
         text-overflow: ellipsis;
         margin-right: 10px;
     }
+    
+    /* Delete Button Styling */
+    div[data-testid="stButton"] > button[title="Eliminar archivo"] {
+        background-color: rgba(255, 75, 75, 0.1) !important;
+        color: #ff4b4b !important;
+        border: 1px solid rgba(255, 75, 75, 0.2) !important;
+        border-radius: 4px !important;
+        padding: 0px !important;
+        width: 28px !important;
+        height: 28px !important;
+        min-height: 28px !important;
+        line-height: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s ease;
+    }
+    div[data-testid="stButton"] > button[title="Eliminar archivo"]:hover {
+        background-color: rgba(255, 75, 75, 0.3) !important;
+        border-color: #ff4b4b !important;
+        color: #7d0000 !important;
+        transform: scale(1.05);
+    }
+    div[data-testid="stButton"] > button[title="Eliminar archivo"] p {
+        font-size: 16px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
+        font-weight: bold !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
