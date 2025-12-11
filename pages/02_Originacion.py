@@ -1132,6 +1132,31 @@ if st.session_state.invoices_data:
                         except Exception as e:
                             st.error(f"Error guardando {inv['numero_factura']}: {e}")
                     
+                    # 4. Upload Generated Reports (Perfil & Liquidacion)
+                    try:
+                        sa_creds = st.secrets["google_drive"]
+                        
+                        # Perfil
+                        if 'last_generated_perfil_pdf' in st.session_state:
+                            p_data = st.session_state['last_generated_perfil_pdf']
+                            success, fid = upload_file_with_sa(p_data['bytes'], p_data['filename'], folder_info['id'], sa_creds)
+                            if success: 
+                                st.toast(f"✅ Perfil subido: {p_data['filename']}")
+                            else: 
+                                st.error(f"Error subiendo Perfil: {fid}")
+
+                        # Liquidacion
+                        if 'last_generated_liquidacion_pdf' in st.session_state:
+                            l_data = st.session_state['last_generated_liquidacion_pdf']
+                            success, fid = upload_file_with_sa(l_data['bytes'], l_data['filename'], folder_info['id'], sa_creds)
+                            if success: 
+                                st.toast(f"✅ Liquidación subida: {l_data['filename']}")
+                            else: 
+                                st.error(f"Error subiendo Liquidación: {fid}")
+
+                    except Exception as e:
+                        st.error(f"Error subiendo reportes: {e}")
+                    
                     if saved_count == len(st.session_state.invoices_data):
                          st.success(f"✅ ¡Éxito! {saved_count} operaciones guardadas y subidas a Drive.")
                          st.balloons()
