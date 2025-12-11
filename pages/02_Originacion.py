@@ -229,8 +229,7 @@ def handle_global_payment_date_change():
         st.toast("✅ Fecha de pago global aplicada.")
 
 def handle_global_disbursement_date_change():
-    # Only check if the date value itself is valid. Removed 'aplicar' checkbox dependency.
-    if st.session_state.get('fecha_desembolso_global'):
+    if st.session_state.get('aplicar_fecha_desembolso_global') and st.session_state.get('fecha_desembolso_global'):
         global_disbursement_date_obj = st.session_state.fecha_desembolso_global
         global_disbursement_date_str = global_disbursement_date_obj.strftime('%d-%m-%Y')
         for idx, invoice in enumerate(st.session_state.invoices_data):
@@ -264,8 +263,8 @@ def handle_global_interes_moratorio_change():
         st.toast("✅ Interés moratorio global aplicado.")
 
 def handle_global_min_interest_days_change():
-    # Removed 'aplicar' checkbox dependency.
-    val = st.session_state.get('dias_interes_minimo_global', 15)
+    if st.session_state.get('aplicar_dias_interes_minimo_global'):
+        val = st.session_state.get('dias_interes_minimo_global', 15)
     for idx, invoice in enumerate(st.session_state.invoices_data):
         invoice['dias_minimos_interes_individual'] = val
         st.session_state[f"dias_minimos_interes_individual_{idx}"] = val
@@ -599,30 +598,11 @@ if st.session_state.invoices_data:
 
         with col3:
             st.write("##### Fechas y Días")
-            # Mandatory Global Inputs for Batch
-            st.date_input("Fecha Desembolso Global", key='fecha_desembolso_global', on_change=handle_global_disbursement_date_change)
-            st.number_input("Días Interés Mínimo", min_value=0, key='dias_interes_minimo_global', on_change=handle_global_min_interest_days_change)
+            st.checkbox("Aplicar Fecha Desembolso Global", key='aplicar_fecha_desembolso_global', on_change=handle_global_disbursement_date_change)
+            st.date_input("Fecha Desembolso Global", key='fecha_desembolso_global', on_change=handle_global_disbursement_date_change, disabled=not st.session_state.get('aplicar_fecha_desembolso_global', False))
             
-            # Helper to auto-trigger application if checkboxes were previously used logic
-            # Here we just rely on on_change.
-            # We add a manual trigger button just in case? No, on_change is fine.
-            # But the user might want "Apply" logic. The existing `handle_global...` functions check for a checkbox currently.
-            # We need to update those handlers or force the update here.
-            # Let's assume the user will interact with them. 
-            # Note: The existing handlers check `if st.session_state.get('aplicar_fecha_desembolso_global')`.
-            # We should probably force that to True internally or remove the check in the handler.
-            # For now, let's keep the checkbox HIDDEN but True? Or update the handlers.
-            # Let's add the checkboxes as hidden/default True or just explicit execution button?
-            # User expectation: "lo colocas como una columna".
-            # I will reuse the existing handlers but make sure to update them to NOT require a checkbox if we want it mandatory.
-            # Actually, let's just add the checkboxes back but Checked by default?
-            # Or better, let's Update the Handlers in a separate tool call if needed. 
-            # Ideally I should have updated the handlers first.
-            # For this replacement, I'll add a boolean trigger for the legacy handlers or just call them directly.
-
-            if st.button("Aplicar Fechas/Días a Todo"):
-                 handle_global_disbursement_date_change()
-                 handle_global_min_interest_days_change()
+            st.checkbox("Aplicar Días Interés Mínimo", key='aplicar_dias_interes_minimo_global', on_change=handle_global_min_interest_days_change)
+            st.number_input("Días Interés Mínimo", min_value=0, key='dias_interes_minimo_global', on_change=handle_global_min_interest_days_change, disabled=not st.session_state.get('aplicar_dias_interes_minimo_global', False))
 
         with col4:
             st.write("##### Tasas Globales")
