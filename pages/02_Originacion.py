@@ -229,7 +229,8 @@ def handle_global_payment_date_change():
         st.toast("✅ Fecha de pago global aplicada.")
 
 def handle_global_disbursement_date_change():
-    if st.session_state.get('aplicar_fecha_desembolso_global') and st.session_state.get('fecha_desembolso_global'):
+    # Only check if the date value itself is valid. Removed 'aplicar' checkbox dependency.
+    if st.session_state.get('fecha_desembolso_global'):
         global_disbursement_date_obj = st.session_state.fecha_desembolso_global
         global_disbursement_date_str = global_disbursement_date_obj.strftime('%d-%m-%Y')
         for idx, invoice in enumerate(st.session_state.invoices_data):
@@ -263,22 +264,19 @@ def handle_global_interes_moratorio_change():
         st.toast("✅ Interés moratorio global aplicado.")
 
 def handle_global_min_interest_days_change():
-    if st.session_state.get('aplicar_dias_interes_minimo_global'):
-        val = st.session_state.dias_interes_minimo_global
-        for idx, invoice in enumerate(st.session_state.invoices_data):
-            invoice['dias_minimos_interes_individual'] = val
-            st.session_state[f"dias_minimos_interes_individual_{idx}"] = val
-        st.toast("✅ Días de interés mínimo global aplicado.")
+    # Removed 'aplicar' checkbox dependency.
+    val = st.session_state.get('dias_interes_minimo_global', 15)
+    for idx, invoice in enumerate(st.session_state.invoices_data):
+        invoice['dias_minimos_interes_individual'] = val
+        st.session_state[f"dias_minimos_interes_individual_{idx}"] = val
+    st.toast("✅ Días de interés mínimo global aplicado.")
 
 def handle_bucket_change(grp_id):
     """Updates all invoices in a specific group when bucket params change."""
-    # Get new values from bucket widgets
-    new_f_desem = st.session_state.get(f"f_desemb_grp_{grp_id}")
+    # Get new values from bucket widgets (NOW ONLY PAYMENT DATE)
     new_f_pago = st.session_state.get(f"f_pago_grp_{grp_id}")
-    new_dias_min = st.session_state.get(f"dias_min_grp_{grp_id}", 15)
     
     # Format dates
-    f_desem_str = new_f_desem.strftime('%d-%m-%Y') if new_f_desem else ""
     f_pago_str = new_f_pago.strftime('%d-%m-%Y') if new_f_pago else ""
 
     # Update logic
@@ -286,22 +284,16 @@ def handle_bucket_change(grp_id):
         for idx, invoice in enumerate(st.session_state.invoices_data):
             if invoice.get('group_id') == grp_id:
                 # Update Dict
-                invoice['fecha_desembolso_factoring'] = f_desem_str
                 invoice['fecha_pago_calculada'] = f_pago_str
-                invoice['dias_minimos_interes_individual'] = new_dias_min
                 
                 # Update Widgets in Session State (to reflect immediately in UI)
-                if f"fecha_desembolso_factoring_{idx}" in st.session_state:
-                    st.session_state[f"fecha_desembolso_factoring_{idx}"] = new_f_desem
                 if f"fecha_pago_calculada_{idx}" in st.session_state:
                     st.session_state[f"fecha_pago_calculada_{idx}"] = new_f_pago
-                if f"dias_minimos_interes_individual_{idx}" in st.session_state:
-                    st.session_state[f"dias_minimos_interes_individual_{idx}"] = new_dias_min
                 
                 # Recalculate derived fields
-                update_date_calculations(invoice, idx=idx)
+                update_date_calculations(invoice, changed_field='fecha', idx=idx)
         
-        st.toast(f"✅ Grupo {grp_id} actualizado.")
+        st.toast(f"✅ Grupo {grp_id} actualizado (Fecha Pago).")
 
 
 # --- Session State Initialization ---
@@ -403,11 +395,9 @@ with st.container(border=True):
         cols_count = len(group_range)
         if cols_count == 0: return
 
-        # Layout: 5 Distinct Rows for better vertical space management
+        # Layout: 3 Distinct Rows (Header, Payment, Upload)
         row_headers = st.columns(cols_count)
-        row_desembolso = st.columns(cols_count)
         row_pago = st.columns(cols_count)
-        row_dias = st.columns(cols_count)
         row_upload = st.columns(cols_count)
         
         # We use a global to update the total count from inside this helper
@@ -418,19 +408,11 @@ with st.container(border=True):
             with row_headers[col_idx]:
                 st.markdown(f"**GRUPO {grp_id}**")
 
-            # 2. Desembolso Row
-            with row_desembolso[col_idx]:
-                st.date_input(f"Fecha de Desembolso", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
-
-            # 3. Pago Row
+            # 2. Pago Row (Only variable per bucket now)
             with row_pago[col_idx]:
                 st.date_input(f"Fecha de Pago", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
 
-            # 4. Dias Min Row
-            with row_dias[col_idx]:
-                st.number_input(f"Días Mínimos", min_value=0, value=15, step=1, key=f"dias_min_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
-                
-            # 5. Uploader Row (Ingester Pattern)
+            # 3. Uploader Row (Ingester Pattern)
             with row_upload[col_idx]:
                 current_key_val = st.session_state.get(f"uploader_key_grp_{grp_id}", 0)
                 
@@ -503,11 +485,8 @@ with st.container(border=True):
             if not files:
                 continue
                 
-            f_desem_val = st.session_state.get(f"f_desemb_grp_{i}")
             f_pago_val = st.session_state.get(f"f_pago_grp_{i}")
-            dias_min_val = st.session_state.get(f"dias_min_grp_{i}", 15)
             
-            f_desem_str = f_desem_val.strftime('%d-%m-%Y') if f_desem_val else ""
             f_pago_str = f_pago_val.strftime('%d-%m-%Y') if f_pago_val else ""
             
             for uploaded_file in files:
@@ -550,7 +529,7 @@ with st.container(border=True):
                             'aceptante_nombre': db.get_razon_social_by_ruc(parsed_data.get('aceptante_ruc', '')),
                             
                             # Assigned Dates from Bucket
-                            'fecha_desembolso_factoring': f_desem_str,
+                            'fecha_desembolso_factoring': "", # Must be set globally
                             'fecha_pago_calculada': f_pago_str, # Override parsed date with Bucket date
                             
                             # Config Defaults
@@ -559,7 +538,7 @@ with st.container(border=True):
                             'interes_moratorio': st.session_state.default_interes_moratorio,
                             'comision_afiliacion_pen': st.session_state.default_comision_afiliacion_pen,
                             'comision_afiliacion_usd': st.session_state.default_comision_afiliacion_usd,
-                            'dias_minimos_interes_individual': dias_min_val,
+                            'dias_minimos_interes_individual': 15, # Default, must be set globally
                             'detraccion_porcentaje': 0.0,
                             'plazo_credito_dias': 0,
                             'plazo_operacion_calculado': 0,
@@ -603,7 +582,7 @@ if st.session_state.invoices_data:
     with st.container(border=True):
         st.subheader("2. Configuración Global")
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
 
         with col1:
             st.write("##### Com. de Estructuración")
@@ -619,6 +598,33 @@ if st.session_state.invoices_data:
             st.number_input("Monto Comisión Afiliación (USD)", min_value=0.0, key='comision_afiliacion_usd_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_afiliacion_global', False))
 
         with col3:
+            st.write("##### Fechas y Días")
+            # Mandatory Global Inputs for Batch
+            st.date_input("Fecha Desembolso Global", key='fecha_desembolso_global', on_change=handle_global_disbursement_date_change)
+            st.number_input("Días Interés Mínimo", min_value=0, key='dias_interes_minimo_global', on_change=handle_global_min_interest_days_change)
+            
+            # Helper to auto-trigger application if checkboxes were previously used logic
+            # Here we just rely on on_change.
+            # We add a manual trigger button just in case? No, on_change is fine.
+            # But the user might want "Apply" logic. The existing `handle_global...` functions check for a checkbox currently.
+            # We need to update those handlers or force the update here.
+            # Let's assume the user will interact with them. 
+            # Note: The existing handlers check `if st.session_state.get('aplicar_fecha_desembolso_global')`.
+            # We should probably force that to True internally or remove the check in the handler.
+            # For now, let's keep the checkbox HIDDEN but True? Or update the handlers.
+            # Let's add the checkboxes as hidden/default True or just explicit execution button?
+            # User expectation: "lo colocas como una columna".
+            # I will reuse the existing handlers but make sure to update them to NOT require a checkbox if we want it mandatory.
+            # Actually, let's just add the checkboxes back but Checked by default?
+            # Or better, let's Update the Handlers in a separate tool call if needed. 
+            # Ideally I should have updated the handlers first.
+            # For this replacement, I'll add a boolean trigger for the legacy handlers or just call them directly.
+
+            if st.button("Aplicar Fechas/Días a Todo"):
+                 handle_global_disbursement_date_change()
+                 handle_global_min_interest_days_change()
+
+        with col4:
             st.write("##### Tasas Globales")
             st.checkbox("Aplicar Tasa de Avance Global", key='aplicar_tasa_avance_global', on_change=handle_global_tasa_avance_change)
             st.number_input("Tasa de Avance Global (%)", key='tasa_avance_global', min_value=0.0, format="%.2f", disabled=not st.session_state.get('aplicar_tasa_avance_global', False), on_change=handle_global_tasa_avance_change)
