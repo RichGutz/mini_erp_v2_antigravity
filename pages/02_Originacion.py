@@ -332,7 +332,7 @@ defaults = {
     'interes_mensual_global': 1.25,
     'aplicar_interes_moratorio_global': False,
     'interes_moratorio_global': 2.5,
-}
+    
     # Ingester Pattern State
     'accumulated_files_grp_1': [],
     'accumulated_files_grp_2': [],
