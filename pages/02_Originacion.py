@@ -474,6 +474,7 @@ with st.container(border=True):
         st.session_state.invoices_data = []
         st.session_state.pdf_datos_cargados = False
         st.session_state.original_uploads_cache = []
+        st.session_state.rates_prefilled_flag = False # Force DB lookup on new batch
         
         all_processed_ok = True
         
