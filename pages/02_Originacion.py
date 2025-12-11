@@ -1016,7 +1016,7 @@ if st.session_state.invoices_data:
                 ready_metadata = st.session_state.get('contract_number') and st.session_state.get('anexo_number')
 
                 with col_pdf_p:
-                     if st.button("Generar PDF Perfil", disabled=not ready_metadata, use_container_width=True):
+                     if st.button("Generar PDF Perfil", disabled=not ready_metadata, use_container_width=True, type="primary"):
                         try:
                             # Prepare data list for PDF generator
                             pdf_list = []
@@ -1046,7 +1046,7 @@ if st.session_state.invoices_data:
                         st.download_button("⬇️ Descargar Perfil", p['bytes'], p['filename'], "application/pdf", use_container_width=True)
 
                 with col_pdf_l:
-                    if st.button("Generar PDF Liquidación", disabled=not ready_metadata, use_container_width=True):
+                    if st.button("Generar PDF Liquidación", disabled=not ready_metadata, use_container_width=True, type="primary"):
                         try:
                             # Same filtering logic
                             pdf_list = [] 

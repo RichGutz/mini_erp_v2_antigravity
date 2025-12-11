@@ -512,23 +512,20 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     c_back, c_cancel, c_select = st.columns([1, 1, 2])
     
     # 1. ATRÁS
-    # 1. ATRÁS
     with c_back:
         if st.session_state[nav_key_history]:
-            if st.button("Atrás", key=f"btn_back_{key}", use_container_width=True):
+            if st.button("Atrás", key=f"btn_back_{key}", use_container_width=True, type="primary"):
                 last_id, last_name = st.session_state[nav_key_history].pop()
                 st.session_state[nav_key_id] = last_id
                 st.session_state[nav_key_name] = last_name
                 st.rerun()
         else:
-            st.button("Inicio", disabled=True, key=f"btn_root_{key}", use_container_width=True)
+            st.button("Inicio", disabled=True, key=f"btn_root_{key}", use_container_width=True, type="primary")
 
     # 2. CANCELAR SELECCIÓN
     with c_cancel:
         is_selected = sel_key in st.session_state
-    with c_cancel:
-        is_selected = sel_key in st.session_state
-        if st.button("Cancelar", key=f"btn_cancel_{key}", disabled=not is_selected, use_container_width=True):
+        if st.button("Cancelar", key=f"btn_cancel_{key}", disabled=not is_selected, use_container_width=True, type="primary"):
             if is_selected:
                 del st.session_state[sel_key]
                 st.rerun()
@@ -542,7 +539,7 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
         btn_label = f"Seleccionado: {current_name}" if is_current_selected else f"Seleccionar: {current_name}"
         btn_type = "primary" if not is_current_selected else "secondary" # Highlight action if NOT selected
         
-        if st.button(btn_label, key=f"btn_sel_{key}", type=btn_type, use_container_width=True):
+        if st.button(btn_label, key=f"btn_sel_{key}", type="primary", use_container_width=True):
             st.session_state[sel_key] = {'id': current_id, 'name': current_name}
             st.rerun()
 
