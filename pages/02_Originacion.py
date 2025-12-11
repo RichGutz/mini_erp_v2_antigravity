@@ -76,52 +76,22 @@ st.markdown("""
         border-left: 5px solid #2196F3;
     }
     
-    /* --- HACK: Style Native File Uploader --- */
-    
-    /* 1. Grid Layout for the file list & Force Auto Height */
-    [data-testid='stFileUploader'] section[role="list"] {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        gap: 8px !important;
-        max-height: none !important; /* Force expansion */
-        height: auto !important;
-        overflow: visible !important;
+    /* Custom File List Styling */
+    .custom-file-item {
+        background-color: #f0f2f6;
+        padding: 5px 10px;
+        border-radius: 4px;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.85em;
     }
-    
-    /* Also target the UL inside if structure varies */
-    [data-testid='stFileUploader'] ul {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        gap: 8px !important;
-        max-height: none !important;
-        height: auto !important;
-        overflow: visible !important;
-    }
-
-    /* 2. Hide the decorative "file" icon */
-    [data-testid="stUploadedFile"] > div > svg {
-        display: none !important;
-    }
-    [data-testid='stFileUploader'] div[role="listitem"] > div > svg {
-        display: none !important;
-    }
-
-    /* 3. Make sure the name takes available space */
-    [data-testid="stUploadedFile"] > div {
-        width: 100% !important;
-        align-items: center !important;
-    }
-
-    /* 4. Hide Pagination Footer (and hope full height reveals all) */
-    [data-testid='stFileUploader'] div:has(button[title="View more"]) {
-        display: none !important;
-    }
-    .stFileUploaderPagination {
-        display: none !important;
-    }
-    /* Force main container to expand */
-    [data-testid='stFileUploader'] section {
-        max-height: none !important;
+    .custom-file-name {
+        white-space: nowrap; 
+        overflow: hidden; 
+        text-overflow: ellipsis;
+        margin-right: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -363,10 +333,47 @@ defaults = {
     'aplicar_interes_moratorio_global': False,
     'interes_moratorio_global': 2.5,
 }
+    # Ingester Pattern State
+    'accumulated_files_grp_1': [],
+    'accumulated_files_grp_2': [],
+    'accumulated_files_grp_3': [],
+    'accumulated_files_grp_4': [],
+    'uploader_key_grp_1': 0,
+    'uploader_key_grp_2': 0,
+    'uploader_key_grp_3': 0,
+    'uploader_key_grp_4': 0,
+}
 
 for key, val in defaults.items():
     if key not in st.session_state:
         st.session_state[key] = val
+
+
+# --- Ingester Callbacks ---
+def ingest_files(grp_id):
+    """Callback to move files from uploader widget to persistent state."""
+    current_key_check = st.session_state.get(f"uploader_key_grp_{grp_id}", 0)
+    widget_key = f"uploader_widget_grp_{grp_id}_{current_key_check}"
+    
+    uploaded_files = st.session_state.get(widget_key)
+    
+    if uploaded_files:
+        # Append to our persistent list
+        current_list = st.session_state[f"accumulated_files_grp_{grp_id}"]
+        # Avoid duplicates by name (heuristic)
+        existing_names = set(f.name for f in current_list)
+        
+        for f in uploaded_files:
+            if f.name not in existing_names:
+                current_list.append(f)
+                
+        # Force Uploader Reset by incrementing key
+        st.session_state[f"uploader_key_grp_{grp_id}"] += 1
+
+def delete_file(grp_id, file_index):
+    """Removes a file from the persistent list."""
+    if st.session_state[f"accumulated_files_grp_{grp_id}"]:
+        st.session_state[f"accumulated_files_grp_{grp_id}"].pop(file_index)
 
 
 # --- Layout: Header ---
@@ -412,10 +419,39 @@ with st.container(border=True):
             st.number_input(f"Días Mínimos", min_value=0, value=15, step=1, key=f"dias_min_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
             
         # 5. Uploader Row (Expanded Vertical Space)
+        # 5. Uploader Row (Ingester Pattern)
         with row_upload[i]:
-            uploaded = st.file_uploader(f"Cargar Facturas G{grp_id}", type=["pdf"], key=f"uploader_grp_{grp_id}", accept_multiple_files=True, label_visibility="visible")
-            if uploaded:
-                total_files_count += len(uploaded)
+            current_key_val = st.session_state[f"uploader_key_grp_{grp_id}"]
+            
+            # The "Ingester" Widget
+            st.code(f"Archivos: {len(st.session_state[f'accumulated_files_grp_{grp_id}'])}", language=None)
+            
+            st.file_uploader(
+                f"Cargar (G{grp_id})", 
+                type=["pdf"], 
+                key=f"uploader_widget_grp_{grp_id}_{current_key_val}", 
+                accept_multiple_files=True, 
+                label_visibility="collapsed",
+                on_change=ingest_files,
+                args=(grp_id,)
+            )
+
+            # Custom File List
+            files_list = st.session_state[f"accumulated_files_grp_{grp_id}"]
+            if files_list:
+                total_files_count += len(files_list)
+                
+                # Render 2-Column Grid
+                fc1, fc2 = st.columns(2)
+                for f_idx, f in enumerate(files_list):
+                    target_col = fc1 if f_idx % 2 == 0 else fc2
+                    with target_col:
+                        # Custom render with delete button
+                        c_name, c_del = st.columns([0.85, 0.15])
+                        with c_name:
+                             st.markdown(f"<div title='{f.name}' style='font-size: 0.8em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>📄 {f.name}</div>", unsafe_allow_html=True)
+                        with c_del:
+                             st.button("✕", key=f"del_{grp_id}_{f.name}_{f_idx}", on_click=delete_file, args=(grp_id, f_idx), help="Eliminar archivo")
     
     st.divider()
     
@@ -431,7 +467,8 @@ with st.container(border=True):
         
         # ITERATE BUCKETS
         for i in range(1, 5):
-            files = st.session_state.get(f"uploader_grp_{i}")
+            # Consume from our internal state now
+            files = st.session_state.get(f"accumulated_files_grp_{i}")
             if not files:
                 continue
                 
