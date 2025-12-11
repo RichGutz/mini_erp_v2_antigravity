@@ -553,21 +553,30 @@ with st.container(border=True):
                             if clean_ruc_for_db:
                                 db_rates = db.get_financial_conditions(clean_ruc_for_db)
                                 
-                                # --- DEBUG IN VIVO ---
-                                # TODO: Remove after testing
-                                with st.expander(f"🔍 Debug RUC: {clean_ruc_for_db}", expanded=False):
-                                    st.write(f"Raw RUC from PDF: '{raw_ruc}'")
-                                    st.write(f"Clean RUC used: '{clean_ruc_for_db}'")
-                                    if db_rates:
-                                        st.success(f"✅ Data Found: {db_rates}")
-                                    else:
-                                        st.error("❌ No Data Found in DB")
-                                # ---------------------
-
                                 if db_rates:
-                                    # Debug/Feedback
-                                    # print(f"✅ Rates found for {clean_ruc_for_db}: {db_rates}") 
-                                    pass
+                                    # Auto-Fill Global Config (Section 2) based on FIRST valid invoice
+                                    # This ensures the user sees the client's rates in the "Defaults" section too.
+                                    if not st.session_state.get('rates_prefilled_flag', False):
+                                        st.session_state['tasa_avance_global'] = float(db_rates.get('tasa_avance', 0))
+                                        
+                                        # Handle Currency for Global Defaults (Best effort: prioritize PEN if Mixed, or just take current)
+                                        # Actually, Global UI is currency-agnostic or splits fields.
+                                        # Let's fill the displayed fields.
+                                        curr_suffix = "_pen" if invoice_entry['moneda_factura'] == 'PEN' else "_usd"
+                                        
+                                        st.session_state['interes_mensual_global'] = float(db_rates.get(f'interes_mensual{curr_suffix}', 0))
+                                        st.session_state['interes_moratorio_global'] = float(db_rates.get(f'interes_moratorio{curr_suffix}', 0))
+                                        st.session_state['dias_interes_minimo_global'] = int(db_rates.get('dias_minimos_interes', 15))
+                                        
+                                        st.session_state['comision_afiliacion_pen_global'] = float(db_rates.get('comision_afiliacion_pen', 0))
+                                        st.session_state['comision_afiliacion_usd_global'] = float(db_rates.get('comision_afiliacion_usd', 0))
+                                        
+                                        st.session_state['comision_estructuracion_pct_global'] = float(db_rates.get('comision_estructuracion_pct', 0))
+                                        st.session_state['comision_estructuracion_min_pen_global'] = float(db_rates.get('comision_estructuracion_pen', 0))
+                                        st.session_state['comision_estructuracion_min_usd_global'] = float(db_rates.get('comision_estructuracion_usd', 0))
+
+                                        st.session_state['rates_prefilled_flag'] = True
+
                             
                             if db_rates:
                                 # Determine currency suffix for DB fields
