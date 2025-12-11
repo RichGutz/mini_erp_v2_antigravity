@@ -265,10 +265,10 @@ def handle_global_interes_moratorio_change():
 def handle_global_min_interest_days_change():
     if st.session_state.get('aplicar_dias_interes_minimo_global'):
         val = st.session_state.get('dias_interes_minimo_global', 15)
-    for idx, invoice in enumerate(st.session_state.invoices_data):
-        invoice['dias_minimos_interes_individual'] = val
-        st.session_state[f"dias_minimos_interes_individual_{idx}"] = val
-    st.toast("✅ Días de interés mínimo global aplicado.")
+        for idx, invoice in enumerate(st.session_state.invoices_data):
+            invoice['dias_minimos_interes_individual'] = val
+            st.session_state[f"dias_minimos_interes_individual_{idx}"] = val
+        st.toast("✅ Días de interés mínimo global aplicado.")
 
 def handle_bucket_change(grp_id):
     """Updates all invoices in a specific group when bucket params change."""
