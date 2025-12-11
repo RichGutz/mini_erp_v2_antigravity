@@ -87,14 +87,22 @@ from src.ui.header import render_header
 render_header("Módulo de Aprobación")
 
 # --- Cargar Facturas Activas Automáticamente ---
-if st.session_state.reload_data:
+        if st.session_state.reload_data:
     with st.spinner("Cargando facturas pendientes de aprobación..."):
         st.session_state.facturas_activas = db.get_active_proposals_for_approval()
         # Inicializar checkboxes en False si no existen
         for f in st.session_state.facturas_activas:
             pid = f['proposal_id']
+            # Inicializar en el diccionario lógico
             if pid not in st.session_state.facturas_seleccionadas_aprobacion:
                 st.session_state.facturas_seleccionadas_aprobacion[pid] = False
+            
+            # Inicializar la KEY del widget para evitar el warning de "default value"
+            # Si la key ya existe en session_state, Streamlit usará ese valor.
+            # Si no existe, la creamos con False (o lo que tenga el diccionario)
+            widget_key = f"chk_app_{pid}"
+            if widget_key not in st.session_state:
+                st.session_state[widget_key] = st.session_state.facturas_seleccionadas_aprobacion[pid]
                 
         st.session_state.reload_data = False
 
@@ -168,12 +176,16 @@ else:
                 with col_check:
                     # Usamos el ID real como key del checkbox
                     pid = factura['proposal_id']
-                    st.session_state.facturas_seleccionadas_aprobacion[pid] = st.checkbox(
+                    # IMPORTANTE: No pasar 'value' si ya existe en session_state para evitar warning
+                    # El valor se maneja via key y callbacks
+                    is_checked = st.checkbox(
                         "",
-                        value=st.session_state.facturas_seleccionadas_aprobacion.get(pid, False),
+                        # value=... REMOVED to avoid conflict with key in session_state
                         key=f"chk_app_{pid}", # Unique Key per invoice
                         label_visibility="collapsed"
                     )
+                    # Sincronizar el diccionario lógico con el widget
+                    st.session_state.facturas_seleccionadas_aprobacion[pid] = is_checked
                 
                 with col_factura: st.markdown(f"`{parse_invoice_number(factura['proposal_id'])}`")
                 with col_aceptante: st.markdown(factura.get('aceptante_nombre', 'N/A'))
