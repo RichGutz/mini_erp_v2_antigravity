@@ -340,16 +340,13 @@ defaults = {
     'aplicar_interes_moratorio_global': False,
     'interes_moratorio_global': 2.5,
     
-    # Ingester Pattern State
-    'accumulated_files_grp_1': [],
-    'accumulated_files_grp_2': [],
-    'accumulated_files_grp_3': [],
-    'accumulated_files_grp_4': [],
-    'uploader_key_grp_1': 0,
-    'uploader_key_grp_2': 0,
-    'uploader_key_grp_3': 0,
-    'uploader_key_grp_4': 0,
+    # Ingester Pattern State (Dynamic generation below for 1-8)
 }
+
+# Generate dynamic keys for 8 potential groups
+for i in range(1, 9):
+    defaults[f'accumulated_files_grp_{i}'] = []
+    defaults[f'uploader_key_grp_{i}'] = 0
 
 for key, val in defaults.items():
     if key not in st.session_state:
@@ -394,75 +391,98 @@ with st.container(border=True):
     st.subheader("1. Carga de Facturas")
     st.info("ℹ️ Distribuye las facturas en los 4 grupos según sus fechas de desembolso y pago.")
     
-    # Layout: 5 Distinct Rows for better vertical space management
-    row_headers = st.columns(4)
-    row_desembolso = st.columns(4)
-    row_pago = st.columns(4)
-    row_dias = st.columns(4)
-    row_upload = st.columns(4)
+    # Dynamic Group Configuration
+    num_groups = st.number_input("Número de Grupos", min_value=1, max_value=8, value=4, key="num_groups_config")
     
     # Store temporary bucket config
     buckets_config = {} 
     total_files_count = 0
     
-    # Iterate 1..4 Groups
-    for i in range(4):
-        grp_id = i + 1
+    # --- Helper to render a Matrix of Buckets ---
+    def render_bucket_matrix(group_range):
+        cols_count = len(group_range)
+        if cols_count == 0: return
+
+        # Layout: 5 Distinct Rows for better vertical space management
+        row_headers = st.columns(cols_count)
+        row_desembolso = st.columns(cols_count)
+        row_pago = st.columns(cols_count)
+        row_dias = st.columns(cols_count)
+        row_upload = st.columns(cols_count)
         
-        # 1. Header Row
-        with row_headers[i]:
-            st.markdown(f"**GRUPO {grp_id}**")
+        # We use a nonlocal to update the total count from inside this helper
+        nonlocal total_files_count
 
-        # 2. Desembolso Row
-        with row_desembolso[i]:
-            st.date_input(f"Fecha de Desembolso", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
+        for col_idx, grp_id in enumerate(group_range):
+            # 1. Header Row
+            with row_headers[col_idx]:
+                st.markdown(f"**GRUPO {grp_id}**")
 
-        # 3. Pago Row
-        with row_pago[i]:
-            st.date_input(f"Fecha de Pago", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
+            # 2. Desembolso Row
+            with row_desembolso[col_idx]:
+                st.date_input(f"Fecha de Desembolso", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
 
-        # 4. Dias Min Row
-        with row_dias[i]:
-            st.number_input(f"Días Mínimos", min_value=0, value=15, step=1, key=f"dias_min_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
-            
-        # 5. Uploader Row (Expanded Vertical Space)
-        # 5. Uploader Row (Ingester Pattern)
-        with row_upload[i]:
-            current_key_val = st.session_state[f"uploader_key_grp_{grp_id}"]
-            
-            # The "Ingester" Widget
-            st.code(f"Archivos: {len(st.session_state[f'accumulated_files_grp_{grp_id}'])}", language=None)
-            
-            st.file_uploader(
-                f"Cargar (G{grp_id})", 
-                type=["pdf"], 
-                key=f"uploader_widget_grp_{grp_id}_{current_key_val}", 
-                accept_multiple_files=True, 
-                label_visibility="collapsed",
-                on_change=ingest_files,
-                args=(grp_id,)
-            )
+            # 3. Pago Row
+            with row_pago[col_idx]:
+                st.date_input(f"Fecha de Pago", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
 
-            # Custom File List
-            files_list = st.session_state[f"accumulated_files_grp_{grp_id}"]
-            if files_list:
-                total_files_count += len(files_list)
+            # 4. Dias Min Row
+            with row_dias[col_idx]:
+                st.number_input(f"Días Mínimos", min_value=0, value=15, step=1, key=f"dias_min_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
                 
-                # Render 2-Column Grid of BRICKS
-                fc1, fc2 = st.columns(2)
-                for f_idx, f in enumerate(files_list):
-                    target_col = fc1 if f_idx % 2 == 0 else fc2
-                    with target_col:
-                        # Interactive Brick: Button acts as "Delete me"
-                        # We use a trick to style it: Inject specific class via type=secondary/primary isn't enough,
-                        # so we rely on Streamlit's key to identify it if needed, or universal button styling.
-                        # But here, we just use a standard button with a "Clear" icon.
-                        if st.button(f"📄 {f.name[:25]}... ✖" if len(f.name)>28 else f"📄 {f.name}   ✖", 
-                                     key=f"brick_{grp_id}_{f_idx}", 
-                                     help="Haz clic para eliminar este archivo",
-                                     use_container_width=True):
-                             delete_file(grp_id, f_idx)
-                             st.rerun()
+            # 5. Uploader Row (Ingester Pattern)
+            with row_upload[col_idx]:
+                current_key_val = st.session_state.get(f"uploader_key_grp_{grp_id}", 0)
+                
+                # The "Ingester" Widget
+                files_in_state = st.session_state.get(f"accumulated_files_grp_{grp_id}", [])
+                st.code(f"Archivos: {len(files_in_state)}", language=None)
+                
+                st.file_uploader(
+                    f"Cargar (G{grp_id})", 
+                    type=["pdf"], 
+                    key=f"uploader_widget_grp_{grp_id}_{current_key_val}", 
+                    accept_multiple_files=True, 
+                    label_visibility="collapsed",
+                    on_change=ingest_files,
+                    args=(grp_id,)
+                )
+
+                # Custom File List
+                if files_in_state:
+                    total_files_count += len(files_in_state)
+                    
+                    # Render 2-Column Grid of BRICKS
+                    fc1, fc2 = st.columns(2)
+                    for f_idx, f in enumerate(files_in_state):
+                        target_col = fc1 if f_idx % 2 == 0 else fc2
+                        with target_col:
+                            # Interactive Brick
+                            if st.button(f"📄 {f.name[:25]}... ✖" if len(f.name)>28 else f"📄 {f.name}   ✖", 
+                                         key=f"brick_{grp_id}_{f_idx}", 
+                                         help="Haz clic para eliminar este archivo",
+                                         use_container_width=True):
+                                 delete_file(grp_id, f_idx)
+                                 st.rerun()
+
+    # --- Render Logic based on N ---
+    if num_groups <= 4:
+        # Single Matrix
+        render_bucket_matrix(range(1, num_groups + 1))
+    else:
+        # Split Matrix
+        # Top: ceil(N/2), Bottom: floor(N/2) // actually user asked for "half plus one if odd on top"
+        # If N=5: Top=3, Bot=2. (5+1)//2 = 3. 5//2 = 2. Correct.
+        # If N=6: Top=3, Bot=3. (6+1)//2 = 3. 6//2 = 3. Correct.
+        # If N=7: Top=4, Bot=3. (7+1)//2 = 4. 7//2 = 3. Correct.
+        
+        top_n = (num_groups + 1) // 2
+        
+        render_bucket_matrix(range(1, top_n + 1))
+        
+        st.divider()
+        
+        render_bucket_matrix(range(top_n + 1, num_groups + 1))
     
     st.divider()
     
@@ -476,8 +496,8 @@ with st.container(border=True):
         
         all_processed_ok = True
         
-        # ITERATE BUCKETS
-        for i in range(1, 5):
+        # ITERATE BUCKETS (1-8 to safe-guard)
+        for i in range(1, 9):
             # Consume from our internal state now
             files = st.session_state.get(f"accumulated_files_grp_{i}")
             if not files:
