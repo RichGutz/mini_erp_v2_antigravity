@@ -448,20 +448,19 @@ if st.session_state.invoices_data:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.write("##### Comisiones Globales")
-            st.write("---")
-            st.write("**Com. de Estructuración**")
+            st.write("##### Com. de Estructuración")
             st.checkbox("Aplicar Comisión de Estructuración", key='aplicar_comision_estructuracion_global')
             st.number_input("Comisión de Estructuración (%)", min_value=0.0, key='comision_estructuracion_pct_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_estructuracion_global', False))
             st.number_input("Comisión Mínima (PEN)", min_value=0.0, key='comision_estructuracion_min_pen_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_estructuracion_global', False))
             st.number_input("Comisión Mínima (USD)", min_value=0.0, key='comision_estructuracion_min_usd_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_estructuracion_global', False))
             
-            st.write("**Com. de Afiliación**")
+        with col2:
+            st.write("##### Com. de Afiliación")
             st.checkbox("Aplicar Comisión de Afiliación", key='aplicar_comision_afiliacion_global')
             st.number_input("Monto Comisión Afiliación (PEN)", min_value=0.0, key='comision_afiliacion_pen_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_afiliacion_global', False))
             st.number_input("Monto Comisión Afiliación (USD)", min_value=0.0, key='comision_afiliacion_usd_global', format="%.2f", disabled=not st.session_state.get('aplicar_comision_afiliacion_global', False))
 
-        with col2:
+        with col3:
             st.write("##### Tasas Globales")
             st.checkbox("Aplicar Tasa de Avance Global", key='aplicar_tasa_avance_global', on_change=handle_global_tasa_avance_change)
             st.number_input("Tasa de Avance Global (%)", key='tasa_avance_global', min_value=0.0, format="%.2f", disabled=not st.session_state.get('aplicar_tasa_avance_global', False), on_change=handle_global_tasa_avance_change)
@@ -471,16 +470,9 @@ if st.session_state.invoices_data:
             
             st.checkbox("Aplicar Interés Moratorio Global", key='aplicar_interes_moratorio_global', on_change=handle_global_interes_moratorio_change)
             st.number_input("Interés Moratorio Global (%)", key='interes_moratorio_global', min_value=0.0, format="%.2f", disabled=not st.session_state.get('aplicar_interes_moratorio_global', False), on_change=handle_global_interes_moratorio_change)
-
-        with col3:
-            st.write("##### Fechas Globales (Sobrescribe Buckets)")
-            st.checkbox("Aplicar Fecha de Pago Global", key='aplicar_fecha_vencimiento_global', on_change=handle_global_payment_date_change)
-            st.date_input("Fecha de Pago Global", key='fecha_vencimiento_global', format="DD-MM-YYYY", disabled=not st.session_state.get('aplicar_fecha_vencimiento_global', False), on_change=handle_global_payment_date_change)
             
-            st.checkbox("Aplicar Fecha de Desembolso Global", key='aplicar_fecha_desembolso_global', on_change=handle_global_disbursement_date_change)
-            st.date_input("Fecha de Desembolso Global", key='fecha_desembolso_global', format="DD-MM-YYYY", disabled=not st.session_state.get('aplicar_fecha_desembolso_global', False), on_change=handle_global_disbursement_date_change)
-            
-            st.write("**Días Mínimos de Interés**")
+            st.divider()
+            st.write("**Días Mínimos Global**")
             st.checkbox("Aplicar Días Mínimos", key='aplicar_dias_interes_minimo_global', on_change=handle_global_min_interest_days_change)
             st.number_input("Valor Días Mínimos", key='dias_interes_minimo_global', min_value=0, step=1, on_change=handle_global_min_interest_days_change)
 
