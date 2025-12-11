@@ -289,6 +289,7 @@ for key, val in defaults.items():
 
 
 # --- Layout: Header ---
+from src.ui.header import render_header
 render_header("Módulo de Originación")
 
 # ==============================================================================
