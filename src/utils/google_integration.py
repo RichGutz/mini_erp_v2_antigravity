@@ -490,8 +490,9 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
             subfolders = []
             
     if not subfolders:
-        st.info("📭 Esta carpeta no tiene subcarpetas.")
+        pass # Empty state handled silently to avoid ribbon clutter
     else:
+
         # GRID LAYOUT: 3 columnas para carpetas
         cols = st.columns(3)
         for i, folder in enumerate(subfolders):
@@ -511,20 +512,23 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     c_back, c_cancel, c_select = st.columns([1, 1, 2])
     
     # 1. ATRÁS
+    # 1. ATRÁS
     with c_back:
         if st.session_state[nav_key_history]:
-            if st.button("⬅️ Atrás", key=f"btn_back_{key}", use_container_width=True):
+            if st.button("Atrás", key=f"btn_back_{key}", use_container_width=True):
                 last_id, last_name = st.session_state[nav_key_history].pop()
                 st.session_state[nav_key_id] = last_id
                 st.session_state[nav_key_name] = last_name
                 st.rerun()
         else:
-            st.button("Total", disabled=True, key=f"btn_root_{key}", use_container_width=True)
+            st.button("Inicio", disabled=True, key=f"btn_root_{key}", use_container_width=True)
 
     # 2. CANCELAR SELECCIÓN
     with c_cancel:
         is_selected = sel_key in st.session_state
-        if st.button("❌ Cancelar", key=f"btn_cancel_{key}", disabled=not is_selected, use_container_width=True):
+    with c_cancel:
+        is_selected = sel_key in st.session_state
+        if st.button("Cancelar", key=f"btn_cancel_{key}", disabled=not is_selected, use_container_width=True):
             if is_selected:
                 del st.session_state[sel_key]
                 st.rerun()
@@ -535,7 +539,7 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
         current_selection = st.session_state.get(sel_key)
         is_current_selected = current_selection and current_selection['id'] == current_id
         
-        btn_label = f"✅ Seleccionado: {current_name}" if is_current_selected else f"Seleccionar: {current_name}"
+        btn_label = f"Seleccionado: {current_name}" if is_current_selected else f"Seleccionar: {current_name}"
         btn_type = "primary" if not is_current_selected else "secondary" # Highlight action if NOT selected
         
         if st.button(btn_label, key=f"btn_sel_{key}", type=btn_type, use_container_width=True):

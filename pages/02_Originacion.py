@@ -941,8 +941,8 @@ if st.session_state.invoices_data:
         folder_info = None
         if has_results:
             st.divider()
-            st.markdown("##### 📂 Selección de Destino (Google Drive)")
-            st.info("Selecciona la carpeta del ANEXO donde se guardarán los PDFs. El sistema detectará automáticamente el Nro de Contrato (Carpeta Padre) y Anexo (Carpeta Actual).")
+            st.markdown("##### 📂 Selección de Destino en Repositorio Google Drive")
+
             
             # Using the v2 valid picker
             folder_info = render_folder_navigator_v2(key="orig_folder_nav")
@@ -1035,7 +1035,7 @@ if st.session_state.invoices_data:
                                 pdf_bytes = pdf_generators.generate_perfil_operacion_pdf(pdf_list)
                                 fname = f"perfil_operacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
                                 st.session_state['last_generated_perfil_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
-                                st.success("✅ Perfil Generado")
+
                         except Exception as e:
                             st.error(f"Error PDF: {e}")
                     
@@ -1060,7 +1060,7 @@ if st.session_state.invoices_data:
                                 pdf_bytes = generar_anexo_liquidacion_pdf(pdf_list)
                                 fname = f"anexo_liquidacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
                                 st.session_state['last_generated_liquidacion_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
-                                st.success("✅ Liquidación Generada")
+
                         except Exception as e:
                             st.error(f"Error PDF: {e}")
 
