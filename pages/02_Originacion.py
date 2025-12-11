@@ -293,43 +293,45 @@ from src.ui.header import render_header
 render_header("Módulo de Originación")
 
 # ==============================================================================
-# SECCIÓN 1: CARGA DE FACTURAS (MULTI-BUCKET)
+# SECCIÓN 1: CARGA DE FACTURAS (MULTI-BUCKET - GRID VIEW)
 # ==============================================================================
 with st.container(border=True):
-    st.subheader("1. Carga de Facturas (Multi-Bucket)")
-    st.info("ℹ️ Distribuye las facturas en los 4 grupos según sus fechas de desembolso y pago.")
+    # st.subheader("1. Carga de Facturas (Multi-Bucket)")
+    # st.info("ℹ️ Distribuye las facturas en los 4 grupos según sus fechas de desembolso y pago.")
     
-    # Define tabs for buckets
-    tab1, tab2, tab3, tab4 = st.tabs(["🟦 Grupo 1", "🟪 Grupo 2", "🟧 Grupo 3", "🟩 Grupo 4"])
+    # Grid Layout: 4 Columns corresponding to Groups
+    cols = st.columns(4)
     
     # Store temporary bucket config in a local dict to process later
     buckets_config = {} 
     
-    tabs = [tab1, tab2, tab3, tab4]
-    
-    # --- RENDER BUCKETS ---
     total_files_count = 0
     
-    for i, tab in enumerate(tabs):
+    for i, col in enumerate(cols):
         grp_id = i + 1
-        with tab:
-            c1, c2 = st.columns(2)
-            with c1:
-                f_desem = st.date_input(f"📅 Fecha Desembolso G{grp_id}", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}")
-            with c2:
-                f_pago = st.date_input(f"📅 Fecha Pago G{grp_id}", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}")
-                
-            uploaded = st.file_uploader(f"📂 Arrastra PDFs para Grupo {grp_id}", type=["pdf"], key=f"uploader_grp_{grp_id}", accept_multiple_files=True)
+        with col:
+            st.markdown(f"**GRUPO {grp_id}**")
             
+            # ROW 1: Browse Files
+            uploaded = st.file_uploader(f"📂 Archivos G{grp_id}", type=["pdf"], key=f"uploader_grp_{grp_id}", accept_multiple_files=True, label_visibility="collapsed")
+            
+            # ROW 2: Fecha Desembolso
+            f_desem = st.date_input(f"Desembolso G{grp_id}", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}")
+            
+            # ROW 3: Fecha Pago
+            f_pago = st.date_input(f"Pago G{grp_id}", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}")
+            
+            # ROW 4: BRICKS
             if uploaded:
-                st.markdown("**Facturas en este grupo (Bricks):**")
                 brick_html = ""
                 for up_file in uploaded:
-                    # Simple heuristic: extraction of name
-                    brick_html += f"<span class='invoice-brick'>📄 {up_file.name}</span>"
+                    # Simple heuristic: extraction of name or invoice ID if feasible, here just filename
+                    brick_html += f"<div class='invoice-brick' style='display:block; margin-bottom:2px;'>📄 {up_file.name[:15]}...</div>"
                 st.markdown(brick_html, unsafe_allow_html=True)
                 total_files_count += len(uploaded)
-    
+            else:
+                st.markdown("<div style='color:grey; font-size:0.8em; font-style:italic;'>Sin archivos</div>", unsafe_allow_html=True)
+
     st.divider()
     
     # --- PROCESS ALL BUCKETS BUTTON ---
