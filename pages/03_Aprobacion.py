@@ -65,6 +65,16 @@ def get_monto_a_desembolsar(factura: dict) -> float:
     except (json.JSONDecodeError, AttributeError, TypeError):
         return 0.0
 
+def toggle_batch_selection(batch_key, invoice_ids):
+    """Callback para seleccionar/deseleccionar todo el lote"""
+    # El valor del checkbox maestro ya se actualizó en session_state antes de llamar al callback
+    master_val = st.session_state[batch_key]
+    for pid in invoice_ids:
+        # Actualizar el diccionario de valores lógicos
+        st.session_state.facturas_seleccionadas_aprobacion[pid] = master_val
+        # Actualizar el estado visual del widget (si existe o se va crear)
+        st.session_state[f"chk_app_{pid}"] = master_val
+
 # --- UI: CSS ---
 st.markdown('''<style>
 [data-testid="stHorizontalBlock"] { 
@@ -80,10 +90,12 @@ render_header("Módulo de Aprobación")
 if st.session_state.reload_data:
     with st.spinner("Cargando facturas pendientes de aprobación..."):
         st.session_state.facturas_activas = db.get_active_proposals_for_approval()
-        # Inicializar checkboxes en False
-        st.session_state.facturas_seleccionadas_aprobacion = {
-            f['proposal_id']: False for f in st.session_state.facturas_activas
-        }
+        # Inicializar checkboxes en False si no existen
+        for f in st.session_state.facturas_activas:
+            pid = f['proposal_id']
+            if pid not in st.session_state.facturas_seleccionadas_aprobacion:
+                st.session_state.facturas_seleccionadas_aprobacion[pid] = False
+                
         st.session_state.reload_data = False
 
 # --- Mostrar Facturas Pendientes ---
@@ -117,6 +129,13 @@ else:
             emisor_name = first_inv.get('emisor_nombre', 'N/A')
             created_at = first_inv.get('created_at', '') # Si existe
             
+            # IDs de este lote
+            batch_pids = [inv['proposal_id'] for inv in invoices_in_batch]
+            
+            # Calcular estado actual del "Select All" para este lote
+            # True si TODOS los del lote están en True
+            all_selected = all(st.session_state.facturas_seleccionadas_aprobacion.get(pid, False) for pid in batch_pids)
+            
             with st.container(border=True):
                 # Header del Lote
                 st.markdown(f"**📦 Lote:** `{lote_id}` | **Emisor:** {emisor_name} | **Cant:** {len(invoices_in_batch)}")
@@ -125,7 +144,17 @@ else:
                 # Adjusted Columns: Added 'Monto Desembolso'
                 col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_fecha = st.columns([0.5, 1.5, 2.0, 1.5, 1.5, 1.0])
                 
-                with col_check: st.markdown("**OK**")
+                with col_check: 
+                    # Checkbox Maestro para este lote
+                    batch_key = f"select_all_{lote_id}"
+                    st.checkbox(
+                        "Todo", # Label corto o vacío
+                        value=all_selected,
+                        key=batch_key,
+                        on_change=toggle_batch_selection,
+                        args=(batch_key, batch_pids),
+                        label_visibility="collapsed"
+                    )
                 with col_factura: st.markdown("**Factura**")
                 with col_aceptante: st.markdown("**Aceptante**")
                 with col_monto: st.markdown("**Monto Neto**")
