@@ -78,11 +78,14 @@ st.markdown("""
     
     /* --- HACK: Style Native File Uploader --- */
     
-    /* 1. Grid Layout for the file list */
+    /* 1. Grid Layout for the file list & Force Auto Height */
     [data-testid='stFileUploader'] section[role="list"] {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
         gap: 8px !important;
+        max-height: none !important; /* Force expansion */
+        height: auto !important;
+        overflow: visible !important;
     }
     
     /* Also target the UL inside if structure varies */
@@ -90,14 +93,15 @@ st.markdown("""
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
         gap: 8px !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
     }
 
     /* 2. Hide the decorative "file" icon */
-    /* Target the SVG that is a direct child of the uploaded file item container */
     [data-testid="stUploadedFile"] > div > svg {
         display: none !important;
     }
-    /* Fallback for older Streamlit versions or different structures */
     [data-testid='stFileUploader'] div[role="listitem"] > div > svg {
         display: none !important;
     }
@@ -108,12 +112,16 @@ st.markdown("""
         align-items: center !important;
     }
 
-    /* 4. Hide Pagination Footer */
+    /* 4. Hide Pagination Footer (and hope full height reveals all) */
     [data-testid='stFileUploader'] div:has(button[title="View more"]) {
         display: none !important;
     }
     .stFileUploaderPagination {
         display: none !important;
+    }
+    /* Force main container to expand */
+    [data-testid='stFileUploader'] section {
+        max-height: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
