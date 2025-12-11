@@ -289,15 +289,14 @@ for key, val in defaults.items():
 
 
 # --- Layout: Header ---
-from src.ui.header import render_header
-render_header("Módulo de Originación - DEBUG")
+render_header("Módulo de Originación")
 
 # ==============================================================================
 # SECCIÓN 1: CARGA DE FACTURAS (MULTI-BUCKET - GRID VIEW)
 # ==============================================================================
 with st.container(border=True):
-    # st.subheader("1. Carga de Facturas (Multi-Bucket)")
-    # st.info("ℹ️ Distribuye las facturas en los 4 grupos según sus fechas de desembolso y pago.")
+    st.subheader("1. Carga de Facturas")
+    st.info("ℹ️ Distribuye las facturas en los 4 grupos según sus fechas de desembolso y pago.")
     
     # Grid Layout: 4 Columns corresponding to Groups
     cols = st.columns(4)
@@ -443,7 +442,7 @@ with st.container(border=True):
 # ==============================================================================
 if st.session_state.invoices_data:
     with st.container(border=True):
-        st.subheader("2. Configuración Global (Aplica a todos los Grupos)")
+        st.subheader("2. Configuración Global")
 
         col1, col2, col3 = st.columns(3)
 
@@ -475,7 +474,7 @@ if st.session_state.invoices_data:
     # ==============================================================================
     # SECCIÓN 3: DETALLE DE FACTURAS (GROUPED)
     # ==============================================================================
-    st.subheader("3. Detalle de Facturas (Agrupadas)")
+    st.subheader("3. Detalle de Facturas")
     
     # Identify active groups
     active_groups = sorted(list(set(inv.get('group_id', 1) for inv in st.session_state.invoices_data)))
