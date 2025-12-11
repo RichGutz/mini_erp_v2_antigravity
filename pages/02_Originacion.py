@@ -380,7 +380,7 @@ render_header("Módulo de Originación")
 # ==============================================================================
 with st.container(border=True):
     st.subheader("1. Carga de Facturas")
-    st.info("ℹ️ Distribuye las facturas en los 4 grupos según sus fechas de desembolso y pago.")
+    # st.info("ℹ️ Distribuye las facturas en los 4 grupos según sus fechas de desembolso y pago.") (Removed by user request)
     
     # Dynamic Group Configuration
     num_groups = st.number_input("Número de Grupos", min_value=1, max_value=8, value=4, key="num_groups_config")
@@ -543,19 +543,51 @@ with st.container(border=True):
                             'plazo_operacion_calculado': 0,
                         }
                         
-                        # --- Apply DB Rates Logic (Simplified Copy) ---
+                        # --- Apply DB Rates Logic (Full Implementation) ---
                         try:
-                            # (Here we reuse the logic to pull rates from DB if available)
+                            # Pull rates from DB if available
                             db_rates = db.get_financial_conditions(parsed_data.get('emisor_ruc'))
+                            
                             if db_rates:
-                                # ... (We can copy full logic or rely on defaults. 
-                                # Ideally this logic should be a function `apply_db_rates(invoice_entry)`)
-                                # For brevity, keeping it minimal:
-                                if db_rates.get('tasa_avance', 0) > 0:
+                                # Determine currency suffix for DB fields
+                                curr_suffix = "_pen" if invoice_entry['moneda_factura'] == 'PEN' else "_usd"
+                                
+                                # 1. Tasa de Avance (Common)
+                                if db_rates.get('tasa_avance') and float(db_rates['tasa_avance']) > 0:
                                     invoice_entry['tasa_de_avance'] = float(db_rates['tasa_avance'])
-                                # ... (Other rates logic implied) ...
-                        except:
-                            pass
+
+                                # 2. Interés Mensual
+                                db_int_mensual = db_rates.get(f'interes_mensual{curr_suffix}')
+                                if db_int_mensual and float(db_int_mensual) > 0:
+                                    invoice_entry['interes_mensual'] = float(db_int_mensual)
+
+                                # 3. Interés Moratorio
+                                db_int_moratorio = db_rates.get(f'interes_moratorio{curr_suffix}')
+                                if db_int_moratorio and float(db_int_moratorio) > 0:
+                                    invoice_entry['interes_moratorio'] = float(db_int_moratorio)
+
+                                # 4. Días Mínimos
+                                db_dias_min = db_rates.get('dias_minimos_interes')
+                                if db_dias_min and int(db_dias_min) > 0:
+                                    invoice_entry['dias_minimos_interes_individual'] = int(db_dias_min)
+
+                                # 5. Comisión de Estructuración
+                                # Note: Invoices structure doesn't hold 'struct_fee' directly but uses global or specific calc.
+                                # However, if we want to pre-fill global logic? Actually, struct fee is usually global.
+                                # But we can store it in the invoice for reference if needed.
+                                # For now, we trust the Global Config section to override or we could set defaults if we had per-invoice override.
+                                # Let's assume Struct Fee is strictly Global in this UI version.
+
+                                # 6. Comisión de Afiliación (Flat Fee)
+                                db_com_afi = db_rates.get(f'comision_afiliacion{curr_suffix}')
+                                if db_com_afi and float(db_com_afi) > 0:
+                                    if invoice_entry['moneda_factura'] == 'PEN':
+                                        invoice_entry['comision_afiliacion_pen'] = float(db_com_afi)
+                                    else:
+                                        invoice_entry['comision_afiliacion_usd'] = float(db_com_afi)
+
+                        except Exception as e:
+                            print(f"Error aplicando tasas DB: {e}") # Log simple
                         
                         # Calculate initial days
                         update_date_calculations(invoice_entry)
