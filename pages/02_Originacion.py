@@ -876,33 +876,64 @@ if st.session_state.invoices_data:
                         st.error(f"Error en el cálculo: {e}")
 
         # --- DRIVE PICKER & METADATA EXTRACTION (Moved Up) ---
+        folder_info = None
         if has_results:
             st.divider()
             st.markdown("##### 📂 Selección de Destino (Google Drive)")
-            st.info("Selecciona la carpeta del ANEXO donde se guardarán los PDFs. El sistema detectará automáticamente el Nro de Contrato y Anexo.")
+            st.info("Selecciona la carpeta del ANEXO donde se guardarán los PDFs. El sistema detectará automáticamente el Nro de Contrato (Carpeta Padre) y Anexo (Carpeta Actual).")
             
             # Using the v2 valid picker
             folder_info = render_folder_navigator_v2(key="orig_folder_nav")
             
+            extracted_contract = None
+            extracted_annex = None
+
             if folder_info:
                 st.success(f"📂 Carpeta Seleccionada: **{folder_info['name']}**")
                 
-                # --- AUTO-PARSE METADATA ---
+                # --- AUTO-PARSE METADATA FROM FULL PATH ---
+                # Expected: [..., (id, '1.Contrato_2025_Enero'), (id, '1.Anexo_1')]
+                full_path = folder_info.get('full_path', [])
+                
+                # Regex Strategies
                 import re
-                c_num_match = re.search(r'(?i)Contrato\s*(\d+)', folder_info['name'])
-                a_num_match = re.search(r'(?i)Anexo\s*(\d+)', folder_info['name'])
                 
-                contract_detected = c_num_match.group(1) if c_num_match else ""
-                annex_detected = a_num_match.group(1) if a_num_match else ""
-                
-                # Update Session State
-                if contract_detected and contract_detected != st.session_state.contract_number:
-                    st.session_state.contract_number = contract_detected
-                    st.toast(f"✅ Contrato detectado: {contract_detected}")
+                # 1. Parse Current Folder (Annex)
+                # Matches: "1.Anexo_1", "Anexo 1", "Anexo_01" -> Group(1) = 1
+                anexo_match = re.search(r'(?i)Anexo.?(\d+)', folder_info['name'])
+                if anexo_match:
+                    extracted_annex = anexo_match.group(1)
+
+                # 2. Parse Parent Folder (Contract)
+                if len(full_path) >= 2:
+                    parent_name = full_path[-2][1] # Second to last item
+                    # Matches: "1.Contrato_2025_Enero" -> "2025_Enero"
+                    # We look for "Contrato_" or "Contrato " and take the rest?
+                    # Or specific: Contrato_(\w+)
+                    # User ex: "1.Contrato_2025_Enero"
+                    # Regex: Contrato.?(.+) ? No, because of prefix "1."
+                    # Let's try: Contrato.?_?(.+) warning: greedy.
+                    # Better: split by 'Contrato_' 
                     
-                if annex_detected and annex_detected != st.session_state.anexo_number:
-                    st.session_state.anexo_number = annex_detected
-                    st.toast(f"✅ Anexo detectado: {annex_detected}")
+                    # Robust Regex attempts
+                    # A) "1.Contrato_2025_Enero" -> "2025_Enero"
+                    contrato_match = re.search(r'(?i)Contrato[_ ]+(.+)', parent_name)
+                    if contrato_match:
+                         extracted_contract = contrato_match.group(1).strip()
+                    else:
+                         # Fallback if just number "Contrato 123"
+                         cm2 = re.search(r'(?i)Contrato\s*(\d+)', parent_name)
+                         if cm2:
+                             extracted_contract = cm2.group(1)
+
+                # Update Session State
+                if extracted_contract and extracted_contract != st.session_state.contract_number:
+                    st.session_state.contract_number = extracted_contract
+                    st.toast(f"✅ Contrato detectado: {extracted_contract}")
+                    
+                if extracted_annex and extracted_annex != st.session_state.anexo_number:
+                    st.session_state.anexo_number = extracted_annex
+                    st.toast(f"✅ Anexo detectado: {extracted_annex}")
                 
                 # Visual Confirmation
                 mc1, mc2 = st.columns(2)
@@ -910,69 +941,71 @@ if st.session_state.invoices_data:
                 mc2.info(f"📑 **Nro Anexo:** {st.session_state.anexo_number if st.session_state.anexo_number else '-----'}")
                 
                 if not st.session_state.contract_number or not st.session_state.anexo_number:
-                    st.warning("⚠️ No se pudieron detectar los números automáticamente. Verifica el nombre de la carpeta (Ej: 'Contrato 123 - Anexo 45')")
+                    st.warning("⚠️ No se pudieron detectar los números automáticamente. Verifica la estructura de carpetas (Ej: `.../Contrato_X/Anexo_Y`)")
 
-        # --- PDF ACTIONS (Now depend on folder selection) ---
-        with c_act2:
-            # Only enable if calculation done AND folder selected (detected metadata)
-            can_gen_pdf = has_results and st.session_state.get('contract_number') and st.session_state.get('anexo_number')
-            
-            if st.button("Generar PDF Perfil", disabled=not can_gen_pdf, use_container_width=True):
-                try:
-                    # Prepare data list for PDF generator
-                    pdf_list = []
-                    for inv in st.session_state.invoices_data:
-                        if inv.get('recalculate_result'):
-                            # Inject global commission helper data expected by generator
-                            inv['comision_de_estructuracion_global'] = st.session_state.comision_estructuracion_pct_global
-                            inv['detraccion_monto'] = inv['monto_total_factura'] - inv['monto_neto_factura']
+
+                # --- PDF GENERATION BUTTONS (INSIDE PICKER BLOCK) ---
+                st.markdown("---")
+                st.write("##### 📄 Generación de Documentos")
+                
+                col_pdf_p, col_pdf_l = st.columns(2)
+                
+                ready_metadata = st.session_state.get('contract_number') and st.session_state.get('anexo_number')
+
+                with col_pdf_p:
+                     if st.button("Generar PDF Perfil", disabled=not ready_metadata, use_container_width=True):
+                        try:
+                            # Prepare data list for PDF generator
+                            pdf_list = []
+                            for inv in st.session_state.invoices_data:
+                                if inv.get('recalculate_result'):
+                                    # Inject global commission helper data expected by generator
+                                    inv['comision_de_estructuracion_global'] = st.session_state.comision_estructuracion_pct_global
+                                    inv['detraccion_monto'] = inv['monto_total_factura'] - inv['monto_neto_factura']
+                                    
+                                    # Inject Detected Metadata
+                                    inv['contract_number'] = st.session_state.contract_number
+                                    inv['anexo_number'] = st.session_state.anexo_number
+                                    
+                                    pdf_list.append(inv)
                             
-                            # Inject Detected Metadata
-                            inv['contract_number'] = st.session_state.contract_number
-                            inv['anexo_number'] = st.session_state.anexo_number
-                            
-                            pdf_list.append(inv)
+                            if pdf_list:
+                                pdf_bytes = pdf_generators.generate_perfil_operacion_pdf(pdf_list)
+                                fname = f"perfil_operacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                                st.session_state['last_generated_perfil_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
+                                st.success("✅ Perfil Generado")
+                        except Exception as e:
+                            st.error(f"Error PDF: {e}")
                     
-                    if pdf_list:
-                        pdf_bytes = pdf_generators.generate_perfil_operacion_pdf(pdf_list)
-                        fname = f"perfil_operacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                        st.session_state['last_generated_perfil_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
-                        st.success("✅ Perfil Generado")
-                except Exception as e:
-                    st.error(f"Error PDF: {e}")
-            
-            # Download Link Logic
-            if 'last_generated_perfil_pdf' in st.session_state:
-                p = st.session_state['last_generated_perfil_pdf']
-                st.download_button("⬇️ Descargar Perfil", p['bytes'], p['filename'], "application/pdf", use_container_width=True)
+                     # Download Link Logic
+                     if 'last_generated_perfil_pdf' in st.session_state:
+                        p = st.session_state['last_generated_perfil_pdf']
+                        st.download_button("⬇️ Descargar Perfil", p['bytes'], p['filename'], "application/pdf", use_container_width=True)
 
-        with c_act3:
-             # Only enable if calculation done AND folder selected (detected metadata)
-            can_gen_pdf_liq = has_results and st.session_state.get('contract_number') and st.session_state.get('anexo_number')
-            
-            if st.button("Generar PDF Liquidación", disabled=not can_gen_pdf_liq, use_container_width=True):
-                try:
-                    # Same filtering logic
-                    pdf_list = [] 
-                    for inv in st.session_state.invoices_data:
-                         if inv.get('recalculate_result'):
-                            # Inject Detected Metadata logic might be needed inside generator or obj
-                            inv['contract_number'] = st.session_state.contract_number
-                            inv['anexo_number'] = st.session_state.anexo_number
-                            pdf_list.append(inv)
-                            
-                    if pdf_list:
-                        pdf_bytes = generar_anexo_liquidacion_pdf(pdf_list)
-                        fname = f"anexo_liquidacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                        st.session_state['last_generated_liquidacion_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
-                        st.success("✅ Liquidación Generada")
-                except Exception as e:
-                    st.error(f"Error PDF: {e}")
+                with col_pdf_l:
+                    if st.button("Generar PDF Liquidación", disabled=not ready_metadata, use_container_width=True):
+                        try:
+                            # Same filtering logic
+                            pdf_list = [] 
+                            for inv in st.session_state.invoices_data:
+                                 if inv.get('recalculate_result'):
+                                    # Inject Detected Metadata logic might be needed inside generator or obj
+                                    inv['contract_number'] = st.session_state.contract_number
+                                    inv['anexo_number'] = st.session_state.anexo_number
+                                    pdf_list.append(inv)
+                                    
+                            if pdf_list:
+                                pdf_bytes = generar_anexo_liquidacion_pdf(pdf_list)
+                                fname = f"anexo_liquidacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                                st.session_state['last_generated_liquidacion_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
+                                st.success("✅ Liquidación Generada")
+                        except Exception as e:
+                            st.error(f"Error PDF: {e}")
 
-            # Download Link Logic
-            if 'last_generated_liquidacion_pdf' in st.session_state:
-                l = st.session_state['last_generated_liquidacion_pdf']
-                st.download_button("⬇️ Descargar Liquidación", l['bytes'], l['filename'], "application/pdf", use_container_width=True)
+                    # Download Link Logic
+                    if 'last_generated_liquidacion_pdf' in st.session_state:
+                        l = st.session_state['last_generated_liquidacion_pdf']
+                        st.download_button("⬇️ Descargar Liquidación", l['bytes'], l['filename'], "application/pdf", use_container_width=True)
 
 
         # --- FINAL SAVE BUTTON (Merged Action) ---

@@ -543,5 +543,13 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
             st.rerun()
 
     # Retornamos la selección actual (sin bloquear el renderizado anterior)
-    return st.session_state.get(sel_key)
+    # Build Full Path List for Return
+    full_path_list = st.session_state.get(nav_key_history, []) + [(current_id, current_name)] if st.session_state.get(sel_key) else []
+    
+    # Retornamos la selección actual con info enriquecida
+    selected_data = st.session_state.get(sel_key)
+    if selected_data:
+        selected_data['full_path'] = full_path_list
+        
+    return selected_data
 
