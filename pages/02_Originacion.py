@@ -1102,15 +1102,17 @@ if st.session_state.invoices_data:
                         
                         drive_link = ""
                         if file_bytes:
-                            # Save to temp
-                            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as t:
-                                t.write(file_bytes)
-                                tpath = t.name
-                            
-                            # Upload
+                            # Upload (Direct Memory)
                             fname = f"{inv['emisor_ruc']}_{inv['numero_factura']}.pdf"
-                            drive_link = upload_file_with_sa(tpath, fname, folder_info['id']) 
-                            os.remove(tpath)
+                            try:
+                                sa_creds = st.secrets["google_drive"]
+                                success, drive_file_id = upload_file_with_sa(file_bytes, fname, folder_info['id'], sa_creds)
+                                if success:
+                                    drive_link = f"https://drive.google.com/file/d/{drive_file_id}/view"
+                                else:
+                                    st.error(f"Error subiendo {fname}: {drive_file_id}")
+                            except Exception as e:
+                                st.error(f"Excepción subiendo {fname}: {e}")
                         
                         inv['drive_link'] = drive_link
                         
