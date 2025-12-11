@@ -87,7 +87,7 @@ from src.ui.header import render_header
 render_header("Módulo de Aprobación")
 
 # --- Cargar Facturas Activas Automáticamente ---
-        if st.session_state.reload_data:
+if st.session_state.reload_data:
     with st.spinner("Cargando facturas pendientes de aprobación..."):
         st.session_state.facturas_activas = db.get_active_proposals_for_approval()
         # Inicializar checkboxes en False si no existen
