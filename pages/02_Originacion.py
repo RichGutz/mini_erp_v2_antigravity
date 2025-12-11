@@ -1126,7 +1126,7 @@ if st.session_state.invoices_data:
                             # Ensure numeric fields are int/float
                             # db.save_proposal handles most matching.
                             
-                            pid = db.save_proposal(proposal_data)
+                            pid = db.save_proposal(proposal_data, st.session_state.lote_id)
                             if pid:
                                 saved_count += 1
                         except Exception as e:
