@@ -352,6 +352,7 @@ with st.container(border=True):
                 
             f_desem_val = st.session_state.get(f"f_desemb_grp_{i}")
             f_pago_val = st.session_state.get(f"f_pago_grp_{i}")
+            dias_min_val = st.session_state.get(f"dias_min_grp_{i}", 15)
             
             f_desem_str = f_desem_val.strftime('%d-%m-%Y') if f_desem_val else ""
             f_pago_str = f_pago_val.strftime('%d-%m-%Y') if f_pago_val else ""
@@ -405,7 +406,7 @@ with st.container(border=True):
                             'interes_moratorio': st.session_state.default_interes_moratorio,
                             'comision_afiliacion_pen': st.session_state.default_comision_afiliacion_pen,
                             'comision_afiliacion_usd': st.session_state.default_comision_afiliacion_usd,
-                            'dias_minimos_interes_individual': 15,
+                            'dias_minimos_interes_individual': dias_min_val,
                             'detraccion_porcentaje': 0.0,
                             'plazo_credito_dias': 0,
                             'plazo_operacion_calculado': 0,
