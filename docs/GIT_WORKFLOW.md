@@ -6,6 +6,11 @@
 
 Todos los cambios de código **DEBEN** pushearse a la rama `main` para que se desplieguen en Streamlit Cloud. Streamlit Cloud está configurado para desplegar automáticamente desde `main`.
 
+> [!IMPORTANT]
+> **PROTOCOLO ESTRICTO:** Ver `docs/PROTOCOLO_GIT_STRICTO.md`.
+> El usuario requiere confirmación PASO A PASO (Add -> Wait -> Commit -> Wait -> Push).
+> **NO ENCADENAR COMANDOS.**
+
 ## Workflow de Git
 
 ### 1. Desarrollo Normal

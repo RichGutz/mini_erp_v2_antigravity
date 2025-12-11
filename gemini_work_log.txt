@@ -1946,3 +1946,7 @@ explícitas y acordadas con el usuario:
 
 ================================================================================
 
+
+
+## [PINNED] PROTOCOLO GIT ESTRICTO (User Mandate)
+Ver docs/PROTOCOLO_GIT_STRICTO.md. NO ENCADENAR COMANDOS GIT.
