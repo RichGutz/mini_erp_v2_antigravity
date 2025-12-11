@@ -76,52 +76,29 @@ st.markdown("""
         border-left: 5px solid #2196F3;
     }
     
-    /* Custom File List Styling */
-    .custom-file-item {
-        background-color: #f0f2f6;
-        padding: 5px 10px;
-        border-radius: 4px;
-        margin-bottom: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 0.85em;
-    }
-    .custom-file-name {
-        white-space: nowrap; 
-        overflow: hidden; 
-        text-overflow: ellipsis;
-        margin-right: 10px;
-    }
-    
-    /* Delete Button Styling */
-    div[data-testid="stButton"] > button[title="Eliminar archivo"] {
-        background-color: rgba(255, 75, 75, 0.1) !important;
-        color: #ff4b4b !important;
-        border: 1px solid rgba(255, 75, 75, 0.2) !important;
-        border-radius: 4px !important;
-        padding: 0px !important;
-        width: 28px !important;
-        height: 28px !important;
-        min-height: 28px !important;
-        line-height: 1 !important;
+    /* Interactive File Brick Styling */
+    div[data-testid="stButton"] > button.file-brick-btn {
+        background-color: #f0f2f6 !important;
+        color: #31333F !important;
+        border: 1px solid #d6d6d8 !important;
+        border-radius: 6px !important;
+        padding: 4px 12px !important;
+        font-size: 0.85rem !important;
+        width: 100% !important;
         display: flex !important;
+        justify-content: space-between !important;
         align-items: center !important;
-        justify-content: center !important;
-        transition: all 0.2s ease;
+        transition: background-color 0.2s;
     }
-    div[data-testid="stButton"] > button[title="Eliminar archivo"]:hover {
-        background-color: rgba(255, 75, 75, 0.3) !important;
+    div[data-testid="stButton"] > button.file-brick-btn:hover {
+        background-color: #ffeaea !important; /* Light red hover */
         border-color: #ff4b4b !important;
-        color: #7d0000 !important;
-        transform: scale(1.05);
+        color: #ff4b4b !important;
     }
-    div[data-testid="stButton"] > button[title="Eliminar archivo"] p {
-        font-size: 16px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1 !important;
-        font-weight: bold !important;
+    div[data-testid="stButton"] > button.file-brick-btn p {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -471,17 +448,21 @@ with st.container(border=True):
             if files_list:
                 total_files_count += len(files_list)
                 
-                # Render 2-Column Grid
+                # Render 2-Column Grid of BRICKS
                 fc1, fc2 = st.columns(2)
                 for f_idx, f in enumerate(files_list):
                     target_col = fc1 if f_idx % 2 == 0 else fc2
                     with target_col:
-                        # Custom render with delete button
-                        c_name, c_del = st.columns([0.85, 0.15])
-                        with c_name:
-                             st.markdown(f"<div title='{f.name}' style='font-size: 0.8em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>📄 {f.name}</div>", unsafe_allow_html=True)
-                        with c_del:
-                             st.button("✕", key=f"del_{grp_id}_{f.name}_{f_idx}", on_click=delete_file, args=(grp_id, f_idx), help="Eliminar archivo")
+                        # Interactive Brick: Button acts as "Delete me"
+                        # We use a trick to style it: Inject specific class via type=secondary/primary isn't enough,
+                        # so we rely on Streamlit's key to identify it if needed, or universal button styling.
+                        # But here, we just use a standard button with a "Clear" icon.
+                        if st.button(f"📄 {f.name[:25]}... ✖" if len(f.name)>28 else f"📄 {f.name}   ✖", 
+                                     key=f"brick_{grp_id}_{f_idx}", 
+                                     help="Haz clic para eliminar este archivo",
+                                     use_container_width=True):
+                             delete_file(grp_id, f_idx)
+                             st.rerun()
     
     st.divider()
     
