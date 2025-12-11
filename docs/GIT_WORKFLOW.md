@@ -29,6 +29,14 @@ Todos los cambios de código **DEBEN** pushearse a la rama `main` para que se de
   git checkout main  # Volver a main inmediatamente
   ```
 
+### 2a. Creación de Feature Snapshots (Hitos)
+- **Caso de uso:** Grabar un hito importante (ej. `buckets.dinamicos`) para tener una referencia segura.
+- **Procedimiento:**
+  1. Crear el branch con nombre descriptivo: `git checkout -b <nombre.feature>`
+  2. Push al remoto: `git push origin <nombre.feature>`
+  3. **RETORNO INMEDIATO A MAIN:** `git checkout main`
+  4. Continuar trabajando/testeando en `main` (pues Streamlit Cloud escucha allí).
+
 ### 3. Reglas Importantes
 
 ❌ **NO hacer:**
