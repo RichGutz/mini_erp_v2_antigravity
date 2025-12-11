@@ -380,33 +380,43 @@ with st.container(border=True):
     st.subheader("1. Carga de Facturas")
     st.info("ℹ️ Distribuye las facturas en los 4 grupos según sus fechas de desembolso y pago.")
     
-    # Grid Layout: 4 Columns corresponding to Groups
-    cols = st.columns(4)
+    # Layout: 5 Distinct Rows for better vertical space management
+    row_headers = st.columns(4)
+    row_desembolso = st.columns(4)
+    row_pago = st.columns(4)
+    row_dias = st.columns(4)
+    row_upload = st.columns(4)
     
-    # Store temporary bucket config in a local dict to process later
+    # Store temporary bucket config
     buckets_config = {} 
-    
     total_files_count = 0
     
-    for i, col in enumerate(cols):
+    # Iterate 1..4 Groups
+    for i in range(4):
         grp_id = i + 1
-        with col:
+        
+        # 1. Header Row
+        with row_headers[i]:
             st.markdown(f"**GRUPO {grp_id}**")
+
+        # 2. Desembolso Row
+        with row_desembolso[i]:
+            st.date_input(f"Fecha de Desembolso", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
+
+        # 3. Pago Row
+        with row_pago[i]:
+            st.date_input(f"Fecha de Pago", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
+
+        # 4. Dias Min Row
+        with row_dias[i]:
+            st.number_input(f"Días Mínimos", min_value=0, value=15, step=1, key=f"dias_min_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
             
-            # ROW 1: Fecha Desembolso
-            f_desem = st.date_input(f"Fecha de Desembolso", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
-            
-            # ROW 2: Fecha Pago
-            f_pago = st.date_input(f"Fecha de Pago", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
-            
-            # ROW 3: Días Mínimos (Explicit Label)
-            dias_min = st.number_input(f"Días Mínimos", min_value=0, value=15, step=1, key=f"dias_min_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
-            # ROW 4: Browse Files (Bottom)
+        # 5. Uploader Row (Expanded Vertical Space)
+        with row_upload[i]:
             uploaded = st.file_uploader(f"Cargar Facturas G{grp_id}", type=["pdf"], key=f"uploader_grp_{grp_id}", accept_multiple_files=True, label_visibility="visible")
-            
             if uploaded:
                 total_files_count += len(uploaded)
-
+    
     st.divider()
     
     # --- PROCESS ALL BUCKETS BUTTON ---
