@@ -245,6 +245,39 @@ def handle_global_min_interest_days_change():
             st.session_state[f"dias_minimos_interes_individual_{idx}"] = val
         st.toast("✅ Días de interés mínimo global aplicado.")
 
+def handle_bucket_change(grp_id):
+    """Updates all invoices in a specific group when bucket params change."""
+    # Get new values from bucket widgets
+    new_f_desem = st.session_state.get(f"f_desemb_grp_{grp_id}")
+    new_f_pago = st.session_state.get(f"f_pago_grp_{grp_id}")
+    new_dias_min = st.session_state.get(f"dias_min_grp_{grp_id}", 15)
+    
+    # Format dates
+    f_desem_str = new_f_desem.strftime('%d-%m-%Y') if new_f_desem else ""
+    f_pago_str = new_f_pago.strftime('%d-%m-%Y') if new_f_pago else ""
+
+    # Update logic
+    if st.session_state.invoices_data:
+        for idx, invoice in enumerate(st.session_state.invoices_data):
+            if invoice.get('group_id') == grp_id:
+                # Update Dict
+                invoice['fecha_desembolso_factoring'] = f_desem_str
+                invoice['fecha_pago_calculada'] = f_pago_str
+                invoice['dias_minimos_interes_individual'] = new_dias_min
+                
+                # Update Widgets in Session State (to reflect immediately in UI)
+                if f"fecha_desembolso_factoring_{idx}" in st.session_state:
+                    st.session_state[f"fecha_desembolso_factoring_{idx}"] = new_f_desem
+                if f"fecha_pago_calculada_{idx}" in st.session_state:
+                    st.session_state[f"fecha_pago_calculada_{idx}"] = new_f_pago
+                if f"dias_minimos_interes_individual_{idx}" in st.session_state:
+                    st.session_state[f"dias_minimos_interes_individual_{idx}"] = new_dias_min
+                
+                # Recalculate derived fields
+                update_date_calculations(invoice, idx=idx)
+        
+        st.toast(f"✅ Grupo {grp_id} actualizado.")
+
 
 # --- Session State Initialization ---
 defaults = {
@@ -313,14 +346,13 @@ with st.container(border=True):
             st.markdown(f"**GRUPO {grp_id}**")
             
             # ROW 1: Fecha Desembolso
-            f_desem = st.date_input(f"Fecha de Desembolso", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}")
+            f_desem = st.date_input(f"Fecha de Desembolso", value=datetime.date.today(), key=f"f_desemb_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
             
             # ROW 2: Fecha Pago
-            f_pago = st.date_input(f"Fecha de Pago", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}")
+            f_pago = st.date_input(f"Fecha de Pago", value=datetime.date.today(), key=f"f_pago_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
             
             # ROW 3: Días Mínimos (Explicit Label)
-            dias_min = st.number_input(f"Días Mínimos", min_value=0, value=15, step=1, key=f"dias_min_grp_{grp_id}")
-
+            dias_min = st.number_input(f"Días Mínimos", min_value=0, value=15, step=1, key=f"dias_min_grp_{grp_id}", on_change=handle_bucket_change, args=(grp_id,))
             # ROW 4: Browse Files (Bottom)
             uploaded = st.file_uploader(f"Cargar Facturas G{grp_id}", type=["pdf"], key=f"uploader_grp_{grp_id}", accept_multiple_files=True, label_visibility="visible")
             
