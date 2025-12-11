@@ -545,8 +545,29 @@ with st.container(border=True):
                         
                         # --- Apply DB Rates Logic (Full Implementation) ---
                         try:
+                            # Robust RUC extraction
+                            raw_ruc = parsed_data.get('emisor_ruc', '')
+                            clean_ruc_for_db = str(raw_ruc).strip()
+                            
                             # Pull rates from DB if available
-                            db_rates = db.get_financial_conditions(parsed_data.get('emisor_ruc'))
+                            if clean_ruc_for_db:
+                                db_rates = db.get_financial_conditions(clean_ruc_for_db)
+                                
+                                # --- DEBUG IN VIVO ---
+                                # TODO: Remove after testing
+                                with st.expander(f"🔍 Debug RUC: {clean_ruc_for_db}", expanded=False):
+                                    st.write(f"Raw RUC from PDF: '{raw_ruc}'")
+                                    st.write(f"Clean RUC used: '{clean_ruc_for_db}'")
+                                    if db_rates:
+                                        st.success(f"✅ Data Found: {db_rates}")
+                                    else:
+                                        st.error("❌ No Data Found in DB")
+                                # ---------------------
+
+                                if db_rates:
+                                    # Debug/Feedback
+                                    # print(f"✅ Rates found for {clean_ruc_for_db}: {db_rates}") 
+                                    pass
                             
                             if db_rates:
                                 # Determine currency suffix for DB fields
