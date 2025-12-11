@@ -410,8 +410,8 @@ with st.container(border=True):
         row_dias = st.columns(cols_count)
         row_upload = st.columns(cols_count)
         
-        # We use a nonlocal to update the total count from inside this helper
-        nonlocal total_files_count
+        # We use a global to update the total count from inside this helper
+        global total_files_count
 
         for col_idx, grp_id in enumerate(group_range):
             # 1. Header Row
