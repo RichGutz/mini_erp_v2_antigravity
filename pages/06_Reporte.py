@@ -94,16 +94,38 @@ if btn_search:
             
         df = pd.DataFrame(data_rows)
         
-        # --- Client Side Filter: Group ---
-        # Allow filtering result DF by Group
-        groups_avail = sorted(list(set(df['Grupo'].astype(str))))
+        # --- Client Side Filters (Dynamic Slice) ---
+        st.markdown("### 🌪️ Filtros Dinámicos")
         
-        col_f1, col_f2 = st.columns([1, 4])
-        with col_f1:
-            sel_groups = st.multiselect("Filtrar por Grupo (Resultados)", groups_avail)
+        # Prepare lists for multiselects
+        all_states = sorted(list(set(df['Estado'].astype(str))))
+        all_currencies = sorted(list(set(df['Moneda'].astype(str))))
+        all_groups = sorted(list(set(df['Grupo'].astype(str))))
+        
+        c_fill1, c_fill2, c_fill3, c_fill4 = st.columns(4)
+        
+        with c_fill1:
+            sel_states = st.multiselect("Estado", all_states, default=all_states)
+        with c_fill2:
+            sel_currencies = st.multiselect("Moneda", all_currencies, default=all_currencies)
+        with c_fill3:
+            sel_groups = st.multiselect("Grupo", all_groups, default=all_groups)
+        with c_fill4:
+            search_invoice = st.text_input("Buscar Factura (Contiene)", placeholder="Ej. 001")
             
+        # Apply Filters
+        if sel_states:
+             df = df[df['Estado'].isin(sel_states)]
+        
+        if sel_currencies:
+             df = df[df['Moneda'].isin(sel_currencies)]
+             
         if sel_groups:
-            df = df[df['Grupo'].astype(str).isin(sel_groups)]
+             df = df[df['Grupo'].isin(sel_groups)]
+             
+        if search_invoice:
+             # Case insensitive search
+             df = df[df['Factura'].str.contains(search_invoice, case=False, na=False)]
             
         # --- Metrics ---
         m1, m2, m3 = st.columns(3)
