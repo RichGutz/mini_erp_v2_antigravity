@@ -19,9 +19,8 @@ importlib.reload(pdf_generators) # Force reload to pick up new signatures
 from src.utils.google_integration import (
     render_folder_navigator_v2, 
     upload_file_with_sa, 
-)
 from src.ui.email_component import render_email_sender
-
+from src.ui.integracion_xml_cavali import render_xml_cavali_integration
 
 # --- Configuration & Constants ---
 st.set_page_config(
@@ -1269,3 +1268,12 @@ if st.session_state.invoices_data:
                          st.balloons()
                     else:
                          st.warning(f"⚠️ Se guardaron {saved_count} de {len(st.session_state.invoices_data)} operaciones.")
+
+    # ==============================================================================
+    # SECCIÓN 5: INTEGRACIÓN CAVALI (XML)
+    # ==============================================================================
+    render_xml_cavali_integration(st.session_state.invoices_data)
+
+    # --- Debug Session State (Optional / Dev) ---
+    # with st.expander("🔍 Debug Session State"):
+    #    st.write(st.session_state)
