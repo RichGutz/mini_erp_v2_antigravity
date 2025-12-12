@@ -1114,8 +1114,8 @@ if st.session_state.invoices_data:
                         inv['contract_number'] = st.session_state.contract_number
                         inv['anexo_number'] = st.session_state.anexo_number
                         
-                        # Semantic Lote ID: Path | Group
-                        inv['lote_id'] = f"{base_path_string} | G{inv.get('group_id', '?')}"
+                        # Semantic Lote ID: Path only (Clean)
+                        inv['lote_id'] = f"{base_path_string}"
                         st.session_state.lote_id = inv['lote_id'] # Keep last for reference
                         
                         # 2. Upload to Drive (if not already uploaded - optimize later)

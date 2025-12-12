@@ -84,9 +84,14 @@ def save_proposal(session_data: Proposal, identificador_lote: str) -> tuple[bool
             capital = recalculate_result_full.get('calculo_con_tasa_encontrada', {}).get('capital')
             data_to_insert['capital_calculado'] = _convert_to_numeric(capital)
 
+        # Persist Group ID within JSON for Reporting
+        if recalculate_result_full:
+            recalculate_result_full['group_id'] = session_data.get('group_id')
+            data_to_insert['recalculate_result_json'] = json.dumps(recalculate_result_full)
+
         emisor_nombre_id = str(data_to_insert.get('emisor_nombre', 'SIN_NOMBRE')).replace(' ', '_').replace('.', '')
         numero_factura = str(data_to_insert.get('numero_factura', 'SIN_FACTURA'))
-        fecha_propuesta = dt.datetime.now().strftime('%Y%m%d%H%M%S')
+        fecha_propuesta = dt.datetime.now().strftime('%Y%m%d')
         data_to_insert['proposal_id'] = f"{emisor_nombre_id}-{numero_factura}-{fecha_propuesta}"
 
         print(f"DEBUG: Data being sent to Supabase -> {json.dumps(data_to_insert, indent=4, default=str)}")
@@ -565,3 +570,58 @@ def get_financial_conditions(ruc: str) -> Optional[Dict[str, float]]:
     except Exception as e:
         print(f"[ERROR in get_financial_conditions]: {e}")
         return None
+
+def search_proposals_advanced(
+    emisor_ruc: Optional[str] = None, 
+    fecha_inicio: Optional[dt.date] = None, 
+    fecha_fin: Optional[dt.date] = None,
+    lote_filter: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """
+    Search proposals with multiple optional filters.
+    """
+    supabase = get_supabase_client()
+    try:
+        query = supabase.table('propuestas').select('*')
+        
+        if emisor_ruc:
+            query = query.eq('emisor_ruc', emisor_ruc)
+        
+        if lote_filter:
+            query = query.ilike('identificador_lote', f"%{lote_filter}%")
+            
+        # Execute query without date filters (DB doesn't have reliable created_at)
+        response = query.order('proposal_id', desc=True).execute()
+        data = response.data if response.data else []
+        
+        # Filter by Date in Python (using proposal_id suffix YYYYMMDD)
+        filtered_data = []
+        if fecha_inicio or fecha_fin:
+            for item in data:
+                pid = item.get('proposal_id', '')
+                parts = pid.split('-')
+                if len(parts) >= 3:
+                    date_str = parts[-1] # Expecting YYYYMMDD
+                    if len(date_str) == 8 and date_str.isdigit():
+                        try:
+                            item_date = dt.datetime.strptime(date_str, '%Y%m%d').date()
+                            
+                            if fecha_inicio and item_date < fecha_inicio:
+                                continue
+                            if fecha_fin and item_date > fecha_fin:
+                                continue
+                                
+                            filtered_data.append(item)
+                        except:
+                            filtered_data.append(item) # Keep if cant parse? Or skip? Skip is safer for strict filter
+                    else:
+                        filtered_data.append(item) 
+                else:
+                    filtered_data.append(item)
+            return filtered_data
+        else:
+            return data
+
+    except Exception as e:
+        print(f"[ERROR in search_proposals_advanced]: {e}")
+        return []
