@@ -35,66 +35,55 @@ def render_header(title: str):
 
     # Use a container to group the header elements
     with st.container(border=False):
-        # 3-Column Layout: [Logo Geek (1), Title (2), Right Stack (1)]
+        # 3-Column Layout: [Left, Center, Right]
+        # We need 2 "Rows" visually. 
+        # Row 1: Top Right Logout (Left/Center empty or spacers)
+        # Row 2: Logos and Title aligned at bottom
+        
+        # To achieve this cleanly in Streamlit without complex CSS Grid hacks that might break:
+        # We use a single set of columns, and inside each column we stack elements vertically.
+        
         col1, col2, col3 = st.columns([1, 2, 1])
         
-        # --- Left: Geesoft Logo ---
+        # --- COL 1 (Left): Spacer + GeekSoft Logo ---
         with col1:
+             st.write("") # Top Spacer (aligns with Logout button height approx)
+             st.write("") 
+             # Logo GeekSoft (Bottom)
              st.markdown(
-                f"""<div style="display: flex; align-items: center;">
+                f"""<div style="display: flex; align-items: flex-end; height: 100%; padding-top: 20px;">
                 <img src="data:image/png;base64,{logo_geek_b64}" style="max-width: 180px; width: 100%; object-fit: contain;">
                 </div>""",
                 unsafe_allow_html=True
             )
 
-        # --- Center: Title ---
+        # --- COL 2 (Center): Spacer + Title ---
         with col2:
-            st.markdown(f"<h2 style='text-align: center; margin: 0; font-size: 2.2em;'>{title}</h2>", unsafe_allow_html=True)
+            st.write("") # Top Spacer
+            st.write("")
+            # Title (Bottom Center)
+            st.markdown(f"""
+            <div style="display: flex; align-items: flex-end; justify-content: center; height: 100%; padding-top: 20px;">
+                <h2 style='text-align: center; margin: 0; font-size: 2.2em;'>{title}</h2>
+            </div>
+            """, unsafe_allow_html=True)
             
-        # --- Right: Logout + Inandes Logo Stack ---
+        # --- COL 3 (Right): Logout (Top) + Inandes Logo (Bottom) ---
         with col3:
-            # Create a 2-column layout inside the right column to push content to the far right
-            # [Spacer (Very Large), Content (Small)] -> Pushes content tight match right margin
-            _, right_content = st.columns([5, 3]) 
-            
-            with right_content:
-                # 1. Logout Button (Discreet, Top, Right Aligned)
-                # CSS hack:
-                # 1. Pull up significantly (-45px)
-                # 2. Force the button element to float right / align right
-                st.markdown("""
-                    <style>
-                    div.stButton > button[kind="secondary"] {
-                        padding-top: 0px; 
-                        padding-bottom: 0px;
-                        height: auto;
-                        min-height: 0px;
-                        line-height: 1.2;
-                        background-color: #f0f2f6; /* Soft grey */
-                        border-color: #d1d5db; /* Subtle border */
-                    }
-                    div.stButton > button[kind="secondary"]:hover {
-                        background-color: #e5e7eb;
-                        border-color: #9ca3af;
-                    }
-                    </style>
-                    <div style="margin-top: -45px;"></div>
-                """, unsafe_allow_html=True)
-                
-                # Using a container/column that is naturally right-aligned is tricky in Streamlit.
-                # The tight column [5, 3] combined with "use_container_width=True" might actually fill the space better 
-                # OR we just rely on the tight column being on the right.
-                
-                if st.button("🔒 Cerrar Sesión", key="header_logout_btn", help="Cerrar sesión actual", use_container_width=True):
+            # Row 1: Logout Button (Top Right)
+            # We use a nested column to push it to the right-most edge if needed, or just alignment
+            sub_c1, sub_c2 = st.columns([1, 2]) # Push right
+            with sub_c2:
+                 if st.button("🔒 Cerrar Sesión", key="header_logout_btn", help="Cerrar sesión actual", use_container_width=True):
                     st.session_state.clear()
                     st.switch_page("00_Home.py")
-                
-                # 2. Inandes Logo (Bottom)
-                st.markdown(
-                    f"""<div style="display: flex; justify-content: flex-end; margin-top: 5px;">
-                    <img src="data:image/png;base64,{logo_inandes_b64}" style="max-width: 150px; width: 100%; object-fit: contain;">
-                    </div>""",
-                    unsafe_allow_html=True
-                )
-    
+            
+            # Row 2: Inandes Logo (Bottom Right)
+            st.markdown(
+                f"""<div style="display: flex; justify-content: flex-end; align-items: flex-end; margin-top: 15px;">
+                <img src="data:image/png;base64,{logo_inandes_b64}" style="max-width: 150px; width: 100%; object-fit: contain;">
+                </div>""",
+                unsafe_allow_html=True
+            )
+            
     st.markdown("---")
