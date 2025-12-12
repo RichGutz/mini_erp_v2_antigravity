@@ -174,56 +174,90 @@ else:
     # ==============================================================================
     # SECCIÓN 2: GENERAR VOUCHER (Full Width)
     # ==============================================================================
+    # ==============================================================================
+    # SECCIÓN 2: GENERAR VOUCHER (Full Width)
+    # ==============================================================================
     with st.container(border=True):
         st.subheader("2. Generar Voucher")
         monto_total = sum(get_monto_a_desembolsar(f) for f in facturas_seleccionadas)
         moneda = facturas_seleccionadas[0].get('moneda_factura', 'PEN')
         
-        c_v1, c_v2 = st.columns([2, 1])
-        c_v1.info(f"**Total a Transferir:** {moneda} {monto_total:,.2f}")
-        
+        # Validar Datos Emisor
         emisor_ruc = facturas_seleccionadas[0].get('emisor_ruc')
+        datos_emisor = {}
         if emisor_ruc:
             datos_emisor = db.get_signatory_data_by_ruc(str(emisor_ruc))
-            if datos_emisor:
-                with c_v2:
-                    if st.button("Generar Voucher", use_container_width=True):
-                        try:
-                            facturas_para_pdf = [{
-                                'numero_factura': parse_invoice_number(f['proposal_id']),
-                                'emisor_nombre': f.get('emisor_nombre', 'N/A'),
-                                'monto': get_monto_a_desembolsar(f)
-                            } for f in facturas_seleccionadas]
-                            
-                            pdf_bytes = generar_voucher_transferencia_pdf(
-                                datos_emisor=datos_emisor,
-                                monto_total=monto_total,
-                                moneda=moneda,
-                                facturas=facturas_para_pdf,
-                                fecha_generacion=datetime.date.today()
-                            )
-                            
-                            if pdf_bytes:
-                                st.session_state.voucher_generado = True
-                                st.session_state.current_voucher_bytes = pdf_bytes
-                                st.success("Voucher Generado")
-                            else:
-                                st.error("Error al generar PDF")
-                        except Exception as e:
-                            st.error(f"Excepción: {e}")
-                
+        
+        if not datos_emisor:
+            st.error("⚠️ El emisor no tiene datos bancarios registrados. No se puede generar voucher ni mostrar cuentas.")
+        else:
+            # 3 Column Layout
+            col_total, col_voucher, col_transfer = st.columns([1, 1, 1], gap="medium")
+            
+            # --- COL 1: TOTAL A TRANSFERIR ---
+            with col_total:
+                st.markdown(
+                    f"""
+                    <div style="background-color: #f0f2f6; padding: 15px; border-radius: 8px; text-align: center; height: 100%;">
+                        <div style="color: #555; font-size: 0.9em; font-weight: bold; margin-bottom: 5px;">TOTAL DESEMBOLSO</div>
+                        <div style="color: #000; font-size: 1.8em; font-weight: bold;">{moneda} {monto_total:,.2f}</div>
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
+                )
+
+            # --- COL 2: VOUCHER ACTIONS ---
+            with col_voucher:
+                st.write("###### 📄 Documentación Internal")
+                if st.button("Generar Voucher PDF", use_container_width=True):
+                    try:
+                        facturas_para_pdf = [{
+                            'numero_factura': parse_invoice_number(f['proposal_id']),
+                            'emisor_nombre': f.get('emisor_nombre', 'N/A'),
+                            'monto': get_monto_a_desembolsar(f)
+                        } for f in facturas_seleccionadas]
+                        
+                        pdf_bytes = generar_voucher_transferencia_pdf(
+                            datos_emisor=datos_emisor,
+                            monto_total=monto_total,
+                            moneda=moneda,
+                            facturas=facturas_para_pdf,
+                            fecha_generacion=datetime.date.today()
+                        )
+                        
+                        if pdf_bytes:
+                            st.session_state.voucher_generado = True
+                            st.session_state.current_voucher_bytes = pdf_bytes
+                            st.success("✅ Voucher Generado")
+                        else:
+                            st.error("Error al generar PDF")
+                    except Exception as e:
+                        st.error(f"Excepción: {e}")
+
                 if st.session_state.current_voucher_bytes:
                      st.download_button(
-                        label="Descargar Voucher",
+                        label="⬇️ Descargar Voucher",
                         data=st.session_state.current_voucher_bytes,
                         file_name="voucher_transferencia.pdf",
                         mime="application/pdf",
                         use_container_width=True
                     )
-            else:
-                st.error("Emisor sin datos bancarios registrados.")
-        else:
-            st.error("Factura sin RUC de Emisor.")
+
+            # --- COL 3: TRANSFER ACTIONS & BANK DATA ---
+            with col_transfer:
+                st.write("###### 🏦 Operación Bancaria")
+                if st.button("🚀 Iniciar Transferencia", type="primary", use_container_width=True):
+                    st.toast("🔗 Iniciando conexión segura con BCP Empresas...", icon="🏦")
+                    # Here we could standardly open a link, but simulation toast is requested for now.
+                
+                st.markdown(f"""
+                <div style="margin-top: 10px; font-size: 0.85em; background-color: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <strong>Beneficiario:</strong> {datos_emisor.get('razon_social', 'N/A')}<br>
+                    <strong>Banco:</strong> {datos_emisor.get('banco', 'N/A')}<br>
+                    <strong>Cuenta:</strong> {datos_emisor.get('cuenta', 'N/A')}<br>
+                    <strong>CCI:</strong> {datos_emisor.get('cci', 'N/A')}
+                </div>
+                """, unsafe_allow_html=True)
 
     # ==============================================================================
     # SECCIÓN 3: FORMALIZACIÓN (Full Width)
