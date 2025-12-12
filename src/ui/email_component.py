@@ -41,9 +41,11 @@ def render_email_sender(key_suffix: str, documents: list, default_email: str = "
              pass
 
         # 2. Campos del Correo
-        c1, c2 = st.columns([1, 2])
-        to_email = c1.text_input("Destinatario", value=default_email, placeholder="cliente@empresa.com", key=f"to_{key_suffix}")
-        subject = c2.text_input("Asunto", value=default_subject, placeholder="Envío de Documentos - Operación XYZ", key=f"sub_{key_suffix}")
+        c1, c2 = st.columns(2)
+        to_email = c1.text_input("Para:", value=default_email, placeholder="ej: cliente@empresa.com, gerente@empresa.com", key=f"to_{key_suffix}")
+        cc_email = c2.text_input("CC (Copia):", value="", placeholder="ej: contabilidad@miempresa.com", key=f"cc_{key_suffix}")
+        
+        subject = st.text_input("Asunto:", value=default_subject, placeholder="Envío de Documentos - Operación XYZ", key=f"sub_{key_suffix}")
         
         if not default_body:
              default_body = "Estimados,\n\nAdjunto encontrarán los documentos relacionados a la operación reciente.\n\nSaludos formales,"
@@ -57,11 +59,6 @@ def render_email_sender(key_suffix: str, documents: list, default_email: str = "
                 st.error("❌ Debes indicar Destinatario y Asunto.")
                 return
             
-            # Validación de formato de email (simple)
-            if "@" not in to_email or "." not in to_email:
-                st.error(f"❌ La dirección de correo '{to_email}' no parece válida.")
-                return
-            
             # Warn only if documents were available but none selected
             if has_documents and not selected_docs:
                 st.warning("⚠️ No has seleccionado ningún archivo adjunto (puedes enviar igual si lo deseas).")
@@ -71,7 +68,8 @@ def render_email_sender(key_suffix: str, documents: list, default_email: str = "
                     to_email=to_email.strip(), # Clean spaces
                     subject=subject,
                     body=body,
-                    attachments=selected_docs
+                    attachments=selected_docs,
+                    cc_email=cc_email.strip()
                 )
                 
                 if ok:
