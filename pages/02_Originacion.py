@@ -9,10 +9,13 @@ import pandas as pd
 # --- Project Imports ---
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
+import importlib
 from src.services import pdf_parser
 from src.data import supabase_repository as db
 from src.utils import pdf_generators
-from src.utils.pdf_generators import generar_anexo_liquidacion_pdf
+importlib.reload(pdf_generators) # Force reload to pick up new signatures
+# from src.utils.pdf_generators import generar_anexo_liquidacion_pdf # Removed to avoid stale reference
+
 from src.utils.google_integration import (
     render_folder_navigator_v2, 
     upload_file_with_sa, 
