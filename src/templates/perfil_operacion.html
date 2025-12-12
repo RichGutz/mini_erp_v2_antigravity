@@ -111,7 +111,7 @@
     {% for invoice in invoices %}
     <div class="invoice-page">
         <div class="header">
-            <h2>Perfil de la Operación: {{ print_date }} {% if invoice.lote_id %}/ {{ invoice.lote_id }}{% endif %}</h2>
+            <h2>Perfil de la Operación: <span style="color: red;">{{ invoice.lote_id }}</span></h2>
         </div>
 
         <div class="summary">
