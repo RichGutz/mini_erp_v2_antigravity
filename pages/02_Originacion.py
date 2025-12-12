@@ -864,8 +864,15 @@ if st.session_state.invoices_data:
         with c_act1:
             if st.button("Calcular Facturas", type="primary", use_container_width=True):
                 # 1. Validation
-                if not all(validate_inputs(inv) for inv in st.session_state.invoices_data):
-                    st.error("❌ Faltan campos en algunas facturas.")
+                invalid_invoices = []
+                for idx, inv in enumerate(st.session_state.invoices_data):
+                     if not validate_inputs(inv):
+                         # Try to use invoice number, fallback to filename, then index
+                         label = inv.get('numero_factura') or inv.get('parsed_pdf_name') or f"Índice {idx+1}"
+                         invalid_invoices.append(label)
+
+                if invalid_invoices:
+                    st.error(f"❌ Faltan campos o datos inválidos en las siguientes facturas: {', '.join(invalid_invoices)}")
                 else:
                     st.success("Iniciando cálculos...")
                     # ... (Calculation Logic preserved) ...
