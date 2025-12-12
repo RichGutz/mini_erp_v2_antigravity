@@ -1176,30 +1176,38 @@ if st.session_state.invoices_data:
                                 st.error(f"❌ Error al guardar {inv['numero_factura']}: {msg_db}")
                         except Exception as e:
                             st.error(f"Error guardando {inv['numero_factura']}: {e}")
+                    
+                    # 4. Upload Generated Reports (Perfil & Liquidacion) - ONCE per batch
+                    try:
+                        sa_creds = st.secrets["google_drive"]
                         
-                        # 4. Upload Generated Reports (Perfil & Liquidacion)
-                        try:
-                            sa_creds = st.secrets["google_drive"]
-                            
-                            # Perfil
-                            if 'last_generated_perfil_pdf' in st.session_state:
-                                p_data = st.session_state['last_generated_perfil_pdf']
-                                success, fid = upload_file_with_sa(p_data['bytes'], p_data['filename'], folder_info['id'], sa_creds)
-                                if success: 
-                                    st.toast(f"✅ Perfil subido: {p_data['filename']}")
-                                else: 
-                                    st.error(f"Error subiendo Perfil: {fid}")
+                        # Perfil
+                        if 'last_generated_perfil_pdf' in st.session_state:
+                            p_data = st.session_state['last_generated_perfil_pdf']
+                            st.write(f"DEBUG: Subiendo Perfil Global... ({p_data['filename']})")
+                            success, fid = upload_file_with_sa(p_data['bytes'], p_data['filename'], folder_info['id'], sa_creds)
+                            if success: 
+                                st.toast(f"✅ Perfil subido: {p_data['filename']}")
+                            else: 
+                                st.error(f"Error subiendo Perfil: {fid}")
 
-                            # Liquidacion
-                            if 'last_generated_liquidacion_pdf' in st.session_state:
-                                l_data = st.session_state['last_generated_liquidacion_pdf']
-                                success, fid = upload_file_with_sa(l_data['bytes'], l_data['filename'], folder_info['id'], sa_creds)
-                                if success: 
-                                    st.toast(f"✅ Liquidación subida: {l_data['filename']}")
-                                else: 
-                                    st.error(f"Error subiendo Liquidación: {fid}")
-                        except Exception as e:
-                            st.error(f"Error subiendo reportes: {e}")
+                        # Liquidacion / Anexo
+                        # Debug Session State keys to find why 'Anexo' is missing
+                        # st.write(f"DEBUG Keys: {list(st.session_state.keys())}")
+                        
+                        if 'last_generated_liquidacion_pdf' in st.session_state:
+                            l_data = st.session_state['last_generated_liquidacion_pdf']
+                            st.write(f"DEBUG: Subiendo Anexo/Liquidación... ({l_data['filename']})")
+                            success, fid = upload_file_with_sa(l_data['bytes'], l_data['filename'], folder_info['id'], sa_creds)
+                            if success: 
+                                st.toast(f"✅ Liquidación/Anexo subido: {l_data['filename']}")
+                            else: 
+                                st.error(f"Error subiendo Liquidación: {fid}")
+                        else:
+                             st.warning("⚠️ No se encontró 'last_generated_liquidacion_pdf' en memoria. Verifica que hayas generado el Anexo.")
+
+                    except Exception as e:
+                        st.error(f"Error subiendo reportes: {e}")
                     
                     if saved_count == len(st.session_state.invoices_data):
                          st.success(f"✅ ¡Éxito! {saved_count} operaciones guardadas y subidas a Drive.")
