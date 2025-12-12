@@ -72,8 +72,9 @@ def render_header(title: str):
         with col3:
             # Row 1: Logout Button (Top Right)
             # We use a nested column to push it to the right-most edge if needed, or just alignment
-            # Ratio [2, 1] pushes the button into the last 1/3 of the column width (smaller than previous 2/3)
-            sub_c1, sub_c2 = st.columns([2, 1]) 
+            # Ratio [3, 2] pushes the button into the last 40% of the column width (increased from 33%)
+            # to prevent text wrapping ("Cerrar Sesión") while keeping it compact.
+            sub_c1, sub_c2 = st.columns([3, 2]) 
             with sub_c2:
                  if st.button("🔒 Cerrar Sesión", key="header_logout_btn", help="Cerrar sesión actual", use_container_width=True):
                     st.session_state.clear()
