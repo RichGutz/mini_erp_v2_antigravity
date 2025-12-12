@@ -1273,7 +1273,10 @@ if st.session_state.invoices_data:
 # ==============================================================================
 # SECCIÓN 5: INTEGRACIÓN CAVALI (XML)
 # ==============================================================================
-render_xml_cavali_integration(st.session_state.invoices_data)
+if has_results:
+    render_xml_cavali_integration(st.session_state.invoices_data)
+else:
+    st.info("ℹ️ Completa el 'Paso 4: Resultados y Simulación' para habilitar la Integración XML.")
 
     # --- Debug Session State (Optional / Dev) ---
     # with st.expander("🔍 Debug Session State"):
