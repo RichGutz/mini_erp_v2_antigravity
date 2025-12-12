@@ -259,13 +259,13 @@ else:
                 cta_key = f"Numero de Cuenta {moneda}"
                 cci_key = f"Numero de CCI {moneda}"
 
-                # Added margin-top: 20px to align top of box with where the second button starts in Col 2.
+                # Removed margin-top to align with natural flow (aligns with Descargar button in next col)
                 st.markdown(f"""
-                <div style="margin-top: 15px; font-size: 0.85em; color: #444; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+                <div style="margin-top: 0px; font-size: 0.85em; color: #444; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
                     <div style="margin-bottom: 4px;"><strong>Beneficiario:</strong> {datos_emisor.get('Razon Social', 'N/A')}</div>
                     <div style="margin-bottom: 4px;"><strong>Banco:</strong> {datos_emisor.get('Institucion Financiera', 'N/A')}</div>
                     <div style="margin-bottom: 4px;"><strong>Cuenta:</strong> {datos_emisor.get(cta_key, 'N/A')}</div>
-                    <div><strong>CCI:</strong> {datos_emisor.get(cci_key, 'N/A')}</div>
+                     <div><strong>CCI:</strong> {datos_emisor.get(cci_key, 'N/A')}</div>
                 </div>
                 """, unsafe_allow_html=True)
             
