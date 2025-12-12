@@ -132,7 +132,6 @@ def mostrar_formulario_crear():
             garante_2 = st.text_input("Garante/Fiador solidario 2")
         with col2:
             dni_garante_1 = st.text_input("DNI Garante/Fiador solidario 1", max_chars=8)
-            dni_garante_1 = st.text_input("DNI Garante/Fiador solidario 1", max_chars=8)
             dni_garante_2 = st.text_input("DNI Garante/Fiador solidario 2", max_chars=8)
         
         # Datos de Contacto
@@ -236,7 +235,6 @@ def mostrar_formulario_crear():
                     'Institucion Financiera': institucion_financiera or None,
                     'Numero de Cuenta PEN': numero_cuenta or None,
                     'Numero de CCI PEN': cci or None,
-                    'Correo Electronico 1': correo_1 or None,
                     'Correo Electronico 1': correo_1 or None,
                     'Correo Electronico 2': correo_2 or None,
                     # Campos Financieros
@@ -416,7 +414,6 @@ def mostrar_formulario_editar():
                     'Institucion Financiera': institucion_financiera or None,
                     'Numero de Cuenta PEN': numero_cuenta or None,
                     'Numero de CCI PEN': cci or None,
-                    'Correo Electronico 1': correo_1 or None,
                     'Correo Electronico 1': correo_1 or None,
                     'Correo Electronico 2': correo_2 or None,
                     # Campos Financieros
