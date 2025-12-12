@@ -192,15 +192,15 @@ else:
             st.error("⚠️ El emisor no tiene datos bancarios registrados. No se puede generar voucher ni mostrar cuentas.")
         else:
             # 3 Column Layout
-            col_total, col_voucher, col_transfer = st.columns([1, 1, 1], gap="medium")
+            col_total, col_voucher, col_transfer = st.columns([1, 1, 1], gap="small")
             
             # --- COL 1: TOTAL A TRANSFERIR ---
             with col_total:
                 st.markdown(
                     f"""
-                    <div style="background-color: #f0f2f6; padding: 15px; border-radius: 8px; text-align: center; height: 100%;">
-                        <div style="color: #555; font-size: 0.9em; font-weight: bold; margin-bottom: 5px;">TOTAL DESEMBOLSO</div>
-                        <div style="color: #000; font-size: 1.8em; font-weight: bold;">{moneda} {monto_total:,.2f}</div>
+                    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 4px; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; border: 1px solid #ddd;">
+                        <div style="color: #666; font-size: 0.85em; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Total a Transferir</div>
+                        <div style="color: #333; font-size: 2.0em; font-weight: 700;">{moneda} {monto_total:,.2f}</div>
                     </div>
                     """, 
                     unsafe_allow_html=True
@@ -208,7 +208,8 @@ else:
 
             # --- COL 2: VOUCHER ACTIONS ---
             with col_voucher:
-                st.write("###### 📄 Documentación Internal")
+                # Espaciado para alinear visualmente si es necesario
+                st.write("") 
                 if st.button("Generar Voucher PDF", use_container_width=True):
                     try:
                         facturas_para_pdf = [{
@@ -228,7 +229,7 @@ else:
                         if pdf_bytes:
                             st.session_state.voucher_generado = True
                             st.session_state.current_voucher_bytes = pdf_bytes
-                            st.success("✅ Voucher Generado")
+                            st.success("Voucher Generado")
                         else:
                             st.error("Error al generar PDF")
                     except Exception as e:
@@ -236,7 +237,7 @@ else:
 
                 if st.session_state.current_voucher_bytes:
                      st.download_button(
-                        label="⬇️ Descargar Voucher",
+                        label="Descargar Voucher",
                         data=st.session_state.current_voucher_bytes,
                         file_name="voucher_transferencia.pdf",
                         mime="application/pdf",
@@ -245,21 +246,20 @@ else:
 
             # --- COL 3: TRANSFER ACTIONS & BANK DATA ---
             with col_transfer:
-                st.write("###### 🏦 Operación Bancaria")
-                if st.button("🚀 Iniciar Transferencia", type="primary", use_container_width=True):
-                    st.toast("🔗 Iniciando conexión segura con BCP Empresas...", icon="🏦")
-                    # Here we could standardly open a link, but simulation toast is requested for now.
+                st.write("")
+                if st.button("Iniciar Transferencia BCP", type="primary", use_container_width=True):
+                    st.toast("Conexión con BCP Empresas iniciada.")
                 
                 # Dynamic keys based on currency
                 cta_key = f"Numero de Cuenta {moneda}"
                 cci_key = f"Numero de CCI {moneda}"
 
                 st.markdown(f"""
-                <div style="margin-top: 10px; font-size: 0.85em; background-color: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                    <strong>Beneficiario:</strong> {datos_emisor.get('Razon Social', 'N/A')}<br>
-                    <strong>Banco:</strong> {datos_emisor.get('Institucion Financiera', 'N/A')}<br>
-                    <strong>Cuenta:</strong> {datos_emisor.get(cta_key, 'N/A')}<br>
-                    <strong>CCI:</strong> {datos_emisor.get(cci_key, 'N/A')}
+                <div style="margin-top: 15px; font-size: 0.85em; color: #444; background-color: white; padding: 10px; border-left: 3px solid #2e7d32;">
+                    <div style="margin-bottom: 2px;"><strong>Beneficiario:</strong> {datos_emisor.get('Razon Social', 'N/A')}</div>
+                    <div style="margin-bottom: 2px;"><strong>Banco:</strong> {datos_emisor.get('Institucion Financiera', 'N/A')}</div>
+                    <div style="margin-bottom: 2px;"><strong>Cuenta:</strong> {datos_emisor.get(cta_key, 'N/A')}</div>
+                    <div><strong>CCI:</strong> {datos_emisor.get(cci_key, 'N/A')}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
