@@ -250,12 +250,16 @@ else:
                     st.toast("🔗 Iniciando conexión segura con BCP Empresas...", icon="🏦")
                     # Here we could standardly open a link, but simulation toast is requested for now.
                 
+                # Dynamic keys based on currency
+                cta_key = f"Numero de Cuenta {moneda}"
+                cci_key = f"Numero de CCI {moneda}"
+
                 st.markdown(f"""
                 <div style="margin-top: 10px; font-size: 0.85em; background-color: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                    <strong>Beneficiario:</strong> {datos_emisor.get('razon_social', 'N/A')}<br>
-                    <strong>Banco:</strong> {datos_emisor.get('banco', 'N/A')}<br>
-                    <strong>Cuenta:</strong> {datos_emisor.get('cuenta', 'N/A')}<br>
-                    <strong>CCI:</strong> {datos_emisor.get('cci', 'N/A')}
+                    <strong>Beneficiario:</strong> {datos_emisor.get('Razon Social', 'N/A')}<br>
+                    <strong>Banco:</strong> {datos_emisor.get('Institucion Financiera', 'N/A')}<br>
+                    <strong>Cuenta:</strong> {datos_emisor.get(cta_key, 'N/A')}<br>
+                    <strong>CCI:</strong> {datos_emisor.get(cci_key, 'N/A')}
                 </div>
                 """, unsafe_allow_html=True)
 
