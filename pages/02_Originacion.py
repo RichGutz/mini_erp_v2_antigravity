@@ -1006,6 +1006,16 @@ if st.session_state.invoices_data:
                 if not st.session_state.contract_number or not st.session_state.anexo_number:
                     st.warning("⚠️ No se pudieron detectar los números automáticamente. Verifica la estructura de carpetas (Ej: `.../Contrato_X/Anexo_Y`)")
 
+                # --- Prepare Semantic Path for Filenames ---
+                # Build list of names from full_path
+                path_parts = [n[1] for n in folder_info.get('full_path', [])]
+                # Filter out generic 'Inicio' if present at start
+                if path_parts and (path_parts[0] == "Inicio" or path_parts[0] == "📁 REPOSITORIO_INANDES (Raíz)"):
+                     path_parts.pop(0)
+                
+                # Sanitize for filename (spaces to _, / to -)
+                path_sanitized = "_".join(path_parts).replace(" ", "_").replace("/", "-").replace("\\", "-")
+
 
                 # --- PDF GENERATION BUTTONS (INSIDE PICKER BLOCK) ---
                 st.markdown("---")
@@ -1034,7 +1044,8 @@ if st.session_state.invoices_data:
                             
                             if pdf_list:
                                 pdf_bytes = pdf_generators.generate_perfil_operacion_pdf(pdf_list)
-                                fname = f"perfil_operacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                                timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                                fname = f"perfil_operacion_{path_sanitized}_{timestamp}.pdf"
                                 st.session_state['last_generated_perfil_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
 
                         except Exception as e:
@@ -1059,7 +1070,8 @@ if st.session_state.invoices_data:
                                     
                             if pdf_list:
                                 pdf_bytes = generar_anexo_liquidacion_pdf(pdf_list)
-                                fname = f"anexo_liquidacion_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                                timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                                fname = f"anexo_liquidacion_{path_sanitized}_{timestamp}.pdf"
                                 st.session_state['last_generated_liquidacion_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
 
                         except Exception as e:
@@ -1079,14 +1091,19 @@ if st.session_state.invoices_data:
              
              if st.button(f"💾 Guardar y Subir Todo a: {folder_info['name']}", type="primary", use_container_width=True, disabled=not ready_to_save):
                     # START SAVING PROCESS
-                    st.session_state.lote_id = f"LOC-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}" # Generate new lote_id
+                    # Build Semantic Base Path
+                    path_parts = [n[1] for n in folder_info.get('full_path', [])]
+                    base_path_string = " / ".join(path_parts)
                     
                     saved_count = 0
                     for idx, inv in enumerate(st.session_state.invoices_data):
                         # 1. Update metadata
                         inv['contract_number'] = st.session_state.contract_number
                         inv['anexo_number'] = st.session_state.anexo_number
-                        inv['lote_id'] = st.session_state.lote_id
+                        
+                        # Semantic Lote ID: Path | Group
+                        inv['lote_id'] = f"{base_path_string} | G{inv.get('group_id', '?')}"
+                        st.session_state.lote_id = inv['lote_id'] # Keep last for reference
                         
                         # 2. Upload to Drive (if not already uploaded - optimize later)
                         # Re-locate the raw file from cache to upload
