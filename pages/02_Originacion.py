@@ -1102,7 +1102,11 @@ if st.session_state.invoices_data:
                     # START SAVING PROCESS
                     # Build Semantic Base Path
                     path_parts = [n[1] for n in folder_info.get('full_path', [])]
-                    base_path_string = " / ".join(path_parts)
+                    # Filter out generic 'Inicio' if present at start (CONSISTENCY FIX)
+                    if path_parts and (path_parts[0] == "Inicio" or path_parts[0] == "📁 REPOSITORIO_INANDES (Raíz)"):
+                         path_parts.pop(0)
+
+                    base_path_string = " ".join(path_parts)
                     
                     saved_count = 0
                     for idx, inv in enumerate(st.session_state.invoices_data):
@@ -1145,17 +1149,17 @@ if st.session_state.invoices_data:
                         
                         # 3. Save to Supabase
                         try:
-                            # We create a proposal_id if not exists, or reuse?
-                            # For now, let's treat each invoice as a proposal equivalent or part of batch.
                             # The db.save_proposal expects a proposal object.
                             # We'll map the invoice dict to what save_proposal expects.
                             proposal_data = inv.copy()
                             # Ensure numeric fields are int/float
                             # db.save_proposal handles most matching.
                             
-                            pid = db.save_proposal(proposal_data, st.session_state.lote_id)
-                            if pid:
+                            success_db, msg_db = db.save_proposal(proposal_data, st.session_state.lote_id)
+                            if success_db:
                                 saved_count += 1
+                            else:
+                                st.error(f"❌ Error al guardar {inv['numero_factura']}: {msg_db}")
                         except Exception as e:
                             st.error(f"Error guardando {inv['numero_factura']}: {e}")
                     
