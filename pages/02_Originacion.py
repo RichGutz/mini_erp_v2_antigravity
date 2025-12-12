@@ -1152,6 +1152,22 @@ if st.session_state.invoices_data:
                             # The db.save_proposal expects a proposal object.
                             # We'll map the invoice dict to what save_proposal expects.
                             proposal_data = inv.copy()
+                            
+                            # SANITIZATION FOR DB (Fix for Integer Type Error)
+                            # DB expects IDs as integers, but we have descriptive folder names.
+                            # We extract the leading ID (e.g. "1.Contrato..." -> 1)
+                            def sanitize_id_for_db(val):
+                                if not val: return None
+                                # Simple extraction of leading number
+                                import re
+                                match = re.match(r'^(\d+)', str(val))
+                                if match:
+                                    return int(match.group(1))
+                                return None # Or let it be None if no digit found
+
+                            proposal_data['contract_number'] = sanitize_id_for_db(st.session_state.contract_number)
+                            proposal_data['anexo_number'] = sanitize_id_for_db(st.session_state.anexo_number)
+
                             # Ensure numeric fields are int/float
                             # db.save_proposal handles most matching.
                             
