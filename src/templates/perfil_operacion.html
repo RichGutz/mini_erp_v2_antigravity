@@ -67,6 +67,13 @@
             background-color: #f2f2f2;
         }
 
+        }
+
+        h2 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
         .footer {
             margin-top: 20px;
             font-size: 8px;
@@ -82,7 +89,7 @@
     {% for invoice in invoices %}
     <div class="invoice-page">
         <div class="header">
-            <h2>Perfil de la Operación: {{ print_date }}  {% if invoice.lote_id %}/ {{ invoice.lote_id }}{% endif %}</h2>
+            <h2>Perfil de la Operación: {{ print_date }} {% if invoice.lote_id %}/ {{ invoice.lote_id }}{% endif %}</h2>
         </div>
 
         <div class="summary">
@@ -266,19 +273,10 @@
     {% endfor %}
     <div class="invoice-page">
         <div class="header">
-            <!-- Header updated to include Lote ID if available from the first invoice -->
-             {% if invoices[0] and invoices[0].lote_id %}
-            <h2>Perfil de la Operación: {{ print_date }} / {{ invoices[0].lote_id }}</h2>
-            {% else %}
-            <h2>Perfil de la Operación: {{ print_date }}</h2>
-            {% endif %}
+            <h2>Resumen Consolidado</h2>
         </div>
 
-        <h2>Resumen Consolidado</h2>
-        <!-- Removed redundant Lote ID h3 since it is now in the main header -->
-        
-        <!-- Table style matches the per-invoice tables exactly (default table css is width:100%) -->
-        <table>
+        <table style="width: 85%; margin: 0 auto;">
             <thead>
                 <tr>
                     <th>Factura</th>
