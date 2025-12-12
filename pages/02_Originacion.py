@@ -22,6 +22,7 @@ from src.utils.google_integration import (
 )
 from src.ui.email_component import render_email_sender
 from src.ui.integracion_xml_cavali import render_xml_cavali_integration
+from src.ui.integracion_letras_cavali import render_letras_cavali_integration
 
 # --- Configuration & Constants ---
 st.set_page_config(
@@ -1275,8 +1276,14 @@ if st.session_state.invoices_data:
 # ==============================================================================
 if has_results:
     render_xml_cavali_integration(st.session_state.invoices_data)
+    
+    # ==============================================================================
+    # SECCIÓN 6: INTEGRACIÓN LETRAS (SIMULACIÓN)
+    # ==============================================================================
+    render_letras_cavali_integration(st.session_state.invoices_data)
+    
 else:
-    st.info("ℹ️ Completa el 'Paso 4: Resultados y Simulación' para habilitar la Integración XML.")
+    st.info("ℹ️ Completa el 'Paso 4: Resultados y Simulación' para habilitar las Integraciones (XML y Letras).")
 
     # --- Debug Session State (Optional / Dev) ---
     # with st.expander("🔍 Debug Session State"):
