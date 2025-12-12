@@ -1155,21 +1155,19 @@ if st.session_state.invoices_data:
                             
                             # SANITIZATION FOR DB (Fix for Integer Type Error)
                             # DB expects IDs as integers, but we have descriptive folder names.
-                            # We extract the leading ID (e.g. "1.Contrato..." -> 1)
                             def sanitize_id_for_db(val):
                                 if not val: return None
-                                # Simple extraction of leading number
                                 import re
                                 match = re.match(r'^(\d+)', str(val))
                                 if match:
                                     return int(match.group(1))
-                                return None # Or let it be None if no digit found
+                                return None
 
                             proposal_data['contract_number'] = sanitize_id_for_db(st.session_state.contract_number)
                             proposal_data['anexo_number'] = sanitize_id_for_db(st.session_state.anexo_number)
 
-                            # Ensure numeric fields are int/float
-                            # db.save_proposal handles most matching.
+                            # LOGGING
+                            st.write(f"🔍 DEBUG: Enviando a BD -> Factura: {inv['numero_factura']} | Lote: {st.session_state.lote_id}")
                             
                             success_db, msg_db = db.save_proposal(proposal_data, st.session_state.lote_id)
                             if success_db:
@@ -1178,10 +1176,6 @@ if st.session_state.invoices_data:
                                 st.error(f"❌ Error al guardar {inv['numero_factura']}: {msg_db}")
                         except Exception as e:
                             st.error(f"Error guardando {inv['numero_factura']}: {e}")
-                    
-                    # 4. Upload Generated Reports (Perfil & Liquidacion)
-                    try:
-                        sa_creds = st.secrets["google_drive"]
                         
                         # Perfil
                         if 'last_generated_perfil_pdf' in st.session_state:
