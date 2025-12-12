@@ -3,6 +3,7 @@ import sys
 import os
 import datetime
 import json
+import random
 from collections import defaultdict
 
 # --- Path Setup ---
@@ -79,6 +80,15 @@ def toggle_batch_selection(batch_key, invoice_ids):
         # Actualizar el estado visual del widget (si existe o se va crear)
         st.session_state[f"chk_app_{pid}"] = master_val
 
+def render_status_brick(text, is_green):
+    color = "#2e7d32" if is_green else "#c62828"
+    bg = "#e8f5e9" if is_green else "#ffebee"
+    return f"""
+    <div style="background-color: {bg}; color: {color}; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-align: center; border: 1px solid {color}; font-size: 0.8em; width: fit-content;">
+        {text}
+    </div>
+    """
+
 # --- UI: CSS ---
 st.markdown('''<style>
 [data-testid="stHorizontalBlock"] { 
@@ -94,19 +104,24 @@ render_header("Módulo de Aprobación")
 if st.session_state.reload_data:
     with st.spinner("Cargando facturas pendientes de aprobación..."):
         st.session_state.facturas_activas = db.get_active_proposals_for_approval()
-        # Inicializar checkboxes en False si no existen
+        # Inicializar checkboxes y SIMULACIÓN DE ESTADOS
         for f in st.session_state.facturas_activas:
             pid = f['proposal_id']
             # Inicializar en el diccionario lógico
             if pid not in st.session_state.facturas_seleccionadas_aprobacion:
                 st.session_state.facturas_seleccionadas_aprobacion[pid] = False
             
-            # Inicializar la KEY del widget para evitar el warning de "default value"
-            # Si la key ya existe en session_state, Streamlit usará ese valor.
-            # Si no existe, la creamos con False (o lo que tenga el diccionario)
+            # Inicializar la KEY del widget
             widget_key = f"chk_app_{pid}"
             if widget_key not in st.session_state:
                 st.session_state[widget_key] = st.session_state.facturas_seleccionadas_aprobacion[pid]
+
+            # --- SIMULACIÓN DE ESTADOS RANDOM ---
+            # Solo asignar si no existen, para mantener consistencia en la sesión
+            if 'status_cavali' not in f:
+                f['status_cavali'] = random.choice(['ENVIADO', 'CONFIRMADA'])
+            if 'status_letra' not in f:
+                f['status_letra'] = random.choice(['ENVIADA', 'FIRMADA'])
                 
         st.session_state.reload_data = False
 
@@ -153,8 +168,8 @@ else:
             st.markdown(f"**📦 Lote:** `{lote_id}` | **Emisor:** {emisor_name} | **Cant:** {len(invoices_in_batch)}")
             
             # Header de la Tablita
-            # Adjusted Columns: Added 'Monto Desembolso'
-            col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_fecha = st.columns([0.5, 1.5, 2.0, 1.5, 1.5, 1.0])
+            # Adjusted Columns: Added 'Cavali' and 'Letra'
+            col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_cavali, col_letra = st.columns([0.4, 1.2, 1.8, 1.0, 1.0, 1.1, 1.1])
             
             with col_check: 
                 # Checkbox Maestro para este lote
@@ -169,13 +184,14 @@ else:
                 )
             with col_factura: st.markdown("**Factura**")
             with col_aceptante: st.markdown("**Aceptante**")
-            with col_monto: st.markdown("**Monto Neto**")
-            with col_desembolso: st.markdown("**A Desembolsar**")
-            with col_fecha: st.markdown("**F. Desemb.**")
+            with col_monto: st.markdown("**M. Neto**")
+            with col_desembolso: st.markdown("**Desembolso**")
+            with col_cavali: st.markdown("**Est. Cavali**")
+            with col_letra: st.markdown("**Est. Letra**")
             
             # Filas
             for idx, factura in enumerate(invoices_in_batch):
-                col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_fecha = st.columns([0.5, 1.5, 2.0, 1.5, 1.5, 1.0])
+                col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_cavali, col_letra = st.columns([0.4, 1.2, 1.8, 1.0, 1.0, 1.1, 1.1])
                 
                 with col_check:
                     # Usamos el ID real como key del checkbox
@@ -203,13 +219,23 @@ else:
                     # Resaltar en negrita si es > 0, es el valor clave
                     val_str = f"**{moneda} {monto_des:,.2f}**" if monto_des > 0 else f"{moneda} 0.00"
                     st.markdown(val_str)
-                with col_fecha: st.markdown(factura.get('fecha_desembolso_factoring', 'N/A'))
+                with col_cavali:
+                    stat = factura.get('status_cavali', 'PENDIENTE')
+                    st.markdown(render_status_brick(stat, stat=='CONFIRMADA'), unsafe_allow_html=True)
+                with col_letra:
+                    stat = factura.get('status_letra', 'PENDIENTE')
+                    st.markdown(render_status_brick(stat, stat=='FIRMADA'), unsafe_allow_html=True)
 
     st.markdown("---")
     
     # Botón Maestro
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
+        # Checkbox "Forzar" hidden logic or always visible? 
+        # Requirement: "The user could approve even without both in green with a WARNING... User must check 'Confirmar aprobación forzada'"
+        force_approval = st.checkbox("⚠️ Confirmar aprobación forzada (Ignorar estados incompletos)", 
+                                     help="Marcar para proceder con la aprobación aunque Cavali o Letras no estén confirmados.")
+        
         submit_button = st.button(
             "✅ Aprobar Facturas Seleccionadas",
             type="primary",
@@ -233,6 +259,23 @@ else:
         if not selected_invoices_objs:
             st.warning("⚠️ No has seleccionado ninguna factura para aprobar.")
         else:
+            # --- Validar Estados Cavali/Letras ---
+            issues_found = []
+            for inv in selected_invoices_objs:
+                cavali = inv.get('status_cavali', 'ENVIADO')
+                letra = inv.get('status_letra', 'ENVIADA')
+                inv_num = parse_invoice_number(inv['proposal_id'])
+                
+                if cavali != 'CONFIRMADA' or letra != 'FIRMADA':
+                    issues_found.append(f"{inv_num} (Cavali: {cavali}, Letra: {letra})")
+            
+            if issues_found and not force_approval:
+                st.error("⛔ DETENIDO: Las siguientes facturas no tienen los estados confirmados:")
+                for issue in issues_found:
+                    st.markdown(f"- {issue}")
+                st.warning("👉 Si desea proceder de todos modos, marque la casilla 'Confirmar aprobación forzada' arriba y presione Aprobar nuevamente.")
+                st.stop() # Detener ejecución aquí
+                
             st.markdown("---")
             st.subheader("Procesando Aprobaciones...")
             
