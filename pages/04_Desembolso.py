@@ -196,11 +196,12 @@ else:
             
             # --- COL 1: TOTAL A TRANSFERIR ---
             with col_total:
+                # Removed height:100% to avoid layout breaking, added vertical padding for presence
                 st.markdown(
                     f"""
-                    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 4px; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; border: 1px solid #ddd;">
-                        <div style="color: #666; font-size: 0.85em; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Total a Transferir</div>
-                        <div style="color: #333; font-size: 2.0em; font-weight: 700;">{moneda} {monto_total:,.2f}</div>
+                    <div style="background-color: #f0f2f6; padding: 25px 20px; border-radius: 4px; text-align: center; border: 1px solid #ddd;">
+                        <div style="color: #666; font-size: 0.85em; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Total a Transferir</div>
+                        <div style="color: #333; font-size: 2.2em; font-weight: 700;">{moneda} {monto_total:,.2f}</div>
                     </div>
                     """, 
                     unsafe_allow_html=True
@@ -208,9 +209,9 @@ else:
 
             # --- COL 2: VOUCHER ACTIONS ---
             with col_voucher:
-                # Espaciado para alinear visualmente si es necesario
-                st.write("") 
-                if st.button("Generar Voucher PDF", use_container_width=True):
+                # Removed spacer st.write("")
+                # Made button PRIMARY to match the other one
+                if st.button("Generar Voucher PDF", type="primary", use_container_width=True):
                     try:
                         facturas_para_pdf = [{
                             'numero_factura': parse_invoice_number(f['proposal_id']),
@@ -246,7 +247,7 @@ else:
 
             # --- COL 3: TRANSFER ACTIONS & BANK DATA ---
             with col_transfer:
-                st.write("")
+                # Removed spacer st.write("")
                 if st.button("Iniciar Transferencia BCP", type="primary", use_container_width=True):
                     st.toast("Conexión con BCP Empresas iniciada.")
                 
@@ -254,11 +255,12 @@ else:
                 cta_key = f"Numero de Cuenta {moneda}"
                 cci_key = f"Numero de CCI {moneda}"
 
+                # Removed green border-left, simplified style
                 st.markdown(f"""
-                <div style="margin-top: 15px; font-size: 0.85em; color: #444; background-color: white; padding: 10px; border-left: 3px solid #2e7d32;">
-                    <div style="margin-bottom: 2px;"><strong>Beneficiario:</strong> {datos_emisor.get('Razon Social', 'N/A')}</div>
-                    <div style="margin-bottom: 2px;"><strong>Banco:</strong> {datos_emisor.get('Institucion Financiera', 'N/A')}</div>
-                    <div style="margin-bottom: 2px;"><strong>Cuenta:</strong> {datos_emisor.get(cta_key, 'N/A')}</div>
+                <div style="margin-top: 15px; font-size: 0.85em; color: #444; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+                    <div style="margin-bottom: 4px;"><strong>Beneficiario:</strong> {datos_emisor.get('Razon Social', 'N/A')}</div>
+                    <div style="margin-bottom: 4px;"><strong>Banco:</strong> {datos_emisor.get('Institucion Financiera', 'N/A')}</div>
+                    <div style="margin-bottom: 4px;"><strong>Cuenta:</strong> {datos_emisor.get(cta_key, 'N/A')}</div>
                     <div><strong>CCI:</strong> {datos_emisor.get(cci_key, 'N/A')}</div>
                 </div>
                 """, unsafe_allow_html=True)
