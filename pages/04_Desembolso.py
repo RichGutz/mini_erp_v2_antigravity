@@ -197,10 +197,10 @@ else:
             # --- COL 1: TOTAL A TRANSFERIR ---
             with col_total:
                 # Added min-height to simulate full-height column alignment
-                # Increased to 220px to match specific height of Button + Bank Details box in Col 3
+                # Adjusted to 190px based on user feedback (220px was too tall)
                 st.markdown(
                     f"""
-                    <div style="background-color: #f0f2f6; padding: 25px 20px; border-radius: 4px; text-align: center; border: 1px solid #ddd; min-height: 220px; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="background-color: #f0f2f6; padding: 25px 20px; border-radius: 4px; text-align: center; border: 1px solid #ddd; min-height: 190px; display: flex; flex-direction: column; justify-content: center;">
                         <div style="color: #666; font-size: 0.85em; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Total a Transferir</div>
                         <div style="color: #333; font-size: 2.2em; font-weight: 700;">{moneda} {monto_total:,.2f}</div>
                     </div>
