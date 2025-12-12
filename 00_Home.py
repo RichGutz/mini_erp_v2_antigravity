@@ -21,6 +21,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- Navigation Tracking ---
+st.session_state.last_page = '00_Home'
+
 # --- OAUTH2 ---
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"

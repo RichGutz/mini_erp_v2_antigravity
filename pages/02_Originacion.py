@@ -28,6 +28,9 @@ st.set_page_config(
     page_icon="📊",
 )
 
+# --- Navigation Tracking ---
+st.session_state.last_page = '02_Originacion'
+
 # Backend URL Strategy
 API_BASE_URL = os.getenv("BACKEND_API_URL")
 if not API_BASE_URL:

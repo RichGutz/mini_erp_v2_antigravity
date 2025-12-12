@@ -16,9 +16,13 @@ from src.ui.email_component import render_email_sender
 st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
-    page_title="Módulo de Aprobación INANDES",
     page_icon="✅"
 )
+
+# --- Auto-Reload Logic on Entry ---
+if st.session_state.get('last_page') != '03_Aprobacion':
+    st.session_state.reload_data = True
+    st.session_state.last_page = '03_Aprobacion'
 
 # --- Inicialización del Session State ---
 if 'facturas_activas' not in st.session_state:
