@@ -196,10 +196,10 @@ else:
             
             # --- COL 1: TOTAL A TRANSFERIR ---
             with col_total:
-                # Removed height:100% to avoid layout breaking, added vertical padding for presence
+                # Added min-height to simulate full-height column alignment
                 st.markdown(
                     f"""
-                    <div style="background-color: #f0f2f6; padding: 25px 20px; border-radius: 4px; text-align: center; border: 1px solid #ddd;">
+                    <div style="background-color: #f0f2f6; padding: 25px 20px; border-radius: 4px; text-align: center; border: 1px solid #ddd; min-height: 160px; display: flex; flex-direction: column; justify-content: center;">
                         <div style="color: #666; font-size: 0.85em; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Total a Transferir</div>
                         <div style="color: #333; font-size: 2.2em; font-weight: 700;">{moneda} {monto_total:,.2f}</div>
                     </div>
@@ -209,8 +209,6 @@ else:
 
             # --- COL 2: VOUCHER ACTIONS ---
             with col_voucher:
-                # Removed spacer st.write("")
-                # Made button PRIMARY to match the other one
                 if st.button("Generar Voucher PDF", type="primary", use_container_width=True):
                     try:
                         facturas_para_pdf = [{
@@ -236,6 +234,8 @@ else:
                     except Exception as e:
                         st.error(f"Excepción: {e}")
 
+                # Spacer logic to keep alignment if button is missing? 
+                # Or just render the button if exists. User wants alignment with this.
                 if st.session_state.current_voucher_bytes:
                      st.download_button(
                         label="Descargar Voucher",
@@ -244,10 +244,14 @@ else:
                         mime="application/pdf",
                         use_container_width=True
                     )
+                else:
+                    # Render invisible spacer to maintain grid structure? 
+                    # User asked for alignment of the NEXT column's box to the Download button.
+                    # If Download button is missing, the box in Col 3 will still be pushed down by CSS below.
+                    st.write("") 
 
             # --- COL 3: TRANSFER ACTIONS & BANK DATA ---
             with col_transfer:
-                # Removed spacer st.write("")
                 if st.button("Iniciar Transferencia BCP", type="primary", use_container_width=True):
                     st.toast("Conexión con BCP Empresas iniciada.")
                 
@@ -255,7 +259,7 @@ else:
                 cta_key = f"Numero de Cuenta {moneda}"
                 cci_key = f"Numero de CCI {moneda}"
 
-                # Removed green border-left, simplified style
+                # Added margin-top: 20px to align top of box with where the second button starts in Col 2.
                 st.markdown(f"""
                 <div style="margin-top: 15px; font-size: 0.85em; color: #444; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
                     <div style="margin-bottom: 4px;"><strong>Beneficiario:</strong> {datos_emisor.get('Razon Social', 'N/A')}</div>
@@ -264,6 +268,10 @@ else:
                     <div><strong>CCI:</strong> {datos_emisor.get(cci_key, 'N/A')}</div>
                 </div>
                 """, unsafe_allow_html=True)
+            
+            # Add bottom spacer row
+            st.write("")
+            st.write("")
 
     # ==============================================================================
     # SECCIÓN 3: FORMALIZACIÓN (Full Width)
