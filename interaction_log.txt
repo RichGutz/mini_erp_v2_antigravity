@@ -2,3 +2,12 @@
 - Originacion: Standardized UI 6 sections, Navigator V2.
 - Aprobacion: Batch Grouping, Email Integration, Disclaimer Fix, Indentation Fix.
 - Status: Production Ready.
+
+[2025-12-11 17:30] Originacion Fixes & Bundle Upload.
+- [FIX] RUC Data Fetch: Implemented robust string cleaning for RUCs (fixed issue with invisible chars blocking DB lookups).
+- [FEAT] Global Config Sync: Global UI settings now auto-fill from the DB rates of the first loaded invoice.
+- [FIX] Drive Uploads: Fixed TypeError in `upload_file_with_sa` (missing credentials/args) & `save_proposal` (missing lote_id).
+- [FEAT] Full Bundle Upload: "Guardar y Subir Todo" now uploads Invoices + Generated Perfil PDF + Generated Liquidacion PDF.
+- [INFRA] Local Setup Attempt: Created `docs/GUIA_EJECUCION_LOCAL.md` & `secrets.toml` generator. Reverted to Web workflow due to Windows dependency issues.
+- Status: Web Deployment Updated & Stable. Ready for User Testing.
+- [END SESSION]
