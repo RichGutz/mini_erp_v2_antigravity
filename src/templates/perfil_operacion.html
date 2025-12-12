@@ -82,7 +82,7 @@
     {% for invoice in invoices %}
     <div class="invoice-page">
         <div class="header">
-            <h2>Perfil de la Operación: {{ print_date }}</h2>
+            <h2>Perfil de la Operación: {{ print_date }}  {% if invoice.lote_id %}/ {{ invoice.lote_id }}{% endif %}</h2>
         </div>
 
         <div class="summary">
@@ -265,10 +265,19 @@
     </div>
     {% endfor %}
     <div class="invoice-page">
+        <div class="header">
+            <!-- Header updated to include Lote ID if available from the first invoice -->
+             {% if invoices[0] and invoices[0].lote_id %}
+            <h2>Perfil de la Operación: {{ print_date }} / {{ invoices[0].lote_id }}</h2>
+            {% else %}
+            <h2>Perfil de la Operación: {{ print_date }}</h2>
+            {% endif %}
+        </div>
+
         <h2>Resumen Consolidado</h2>
-        {% if invoices[0] and invoices[0].identificador_lote %}
-        <h3 style="color: red;">Identificador de Lote: {{ invoices[0].identificador_lote }}</h3>
-        {% endif %}
+        <!-- Removed redundant Lote ID h3 since it is now in the main header -->
+        
+        <!-- Table style matches the per-invoice tables exactly (default table css is width:100%) -->
         <table>
             <thead>
                 <tr>

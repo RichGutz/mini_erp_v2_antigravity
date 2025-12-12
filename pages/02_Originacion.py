@@ -1040,6 +1040,11 @@ if st.session_state.invoices_data:
                                     inv['contract_number'] = st.session_state.contract_number
                                     inv['anexo_number'] = st.session_state.anexo_number
                                     
+                                    # Semantic Lote ID for PDF Header
+                                    path_parts = [n[1] for n in folder_info.get('full_path', [])]
+                                    base_path_string = " / ".join(path_parts)
+                                    inv['lote_id'] = f"{base_path_string} | G{inv.get('group_id', '?')}"
+                                    
                                     pdf_list.append(inv)
                             
                             if pdf_list:
