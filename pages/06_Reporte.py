@@ -81,7 +81,7 @@ if btn_search:
             
             data_rows.append({
                 "ID Propuesta": r['proposal_id'],
-                "Fecha Registro": r['created_at'][:10], # YYYY-MM-DD
+                "Fecha Registro": r.get('fecha_registro') or r['proposal_id'].split('-')[-1][:8], # YYYYMMDD fallback
                 "RUC Emisor": r['emisor_ruc'],
                 "Nombre Emisor": r['emisor_nombre'],
                 "Factura": r['numero_factura'],
