@@ -139,9 +139,10 @@ def generate_liquidacion_consolidada_pdf(report_data: Dict[str, Any]) -> bytes |
     """
     return _generate_pdf_in_memory("liquidacion_consolidada.html", report_data)
 
-def generar_anexo_liquidacion_pdf(invoices_data: List[Dict[str, Any]]) -> bytes | None:
+def generar_anexo_liquidacion_pdf(invoices_data: List[Dict[str, Any]], bank_info: Dict[str, str] = None) -> bytes | None:
     """
     Generates the 'Anexo de Liquidación' PDF and returns it as bytes.
+    Accepts optional bank_info to populate the bottom section.
     """
     if not invoices_data:
         return None
@@ -162,16 +163,23 @@ def generar_anexo_liquidacion_pdf(invoices_data: List[Dict[str, Any]]) -> bytes 
     
     total_igv = sum(inv.get('recalculate_result', {}).get('desglose_final_detallado', {}).get('igv_total', {}).get('monto', 0) for inv in invoices_data)
     
-    # Note: In the template, 'neto_desembolsar' seems to be the same as 'monto_desembolsar' 
-    # (Capital - Costos), but let's verify the logic. 
-    # Usually: Capital - Interes - Comisiones - IGV - Margen = Monto a Desembolsar.
-    # The template shows 'Monto a desembolsar' in the main table, which usually matches the final amount.
-    # But the summary table lists Comisiones, Margen, IGV separately.
-    # If 'Monto a desembolsar' in the main table is the FINAL amount, then the summary table logic might be redundant or display breakdown.
-    # Let's assume 'neto_desembolsar' is the final amount to pay.
+    # Metadata for Title
+    c_num = first_inv.get('contract_number', '')
+    a_num = first_inv.get('anexo_number', '')
     
+    # Robust Title Logic
+    final_title_number = "PENDIENTE"
+    if c_num and a_num:
+         final_title_number = f"{c_num}_{a_num}" # Format: Contrato_Anexo
+    elif a_num:
+         final_title_number = str(a_num)
+    
+    # Bank Info Defaults
+    if not bank_info:
+        bank_info = {}
+
     template_data = {
-        'anexo_number': first_inv.get('anexo_number', 'PENDIENTE'),
+        'anexo_number': final_title_number, # Used as main title suffix
         'print_date': datetime.datetime.now(),
         'emisor': {
             'nombre': first_inv.get('emisor_nombre', ''),
@@ -187,21 +195,21 @@ def generar_anexo_liquidacion_pdf(invoices_data: List[Dict[str, Any]]) -> bytes 
             'monto_neto': total_monto_neto,
             'capital': total_capital,
             'intereses': total_intereses,
-            'monto_desembolsar': total_monto_desembolsar, # This is usually the final amount
+            'monto_desembolsar': total_monto_desembolsar, 
             'comisiones': total_comisiones,
             'margen_seguridad': total_margen_seguridad,
             'igv': total_igv,
-            'neto_desembolsar': total_monto_desembolsar # Using same value for now
+            'neto_desembolsar': total_monto_desembolsar 
         },
         'deposit_info': {
             'forma_desembolso': 'TRANSFERENCIA',
             'beneficiario': first_inv.get('emisor_nombre', ''),
             'dni_beneficiario': '',
             'ruc_beneficiario': first_inv.get('emisor_ruc', ''),
-            'banco': 'N/A',
-            'deposito_cta': 'N/A',
-            'cci': 'N/A',
-            'tipo_cuenta': 'N/A'
+            'banco': bank_info.get('banco', 'N/A'),
+            'deposito_cta': bank_info.get('cuenta', 'N/A'),
+            'cci': bank_info.get('cci', 'N/A'),
+            'tipo_cuenta': 'Propia'
         }
     }
     

@@ -1107,7 +1107,23 @@ if st.session_state.invoices_data:
                                     pdf_list.append(inv)
                                     
                             if pdf_list:
-                                pdf_bytes = generar_anexo_liquidacion_pdf(pdf_list)
+                                # Fetch Bank Info for Anexo (from First Invoice's Emisor)
+                                bank_info_dict = {}
+                                if pdf_list[0].get('emisor_ruc'):
+                                    raw_emisor_data = db.get_signatory_data_by_ruc(pdf_list[0]['emisor_ruc'])
+                                    if raw_emisor_data:
+                                        # Map DB columns to our needed keys (Bank, Account, CCI)
+                                        # DB Columns: 'Institucion Financiera', 'Numero de Cuenta PEN'/'Numero de Cuenta USD'
+                                        currency = pdf_list[0].get('moneda_factura', 'PEN')
+                                        suffix = "PEN" if currency == 'PEN' else "USD"
+                                        
+                                        bank_info_dict = {
+                                            'banco': raw_emisor_data.get('Institucion Financiera', 'N/A'),
+                                            'cuenta': raw_emisor_data.get(f'Numero de Cuenta {suffix}', 'N/A'),
+                                            'cci': raw_emisor_data.get(f'Numero de CCI {suffix}', 'N/A')
+                                        }
+
+                                pdf_bytes = pdf_generators.generar_anexo_liquidacion_pdf(pdf_list, bank_info=bank_info_dict)
                                 timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
                                 fname = f"anexo_liquidacion_{path_sanitized}_{timestamp}.pdf"
                                 st.session_state['last_generated_liquidacion_pdf'] = {'bytes': pdf_bytes, 'filename': fname}
