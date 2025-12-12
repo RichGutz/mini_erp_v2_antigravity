@@ -559,13 +559,13 @@ with st.container(border=True):
                                 
                                 if db_rates:
                                     # Auto-Fill Global Config (Section 2) based on FIRST valid invoice
-                                    # This ensures the user sees the client's rates in the "Defaults" section too.
-                                    if not st.session_state.get('rates_prefilled_flag', False):
+                                    # Fix: Ensure this runs if flags are not set, OR if it's the very first invoice being added
+                                    is_first_entry = len(st.session_state.invoices_data) == 0
+                                    
+                                    if is_first_entry or not st.session_state.get('rates_prefilled_flag', False):
                                         st.session_state['tasa_avance_global'] = float(db_rates.get('tasa_avance', 0))
                                         
-                                        # Handle Currency for Global Defaults (Best effort: prioritize PEN if Mixed, or just take current)
-                                        # Actually, Global UI is currency-agnostic or splits fields.
-                                        # Let's fill the displayed fields.
+                                        # Handle Currency for Global Defaults
                                         curr_suffix = "_pen" if invoice_entry['moneda_factura'] == 'PEN' else "_usd"
                                         
                                         st.session_state['interes_mensual_global'] = float(db_rates.get(f'interes_mensual{curr_suffix}', 0))
@@ -1024,6 +1024,35 @@ if st.session_state.invoices_data:
 
 
                 # --- PDF GENERATION BUTTONS (INSIDE PICKER BLOCK) ---
+                # --- Reset Button (Sidebar or Main) ---
+                with st.sidebar:
+                    st.divider()
+                    if st.button("🗑️ Limpiar / Nueva Carga", type="primary", use_container_width=True, help="Borra todos los archivos y facturas para iniciar de cero."):
+                        # Clear all session keys related to originacion
+                        keys_to_clear = [
+                            'invoices_data', 
+                            'pdf_datos_cargados', 
+                            'last_uploaded_pdf_files_ids', 
+                            'last_saved_proposal_id',
+                            'contract_number',
+                            'anexo_number',
+                            'original_uploads_cache',
+                            'rates_prefilled_flag'
+                        ]
+                        # Clear buckets
+                        for i in range(1, 9):
+                            keys_to_clear.append(f'accumulated_files_grp_{i}')
+                            keys_to_clear.append(f'uploader_key_grp_{i}')
+                            keys_to_clear.append(f'f_pago_grp_{i}')
+                        
+                        for k in keys_to_clear:
+                            if k in st.session_state:
+                                del st.session_state[k]
+                        
+                        # Re-init defaults will happen on rerun
+                        st.rerun()
+
+                # --- Initial ID & Contract/Annex Logic ---
                 st.markdown("---")
                 st.write("##### 📄 Generación de Documentos")
                 
