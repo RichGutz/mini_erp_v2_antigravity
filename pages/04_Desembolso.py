@@ -46,6 +46,17 @@ if not API_BASE_URL:
 
 USUARIO_ID_TEST = "user_test@inandes.com"
 
+# --- Header (Moved for Alignment) ---
+from src.ui.header import render_header
+render_header("Módulo de Desembolso")
+
+# --- CSS Alignment Fix ---
+st.markdown('''<style>
+[data-testid="stHorizontalBlock"] { 
+    align-items: center; 
+}
+</style>''', unsafe_allow_html=True)
+
 # --- Inicialización del Session State ---
 if 'facturas_aprobadas' not in st.session_state:
     st.session_state.facturas_aprobadas = []
@@ -113,8 +124,7 @@ if st.session_state.reload_data:
         st.session_state.reload_data = False
 
 # --- UI: Header con Logos (Estandarizado) ---
-from src.ui.header import render_header
-render_header("Módulo de Desembolso")
+# (Moved to top)
 
 
 # ==============================================================================
