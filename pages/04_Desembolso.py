@@ -50,12 +50,12 @@ USUARIO_ID_TEST = "user_test@inandes.com"
 from src.ui.header import render_header
 render_header("Módulo de Desembolso")
 
-# --- CSS Alignment Fix ---
-st.markdown('''<style>
-[data-testid="stHorizontalBlock"] { 
-    align-items: center; 
-}
-</style>''', unsafe_allow_html=True)
+# --- CSS Alignment Fix (Removed) ---
+# st.markdown('''<style>
+# [data-testid="stHorizontalBlock"] { 
+#     align-items: center; 
+# }
+# </style>''', unsafe_allow_html=True)
 
 # --- Inicialización del Session State ---
 if 'facturas_aprobadas' not in st.session_state:
@@ -499,6 +499,6 @@ else:
 # --- Sidebar Boton Rojo ---
 with st.sidebar:
     st.markdown('---')
-    if st.button(' Actualizar', key='sidebar_refresh_btn', type='primary', use_container_width=True, help='Recargar lista desde Base de Datos'):
+    if st.button('🔄 Actualizar', key='sidebar_refresh_btn', type='primary', use_container_width=True, help='Recargar lista desde Base de Datos'):
         st.session_state.reload_data = True
         st.rerun()
