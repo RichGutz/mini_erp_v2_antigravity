@@ -139,26 +139,26 @@ else:
         lote_id = inv.get('identificador_lote', 'Sin Lote')
         grouped_invoices[lote_id].append(inv)
     
-    st.container(border=True)
-    st.subheader("1. Facturas Pendientes de Aprobación")
-    
-    # Button moved to Sidebar
-    
-    st.markdown("---")
-    
-    # Iterar por cada grupo (Lote)
-    for lote_id, invoices_in_batch in grouped_invoices.items():
+    with st.container(border=True):
+        st.subheader("1. Facturas Pendientes de Aprobación")
         
-        # Obtener datos del lote (Emisor fecha) del primer elemento
-        first_inv = invoices_in_batch[0]
-        emisor_name = first_inv.get('emisor_nombre', 'N/A')
-        created_at = first_inv.get('created_at', '') # Si existe
+        # Button moved to Sidebar
         
-        # IDs de este lote
-        batch_pids = [inv['proposal_id'] for inv in invoices_in_batch]
+        st.markdown("---")
         
-        # Calcular estado actual del "Select All" para este lote
-        all_selected = all(st.session_state.facturas_seleccionadas_aprobacion.get(pid, False) for pid in batch_pids)
+        # Iterar por cada grupo (Lote)
+        for lote_id, invoices_in_batch in grouped_invoices.items():
+            
+            # Obtener datos del lote (Emisor fecha) del primer elemento
+            first_inv = invoices_in_batch[0]
+            emisor_name = first_inv.get('emisor_nombre', 'N/A')
+            created_at = first_inv.get('created_at', '') # Si existe
+            
+            # IDs de este lote
+            batch_pids = [inv['proposal_id'] for inv in invoices_in_batch]
+            
+            # Calcular estado actual del "Select All" para este lote
+            all_selected = all(st.session_state.facturas_seleccionadas_aprobacion.get(pid, False) for pid in batch_pids)
         
         with st.container(border=True):
             # Header del Lote (Clean)
