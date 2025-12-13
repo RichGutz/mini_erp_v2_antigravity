@@ -1047,32 +1047,7 @@ if st.session_state.invoices_data:
 
                 # --- PDF GENERATION BUTTONS (INSIDE PICKER BLOCK) ---
                 # --- Reset Button (Sidebar or Main) ---
-                with st.sidebar:
-                    st.divider()
-                    if st.button("Limpiar / Nueva Carga", type="primary", use_container_width=True, help="Borra todos los archivos y facturas para iniciar de cero."):
-                        # Clear all session keys related to originacion
-                        keys_to_clear = [
-                            'invoices_data', 
-                            'pdf_datos_cargados', 
-                            'last_uploaded_pdf_files_ids', 
-                            'last_saved_proposal_id',
-                            'contract_number',
-                            'anexo_number',
-                            'original_uploads_cache',
-                            'rates_prefilled_flag'
-                        ]
-                        # Clear buckets
-                        for i in range(1, 9):
-                            keys_to_clear.append(f'accumulated_files_grp_{i}')
-                            keys_to_clear.append(f'uploader_key_grp_{i}')
-                            keys_to_clear.append(f'f_pago_grp_{i}')
-                        
-                        for k in keys_to_clear:
-                            if k in st.session_state:
-                                del st.session_state[k]
-                        
-                        # Re-init defaults will happen on rerun
-                        st.rerun()
+
 
                 # --- Initial ID & Contract/Annex Logic ---
                 st.markdown("---")
