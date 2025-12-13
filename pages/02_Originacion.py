@@ -482,7 +482,7 @@ with st.container(border=True):
     st.divider()
     
     # --- PROCESS ALL BUCKETS BUTTON ---
-    if st.button(f"🚀 PROCESAR TODO EL LOTE ({total_files_count} archivos)", type="primary", use_container_width=True, disabled=(total_files_count==0)):
+    if st.button(f"PROCESAR TODO EL LOTE ({total_files_count} archivos)", type="primary", use_container_width=True, disabled=(total_files_count==0)):
         
         # Reset Main Data
         st.session_state.invoices_data = []
@@ -1049,7 +1049,7 @@ if st.session_state.invoices_data:
                 # --- Reset Button (Sidebar or Main) ---
                 with st.sidebar:
                     st.divider()
-                    if st.button("🗑️ Limpiar / Nueva Carga", type="primary", use_container_width=True, help="Borra todos los archivos y facturas para iniciar de cero."):
+                    if st.button("Limpiar / Nueva Carga", type="primary", use_container_width=True, help="Borra todos los archivos y facturas para iniciar de cero."):
                         # Clear all session keys related to originacion
                         keys_to_clear = [
                             'invoices_data', 
@@ -1299,7 +1299,7 @@ if has_results:
 with st.sidebar:
     st.markdown("---")
     st.write("")
-    if st.button("🗑️ Limpiar Data", type="primary", use_container_width=True, key="clean_data_btn", help="Borra todos los archivos y reinicia el formulario"):
+    if st.button("Limpiar Data", type="primary", use_container_width=True, key="clean_data_btn", help="Borra todos los archivos y reinicia el formulario"):
         # Clear all session state keys
         for key in list(st.session_state.keys()):
              del st.session_state[key]
