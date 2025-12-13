@@ -4,7 +4,12 @@ import src.data.supabase_repository as repo
 from src.ui.header import render_header
 from src.utils.email_integration import send_email_with_attachments
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+    layout="wide",
+    initial_sidebar_state="expanded",
+    page_title="Administración de Roles",
+    page_icon="🛡️"
+)
 render_header("Administración de Roles y Permisos")
 
 # --- Initialize Session State ---
