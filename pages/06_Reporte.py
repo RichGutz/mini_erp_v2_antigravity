@@ -23,7 +23,7 @@ st.markdown('''<style>
 </style>''', unsafe_allow_html=True)
 
 # --- Filters ---
-st.markdown("### 🔍 Filtros de Búsqueda")
+st.markdown("### Filtros de Búsqueda")
 
 with st.container(border=True):
     col1, col2, col3, col4 = st.columns(4)
