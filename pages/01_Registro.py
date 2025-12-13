@@ -45,6 +45,12 @@ st.markdown('''<style>
 import streamlit as st
 from src.data.supabase_repository import check_user_access
 
+# Header (Moved before access check to ensure logout button is visible)
+from src.ui.header import render_header
+render_header("Módulo de Registro")
+
+
+
 # Retrieve User Email safely from session_state.user_info (set by 00_Home.py)
 user_email = ""
 if 'user_info' in st.session_state and isinstance(st.session_state.user_info, dict):
@@ -56,10 +62,6 @@ if not check_user_access("Registro", user_email):
 
 # --- Sidebar "Back" Button Logic (Moved to end) ---
 
-# Header
-# Replacing manual layout with shared component
-from src.ui.header import render_header
-render_header("Módulo de Registro")
 
 
 # Vistas
