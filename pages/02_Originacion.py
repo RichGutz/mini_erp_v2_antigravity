@@ -967,7 +967,7 @@ if st.session_state.invoices_data:
         folder_info = None
         if has_results:
             st.divider()
-            st.markdown("##### 📂 Selección de Destino en Repositorio Google Drive")
+            st.markdown("##### Selección de Destino en Repositorio Google Drive")
 
             
             # Using the v2 valid picker
@@ -977,7 +977,7 @@ if st.session_state.invoices_data:
             extracted_annex = None
 
             if folder_info:
-                st.success(f"📂 Carpeta Seleccionada: **{folder_info['name']}**")
+                # st.success(f"📂 Carpeta Seleccionada: **{folder_info['name']}**") # REMOVED V4
                 
                 # --- AUTO-PARSE METADATA FROM FULL PATH ---
                 # Expected: [..., (id, '1.Contrato_2025_Enero'), (id, '1.Anexo_1')]
@@ -1017,16 +1017,16 @@ if st.session_state.invoices_data:
                 # Update Session State
                 if extracted_contract and extracted_contract != st.session_state.contract_number:
                     st.session_state.contract_number = extracted_contract
-                    st.toast(f"✅ Contrato detectado: {extracted_contract}")
+                    # st.toast(f"✅ Contrato detectado: {extracted_contract}") # SILENT V4
                     
                 if extracted_annex and extracted_annex != st.session_state.anexo_number:
                     st.session_state.anexo_number = extracted_annex
-                    st.toast(f"✅ Anexo detectado: {extracted_annex}")
+                    # st.toast(f"✅ Anexo detectado: {extracted_annex}") # SILENT V4
                 
-                # Visual Confirmation
-                mc1, mc2 = st.columns(2)
-                mc1.info(f"📋 **Nro Contrato:** {st.session_state.contract_number if st.session_state.contract_number else '-----'}")
-                mc2.info(f"📑 **Nro Anexo:** {st.session_state.anexo_number if st.session_state.anexo_number else '-----'}")
+                # Visual Confirmation REMOVED V4 (Clean Path Only)
+                # mc1, mc2 = st.columns(2)
+                # mc1.info(f"📋 **Nro Contrato:** {st.session_state.contract_number if st.session_state.contract_number else '-----'}")
+                # mc2.info(f"📑 **Nro Anexo:** {st.session_state.anexo_number if st.session_state.anexo_number else '-----'}")
                 
                 if not st.session_state.contract_number or not st.session_state.anexo_number:
                     st.warning("⚠️ No se pudieron detectar los números automáticamente. Verifica la estructura de carpetas (Ej: `.../Contrato_X/Anexo_Y`)")

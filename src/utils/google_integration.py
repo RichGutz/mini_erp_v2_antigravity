@@ -453,12 +453,12 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     return None
 
 
-# --- NATIVE BROWSER V3 (Brick Grid & Smart 1-Click) ---
+# --- NATIVE BROWSER V4 (Dynamic Height & Clean Path) ---
 def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     """
     Renderiza un navegador de carpetas nativo (Streamlit puro) usando list_folders_with_sa.
-    Mejoras V3: 
-    - Layout: Grid de Ladrillos en contenedor con Scroll (fixed height).
+    Mejoras V4: 
+    - Layout: Grid de Ladrillos Dinámico (sin altura fija).
     - Visual: Zero Icons. Solo texto.
     - Lógica 1-Click: Si nombre contiene 'Anexo' -> Selecciona. Si no -> Navega.
     """
@@ -477,20 +477,41 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     
     current_id = st.session_state[nav_key_id]
     current_name = st.session_state[nav_key_name]
+    selected_data = st.session_state.get(sel_key)
     
-    # --- A. SIMPLE PATH HEADER ---
-    # Path: Cliente > Contrato > Anexo
-    full_history = st.session_state[nav_key_history] + [(current_id, current_name)]
-    
-    # Simple String Path (No visual noise)
-    path_names = [h[1] for h in full_history]
-    # Remove 'Inicio' redundancy if present for display? kept for clarity.
-    path_str = " > ".join(path_names)
-    
+    # --- A. HEADER & PATH DISPLAY ---
+    # Logic: If Selected, show Selection Path. If not, show Navigation Path.
     st.markdown(f"**{label}**")
-    st.text(f"Ruta: {path_str}")
+    
+    if selected_data:
+        # Show FINAL Selection Path
+        sel_path_str = " > ".join([h[1] for h in selected_data.get('full_path', [])])
+        st.info(f"Ruta: {sel_path_str}") # Info box for selection is acceptable/clearer than plain text? user wanted "clean path". 
+        # User complained about "box verde". Let's use clean marking.
+        # st.markdown(f"Ruta: `{sel_path_str}`") # Clean code style
+    else:
+        # Show Current Navigation Path
+        full_history = st.session_state.get(nav_key_history, []) + [(current_id, current_name)]
+        path_names = [h[1] for h in full_history]
+        path_str = " > ".join(path_names)
+        st.text(f"Ruta: {path_str}")
 
-    # Back Button (Only if not at root)
+    # Back Button (Only if not at root AND not selected? No, allowing back is good for browsing)
+    # If selected, we might want to clear selection to browse again? 
+    # Yes, typically if I select "Anexo 1", I am done.
+    
+    if selected_data:
+        # Show "Clear Selection" to re-open browser
+        if st.button("Cambiar Selección", key=f"clear_sel_{key}"):
+            del st.session_state[sel_key]
+            st.rerun()
+        # Return immediately if selected? 
+        # User wants to see the bricks? Probably not if selected.
+        # "Est que si llega hasta donde debe muevelo para arriba en lugar del que no funciona."
+        return selected_data
+    
+    # If NOT selected, show Browser:
+
     if st.session_state[nav_key_history]:
         if st.button("Subir Nivel", key=f"btn_up_{key}", type="secondary"):
             last_id, last_name = st.session_state[nav_key_history].pop()
@@ -498,11 +519,11 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
             st.session_state[nav_key_name] = last_name
             st.rerun()
 
-    # --- B. CONTENT (Scrollable Grid) ---
+    # --- B. CONTENT (Dynamic Grid) ---
     st.markdown("---")
     
-    # Use a fixed height container for scrolling
-    with st.container(height=400, border=True):
+    # Dynamic Container (Natural flow)
+    with st.container(border=True):
         
         # Load content
         with st.spinner("Cargando..."):
@@ -538,7 +559,7 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
                         btn_label = f_name # CLEAN TEXT
                         btn_key = f"brick_{f_id}_{key}"
                         
-                        # Style distinction? Maybe leaf is primary?
+                        # Style distinction
                         btn_type = "primary" if is_leaf_target else "secondary"
                         
                         if st.button(btn_label, key=btn_key, type=btn_type, use_container_width=True):
@@ -546,7 +567,9 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
                             if is_leaf_target:
                                 # SELECT ACTION
                                 # Path = History + Current + This Child
-                                child_path = full_history + [(f_id, f_name)]
+                                # Build full history including current context
+                                full_hist = st.session_state[nav_key_history] + [(current_id, current_name)]
+                                child_path = full_hist + [(f_id, f_name)]
                                 
                                 st.session_state[sel_key] = {
                                     'id': f_id, 
@@ -560,22 +583,5 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
                                 st.session_state[nav_key_id] = f_id
                                 st.session_state[nav_key_name] = f_name
                                 st.rerun()
-
-    # --- C. SELECTED FOOTER (Minimal) ---
-    selected_data = st.session_state.get(sel_key)
-    if selected_data:
-        st.markdown("---")
-        c1, c2 = st.columns([8, 2])
-        with c1:
-            # Just the path string
-            sel_path_str = " > ".join([h[1] for h in selected_data['full_path']])
-            st.write(f"Selection: **{sel_path_str}**")
-        with c2:
-            if st.button("Limpiar", key=f"clear_sel_{key}"):
-                del st.session_state[sel_key]
-                st.rerun()
-        
-        return selected_data
-    
     return None
 
