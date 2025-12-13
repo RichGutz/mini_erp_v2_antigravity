@@ -52,6 +52,10 @@ except Exception as e:
     st.stop()
 
 
+# --- Header ---
+from src.ui.header import render_header
+render_header("Módulo de Originación")
+
 # --- Custom CSS ---
 st.markdown("""
 <style>
@@ -379,8 +383,7 @@ def delete_file(grp_id, file_index):
 
 
 # --- Layout: Header ---
-from src.ui.header import render_header
-render_header("Módulo de Originación")
+# (Moved to top)
 
 # ==============================================================================
 # SECCIÓN 1: CARGA DE FACTURAS (MULTI-BUCKET - GRID VIEW)
