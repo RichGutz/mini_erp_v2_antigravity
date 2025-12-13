@@ -269,7 +269,6 @@ def mostrar_formulario_editar():
         st.error("❌ No hay registro seleccionado")
         return
     
-    st.info(f"**RUC:** {registro.get('RUC', 'N/A')} (no se puede modificar)")
     
     with st.form("form_editar"):
         st.markdown("### Campos Obligatorios")
