@@ -12,6 +12,20 @@ st.set_page_config(
 )
 render_header("Administración de Roles y Permisos")
 
+# --- Access Control ---
+import streamlit as st
+from src.data.supabase_repository import check_user_access
+
+# Retrieve User Email safely
+user_email = ""
+if 'user_info' in st.session_state and isinstance(st.session_state.user_info, dict):
+    user_email = st.session_state.user_info.get('email', "")
+
+# Check Access for THIS module (Roles)
+if not check_user_access("Roles", user_email):
+    st.error("⛔ No tienes permisos para acceder a la Administración de Roles.")
+    st.stop()
+
 # --- Initialize Session State ---
 if 'roles_matrix_df' not in st.session_state:
     st.session_state['roles_matrix_df'] = None

@@ -41,6 +41,17 @@ st.set_page_config(
 from src.ui.header import render_header
 render_header("Calculadora de Factoring")
 
+# --- Access Control ---
+from src.data.supabase_repository import check_user_access
+user_email = ""
+if 'user_info' in st.session_state and isinstance(st.session_state.user_info, dict):
+    user_email = st.session_state.user_info.get('email', "")
+
+if not check_user_access("Calculadora", user_email):
+    # Note: Using "Calculadora" as module name logic
+    st.error("⛔ No tienes permisos para acceder a este módulo.")
+    st.stop()
+
 # --- CSS Alignment Fix ---
 st.markdown('''<style>
 [data-testid="stHorizontalBlock"] { 

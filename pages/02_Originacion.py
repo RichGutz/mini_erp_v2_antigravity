@@ -56,6 +56,17 @@ except Exception as e:
 from src.ui.header import render_header
 render_header("Módulo de Originación")
 
+# --- Access Control ---
+from src.data.supabase_repository import check_user_access
+# Retrieve User Email safely
+user_email = ""
+if 'user_info' in st.session_state and isinstance(st.session_state.user_info, dict):
+    user_email = st.session_state.user_info.get('email', "")
+
+if not check_user_access("Originacion", user_email):
+    st.error("⛔ No tienes permisos para acceder a este módulo.")
+    st.stop()
+
 # --- Custom CSS ---
 st.markdown("""
 <style>

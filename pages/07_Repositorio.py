@@ -18,6 +18,16 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 from src.ui.header import render_header
 render_header("Repositorio INANDES")
 
+# --- Access Control ---
+from src.data.supabase_repository import check_user_access
+user_email = ""
+if 'user_info' in st.session_state and isinstance(st.session_state.user_info, dict):
+    user_email = st.session_state.user_info.get('email', "")
+
+if not check_user_access("Repositorio", user_email):
+    st.error("⛔ No tienes permisos para acceder a este módulo.")
+    st.stop()
+
 # --- CSS Alignment Fix ---
 st.markdown('''<style>
 [data-testid="stHorizontalBlock"] { 

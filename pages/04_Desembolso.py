@@ -46,9 +46,19 @@ if not API_BASE_URL:
 
 USUARIO_ID_TEST = "user_test@inandes.com"
 
-# --- Header (Moved for Alignment) ---
+# --- Header ---
 from src.ui.header import render_header
 render_header("Módulo de Desembolso")
+
+# --- Access Control ---
+from src.data.supabase_repository import check_user_access
+user_email = ""
+if 'user_info' in st.session_state and isinstance(st.session_state.user_info, dict):
+    user_email = st.session_state.user_info.get('email', "")
+
+if not check_user_access("Desembolso", user_email):
+    st.error("⛔ No tienes permisos para acceder a este módulo.")
+    st.stop()
 
 # --- CSS Alignment Fix (Removed) ---
 # st.markdown('''<style>
