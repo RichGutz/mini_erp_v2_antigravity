@@ -27,7 +27,7 @@ def get_gemini_model():
         }
         
         model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash-exp",
+            model_name="gemini-flash-latest",
             generation_config=generation_config,
         )
         return model
