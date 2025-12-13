@@ -35,11 +35,13 @@ def get_gemini_model():
         st.error(f"❌ Error configurando Gemini: {e}")
         return None
 
+from datetime import date, datetime
+
 # --- Tool 1: Extraction & Proposal ---
 def tool_extract_invoice_data(file_path):
     """
-    Step 1: Parse PDF and propose parameters (Rates, Dates) based on DB.
-    Does NOT calculate final values yet.
+    Step 1: Parse PDF and propose parameters.
+    Leaves 'plazo_dias' as None to force explicit user input or confirmation based on dates.
     """
     try:
         # 1. Parse
@@ -50,23 +52,32 @@ def tool_extract_invoice_data(file_path):
         # 2. Extract Key Data
         ruc_emisor = parsed_data.get('emisor_ruc')
         monto_neto = parsed_data.get('monto_neto', 0.0)
-        cliente_nombre = parsed_data.get('cliente_nombre', "Cliente Desconocido") # Invoice Receiver
+        cliente_nombre = parsed_data.get('cliente_nombre', "Cliente Desconocido")
+        fecha_emision = parsed_data.get('fecha_emision')
+        fecha_vencimiento = parsed_data.get('fecha_vencimiento') # Might be None
         
         if not ruc_emisor:
             return {"error": "No RUC found in invoice"}
             
-        # 3. DB Lookup (Financial Conditions)
+        # 3. DB Lookup
         db_rates = db.get_financial_conditions(str(ruc_emisor))
         emisor_nombre = db.get_razon_social_by_ruc(ruc_emisor) or parsed_data.get('emisor_nombre', "Desconocido")
         
         # 4. Propose Defaults
         tasa_avance = float(db_rates.get('tasa_avance', 98.0) if db_rates else 98.0)
         interes_mensual = float(db_rates.get('interes_mensual_pen', 1.25) if db_rates else 1.25) 
-        dias_minimos = int(db_rates.get('dias_minimos_interes', 15) if db_rates else 15)
         
-        # Default term (can be adjusted by user)
-        plazo_sugerido = 30 
-        
+        # Critical: Do NOT assume 30 days. Try to calculate from parsed dates, else None.
+        plazo_sugerido = None
+        if fecha_emision and fecha_vencimiento:
+            try:
+                # Simple attempt to parse ISO or basic formats (Agent can correct later)
+                # assuming input is YYYY-MM-DD for now or let LLM handle it.
+                # For safety, we leave it as None to force verification unless perfectly clear.
+                pass 
+            except:
+                pass
+
         proposal = {
             "status": "PROPOSAL_READY",
             "extracted_data": {
@@ -76,13 +87,16 @@ def tool_extract_invoice_data(file_path):
                 "numero_factura": parsed_data.get('invoice_id'),
                 "moneda": parsed_data.get('moneda', 'PEN'),
                 "monto_neto": monto_neto,
-                "fecha_emision": parsed_data.get('fecha_emision'),
+                "fecha_emision": fecha_emision,
+                "fecha_vencimiento_pdf": fecha_vencimiento
             },
             "proposed_params": {
                 "tasa_avance_percent": tasa_avance,
                 "tasa_interes_mensual_percent": interes_mensual,
-                "plazo_dias": plazo_sugerido,
-                "comision_minima": 0.0
+                "plazo_dias": plazo_sugerido, # Explicitly explicit
+                "comision_minima": 0.0,
+                "fecha_desembolso": datetime.now().strftime("%Y-%m-%d"), # Assume today as anchor
+                "fecha_pago_esperada": fecha_vencimiento # Propose PDF due date
             }
         }
         return proposal
@@ -155,16 +169,9 @@ def render_proforma_agent():
         st.session_state.current_file = file_path
         st.session_state.agent_state = "IDLE" # Reset on new file
         # Auto-trigger extraction
-        with st.spinner(f"⚡ Analizando {file_name}..."):
-            result = tool_extract_invoice_data(file_path)
-            st.session_state.extracted_proposal = result
-            st.session_state.agent_state = "WAITING_CONFIRMATION"
-            
-            # Add implicit System Message to chat
-            msg = f"He leído **{file_name}**. Emisor: {result['extracted_data']['emisor_nombre']}. Monto: {result['extracted_data']['monto_neto']}.\n"
-            msg += f"Propongo: Tasa Mensual **{result['proposed_params']['tasa_interes_mensual_percent']}%**, Adelanto **{result['proposed_params']['tasa_avance_percent']}%**, Plazo **{result['proposed_params']['plazo_dias']} días**.\n"
-            msg += "¿Estás de acuerdo o quieres cambiar algún valor?"
-            st.session_state.messages.append({"role": "assistant", "content": msg})
+        # The logic for auto-triggering extraction is now moved into the chat input handling
+        # to allow the user to explicitly "analizar" the document.
+        # This block will now only reset the state on new file upload.
 
     # Chat UI
     if not st.session_state.messages:
@@ -188,77 +195,93 @@ def render_proforma_agent():
             # --- FLOW LOGIC ---
             response_text = "..."
             
-            if st.session_state.agent_state == "WAITING_CONFIRMATION":
-                # We expect the user to confirm or edit params
-                # We use Gemini to interpret the user's intent and JSON-fy the final params
-                current_proposal = st.session_state.extracted_proposal
+            # CASE 1: Trigger Analysis
+            if st.session_state.agent_state in ["IDLE", "CALCULATED"] and file_path and any(k in prompt.lower() for k in ["analizar", "procesar", "leer", "extraer"]):
+                with st.spinner(f"⚡ Analizando {file_name}..."):
+                    result = tool_extract_invoice_data(file_path)
+                    st.session_state.extracted_proposal = result
+                    st.session_state.agent_state = "WAITING_CONFIRMATION"
+                    
+                    # Smart Message Construction
+                    p = result['proposed_params']
+                    e = result['extracted_data']
+                    
+                    msg = f"🔍 **Análisis de {file_name}**\n\n"
+                    msg += f"- **Emisor**: {e['emisor_nombre']}\n"
+                    msg += f"- **Monto**: {e['moneda']} {e['monto_neto']:,.2f}\n"
+                    msg += f"- **Tasas BD**: Mensual {p['tasa_interes_mensual_percent']}%, Adelanto {p['tasa_avance_percent']}%\n\n"
+                    
+                    if p['plazo_dias'] is None:
+                        msg += "⚠️ **Falta definir fechas:**\n"
+                        msg += f"El PDF indica vencimiento el: *{e.get('fecha_vencimiento_pdf', 'No detectado')}*.\n"
+                        msg += "**¿Cuál es la Fecha de Desembolso y la Fecha de Pago real?**"
+                    else:
+                        msg += f"Plazo calculado: {p['plazo_dias']} días. ¿Confirmas?"
+
+                    response_text = msg
+
+            # CASE 2: Handle Confirmation/Edit
+            elif st.session_state.agent_state == "WAITING_CONFIRMATION":
+                current = st.session_state.extracted_proposal
                 
                 context_prompt = f"""
-                You are a Financial Assistant.
-                Current State: WAITING_FOR_USER_CONFIRMATION of Invoice Parameters.
+                Act as a Financial Analyst.
+                Current State: WAITING_FOR_USER_CONFIRMATION.
                 
-                Original Extracted Data: {json.dumps(current_proposal['extracted_data'], default=str)}
-                Original Proposed Params: {json.dumps(current_proposal['proposed_params'], default=str)}
-                
+                Data: {json.dumps(current, default=str)}
                 User Message: "{prompt}"
+                Today: {datetime.now().strftime("%Y-%m-%d")}
                 
-                Task:
-                1. Interpret if the user CONFIRMS or wants to MODIFY values.
-                2. If they modify (e.g. "change rate to 1.5"), update the params.
-                3. Return a JSON with the FINAL parameters to use for calculation.
-                4. Also return a boolean 'confirmed'.
+                GOAL: Secure a precise 'plazo_dias' (term in days).
                 
-                Output JSON Format ONLY:
+                Logic:
+                1. If user provides Dates (e.g. "Payment on Dec 30"), calculate days from 'fecha_desembolso' (default today).
+                2. If user provides explicit Days (e.g. "30 days"), use that.
+                3. If 'plazo_dias' is still Unknown/None, DO NOT CONFIRM. Ask again.
+                
+                Output JSON:
                 {{
-                    "confirmed": true/false,
+                    "confirmed": boolean, (Only true if we have specific plazo_dias AND user said yes/confirm)
                     "final_params": {{
                         "monto_neto": float,
                         "tasa_avance_percent": float,
                         "tasa_interes_mensual_percent": float,
-                        "plazo_dias": int,
+                        "plazo_dias": int, (MUST BE INTEGER)
                         "comision_minima": float,
                         "emisor_nombre": str,
                         "emisor_ruc": str,
                         "numero_factura": str
                     }},
-                    "reply_to_user": "Text message confirming what we are doing"
+                    "reply_to_user": "Message. If not confirmed, ask for the missing data clearly."
                 }}
                 """
                 
                 try:
                     gen_resp = model.generate_content(context_prompt)
-                    # Clean markdown code blocks from response
                     text_resp = gen_resp.text.replace("```json", "").replace("```", "")
                     decision = json.loads(text_resp)
                     
-                    if decision["confirmed"]:
+                    if decision["confirmed"] and decision["final_params"]["plazo_dias"] is not None:
                         # PERFORM CALCULATION
                         calc_result = tool_calculate_factoring(decision["final_params"])
                         
-                        # Generate Presentation
                         final_prompt = f"""
                         Act as Financial Analyst.
                         Calculation Result: {json.dumps(calc_result, default=str)}
-                        
-                        Create a nice Markdown summary of this Operation Profile (Proforma).
-                        Include:
-                        - Header: Operation for {decision['final_params']['emisor_nombre']}
-                        - Table with: Amount, Net to Disburse, Interest, Fees.
-                        - Ask if they want to save/process this.
+                        Create a Proforma Table (Markdown). Use MONEY format (S/ or $).
+                        End with: "Para guardar esta operación, confirma con 'Guardar'."
                         """
                         final_gen = model.generate_content(final_prompt)
                         response_text = final_gen.text
                         st.session_state.agent_state = "CALCULATED"
                     else:
-                        # Just update params conceptually or ask for clarification (Agent reply)
                         response_text = decision["reply_to_user"]
                         
                 except Exception as e:
-                    response_text = f"Error interpretando tu respuesta: {e}. Intenta decir 'Confirmar' o 'Cambiar tasa a X'."
+                    response_text = f"Error: {e}. Por favor, indica explícitamente la Fecha de Pago."
 
+            # CASE 3: Normal Chat
             else:
-                # Normal chat (Idle or Post-Calculation)
-                # Simple generation
                 try:
                     chat = model.start_chat(history=[]) 
                     r = chat.send_message(prompt)
