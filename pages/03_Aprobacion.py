@@ -131,7 +131,6 @@ if st.session_state.reload_data:
 # --- Mostrar Facturas Pendientes ---
 if not st.session_state.facturas_activas:
     st.info("✅ No hay facturas pendientes de aprobación en este momento.")
-    st.info("✅ No hay facturas pendientes de aprobación en este momento.")
     # Button moved to Sidebar
 else:
     # Agrupar por Lote
@@ -143,13 +142,10 @@ else:
     st.container(border=True)
     st.subheader(f"1. Facturas Pendientes de Aprobación ({len(st.session_state.facturas_activas)})")
     
-    st.subheader(f"1. Facturas Pendientes de Aprobación ({len(st.session_state.facturas_activas)})")
-    
     # Button moved to Sidebar
     
     st.markdown("---")
     
-    # with st.form(key="approval_form"):  <-- DELETED FORM WRAPPER
     # Iterar por cada grupo (Lote)
     for lote_id, invoices_in_batch in grouped_invoices.items():
         
@@ -161,6 +157,16 @@ else:
         # IDs de este lote
         batch_pids = [inv['proposal_id'] for inv in invoices_in_batch]
         
+        # Calcular estado actual del "Select All" para este lote
+        all_selected = all(st.session_state.facturas_seleccionadas_aprobacion.get(pid, False) for pid in batch_pids)
+        
+        with st.container(border=True):
+            # Header del Lote (Clean)
+            st.markdown(f"**Lote:** `{lote_id}` | **Emisor:** {emisor_name} | **Cant:** {len(invoices_in_batch)}")
+            
+            # Header de la Tablita
+            col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_cavali, col_letra = st.columns([0.4, 1.2, 1.8, 1.0, 1.0, 1.1, 1.1])
+            
             with col_check: 
                 # Checkbox Maestro para este lote
                 batch_key = f"select_all_{lote_id}"
