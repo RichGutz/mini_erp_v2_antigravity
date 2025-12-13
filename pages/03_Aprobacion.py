@@ -140,7 +140,7 @@ else:
         grouped_invoices[lote_id].append(inv)
     
     st.container(border=True)
-    st.subheader(f"1. Facturas Pendientes de Aprobación ({len(st.session_state.facturas_activas)})")
+    st.subheader("1. Facturas Pendientes de Aprobación")
     
     # Button moved to Sidebar
     
