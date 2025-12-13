@@ -101,7 +101,7 @@ if 'user_info' not in st.session_state:
         # The main column is already 50% of screen. Nested [1, 2, 1] makes the button 50% of that (25% total).
         _, btn_col, _ = st.columns([1, 2, 1])
         
-    with btn_col:
+        with btn_col:
             oauth2 = OAuth2Component(client_id, client_secret, AUTHORIZE_URL, TOKEN_URL, REVOKE_URL)
             try:
                 result = oauth2.authorize_button(
