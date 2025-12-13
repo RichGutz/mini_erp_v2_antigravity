@@ -294,7 +294,7 @@ def handle_bucket_change(grp_id):
     f_pago_str = new_f_pago.strftime('%d-%m-%Y') if new_f_pago else ""
 
     # Update logic
-    if st.session_state.invoices_data:
+    if st.session_state.get('invoices_data'):
         for idx, invoice in enumerate(st.session_state.invoices_data):
             if invoice.get('group_id') == grp_id:
                 # Update Dict
