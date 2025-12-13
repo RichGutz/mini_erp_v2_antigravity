@@ -208,6 +208,13 @@ else:
     # Render Standard Header
     render_header("Módulos del Sistema")
     
+    # --- CSS Alignment Fix ---
+    st.markdown('''<style>
+    [data-testid="stHorizontalBlock"] { 
+        align-items: center; 
+    }
+    </style>''', unsafe_allow_html=True)
+    
     st.write(f"Bienvenido al ERP, *{user_info.get('name', 'User')}*!")
     
     MODULES = {

@@ -22,8 +22,16 @@ st.set_page_config(
     page_icon="💰"
 )
 
-# --- CSS HACK: FORZAR ANCHO COMPLETO REAL Y HEADER ALINEADO ---
-# --- CSS HACK REMOVED (Conflicted with Header) ---
+# --- Header ---
+from src.ui.header import render_header
+render_header("Módulo de Liquidación")
+
+# --- CSS Alignment Fix ---
+st.markdown('''<style>
+[data-testid="stHorizontalBlock"] { 
+    align-items: center; 
+}
+</style>''', unsafe_allow_html=True)
 
 # --- Configuración Service Account ---
 try:
@@ -311,9 +319,7 @@ def generar_tabla_calculo_liquidacion(resultado: dict, factura_original: dict) -
     return "\n".join(lines)
 
 # --- Header Estándar ---
-# --- Header Estándar ---
-from src.ui.header import render_header
-render_header("Módulo de Liquidación")
+# --- Header Estándar (Moved to top) ---
 
 # --- UI Views ---
 def mostrar_busqueda_universal():

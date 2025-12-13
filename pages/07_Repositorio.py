@@ -14,10 +14,16 @@ st.set_page_config(
 # --- Path Setup ---
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-# --- UI: Header ---
 # --- Header ---
 from src.ui.header import render_header
-render_header("📁 Repositorio INANDES")
+render_header("Repositorio INANDES")
+
+# --- CSS Alignment Fix ---
+st.markdown('''<style>
+[data-testid="stHorizontalBlock"] { 
+    align-items: center; 
+}
+</style>''', unsafe_allow_html=True)
 
 st.markdown("---")
 

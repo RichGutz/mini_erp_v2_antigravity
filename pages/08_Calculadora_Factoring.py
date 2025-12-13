@@ -37,6 +37,17 @@ st.set_page_config(
     page_icon="🧮",
 )
 
+# --- Header ---
+from src.ui.header import render_header
+render_header("Calculadora de Factoring")
+
+# --- CSS Alignment Fix ---
+st.markdown('''<style>
+[data-testid="stHorizontalBlock"] { 
+    align-items: center; 
+}
+</style>''', unsafe_allow_html=True)
+
 # --- Funciones de Ayuda y Callbacks ---
 def update_date_calculations(invoice, changed_field=None):
     try:
@@ -193,13 +204,7 @@ if 'tasa_avance_global' not in st.session_state: st.session_state.tasa_avance_gl
 if 'aplicar_interes_mensual_global' not in st.session_state: st.session_state.aplicar_interes_mensual_global = False
 if 'interes_mensual_global' not in st.session_state: st.session_state.interes_mensual_global = st.session_state.default_interes_mensual
 
-# --- UI: Título y CSS ---
-# --- UI: Título y CSS ---
-# Removed conflicting CSS
-
-# --- Header ---
-from src.ui.header import render_header
-render_header("Calculadora de Factoring")
+# --- Header (Moved to top) ---
 
 # --- UI: Número de Facturas a Simular ---
 with st.expander("Configuración de Simulación", expanded=True):

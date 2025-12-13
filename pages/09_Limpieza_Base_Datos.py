@@ -26,6 +26,13 @@ st.set_page_config(
 from src.ui.header import render_header
 render_header("Limpieza de Base de Datos")
 
+# --- CSS Alignment Fix ---
+st.markdown('''<style>
+[data-testid="stHorizontalBlock"] { 
+    align-items: center; 
+}
+</style>''', unsafe_allow_html=True)
+
 # ============================================================================
 # FUNCIONES
 # ============================================================================
