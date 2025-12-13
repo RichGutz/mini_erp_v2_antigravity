@@ -68,6 +68,10 @@ st.markdown("""
         background-color: #FF6F6F;
         border-color: #FF6F6F;
     }
+    /* Header Alignment Fix (Copied from Registro) */
+    [data-testid="stHorizontalBlock"] { 
+        align-items: center; 
+    }
     .invoice-brick {
         display: inline-block;
         background-color: #e0f2f1;
