@@ -101,17 +101,27 @@ if 'user_info' not in st.session_state:
         # The main column is already 50% of screen. Nested [1, 2, 1] makes the button 50% of that (25% total).
         _, btn_col, _ = st.columns([1, 2, 1])
         
-        with btn_col:
+    with btn_col:
             oauth2 = OAuth2Component(client_id, client_secret, AUTHORIZE_URL, TOKEN_URL, REVOKE_URL)
-            result = oauth2.authorize_button(
-                name="Iniciar Sesión con Google",
-                icon="https://www.google.com.tw/favicon.ico",
-                redirect_uri=redirect_uri,
-                scope="openid email profile https://www.googleapis.com/auth/drive",
-                key="google",
-                use_container_width=True,
-                pkce='S256',
-            )
+            try:
+                result = oauth2.authorize_button(
+                    name="Iniciar Sesión con Google",
+                    icon="https://www.google.com.tw/favicon.ico",
+                    redirect_uri=redirect_uri,
+                    scope="openid email profile https://www.googleapis.com/auth/drive",
+                    key="google",
+                    use_container_width=True,
+                    pkce='S256',
+                )
+            except Exception as e:
+                # Catching generic Exception because StreamlitOauthError might not be directly importable 
+                # or might be wrapped. This is safer for production stability.
+                st.warning(f"⚠️ Error de conexión: Estado de autenticación inválido. Por favor intente nuevamente.")
+                # st.error(f"Detalle técnico: {e}") # Optional: show for debugging
+                if st.button("🔄 Reintentar Login", type="primary", use_container_width=True):
+                    st.query_params.clear()
+                    st.rerun()
+                result = None
         
         if result:
             # The result contains the token, decode the id_token to get user info
@@ -227,7 +237,8 @@ else:
         "Repositorio": {"status": "✅ En Producción", "help": "Gestor documental integrado con Google Drive. Visualización y descarga de expedientes.", "page": "07_Repositorio"},
         "Calculadora": {"status": "✅ En Producción", "help": "Simulaciones y cálculos manuales de operaciones de factoring.", "page": "08_Calculadora_Factoring"},
         "Limpieza BD": {"status": "⚠️ Mantenimiento", "help": "Herramientas para purgar y corregir datos en Base de Datos.", "page": "09_Limpieza_Base_Datos"},
-        "Testing Liq.": {"status": "🧪 Testing", "help": "Módulo de pruebas unitarias y validación para el motor de liquidaciones.", "page": "10_Testing_Liquidacion_Universal"}
+        "Testing Liq.": {"status": "🧪 Testing", "help": "Módulo de pruebas unitarias y validación para el motor de liquidaciones.", "page": "10_Testing_Liquidacion_Universal"},
+        "Agentes IA": {"status": "🤖 BETA", "help": "Asistentes inteligentes para tareas automatizadas (Proformas, Análisis).", "page": "12_Agentes_IA"}
     }
 
     # --- MODULE NAVIGATION GRID ---
@@ -236,7 +247,7 @@ else:
     grid_layout = [
         ["Registro", "Originación", "Aprobación", "Desembolso"],
         ["Liquidación", "Reporte", "Repositorio", "Calculadora"],
-        ["Limpieza BD", "Testing Liq.", None, None]
+        ["Limpieza BD", "Testing Liq.", "Agentes IA", None]
     ]
 
     for row in grid_layout:

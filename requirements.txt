@@ -16,3 +16,6 @@ plotly
 google-auth
 google-api-python-client
 # Forzar-Reconstruccion-Completa-V20250901
+# AI Agents Dependencies
+google-generativeai
+tenacity
