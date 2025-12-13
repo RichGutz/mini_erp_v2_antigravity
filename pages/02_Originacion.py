@@ -1281,14 +1281,9 @@ if st.session_state.invoices_data:
 if has_results:
     render_xml_cavali_integration(st.session_state.invoices_data)
     
+
     # ==============================================================================
     # SECCIÓN 6: INTEGRACIÓN LETRAS (SIMULACIÓN)
     # ==============================================================================
     render_letras_cavali_integration(st.session_state.invoices_data)
-    
-else:
-    st.info("ℹ️ Completa el 'Paso 4: Resultados y Simulación' para habilitar las Integraciones (XML y Letras).")
 
-    # --- Debug Session State (Optional / Dev) ---
-    # with st.expander("🔍 Debug Session State"):
-    #    st.write(st.session_state)
