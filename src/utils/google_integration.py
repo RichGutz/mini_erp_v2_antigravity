@@ -453,14 +453,14 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     return None
 
 
-# --- NATIVE BROWSER V2 (Minimalist) ---
+# --- NATIVE BROWSER V3 (Brick Grid & Smart 1-Click) ---
 def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     """
     Renderiza un navegador de carpetas nativo (Streamlit puro) usando list_folders_with_sa.
-    Mejoras V2 Minimalista: 
-    - Breadcrumbs interactivos (botones).
-    - Lista vertical simple (sin iconos).
-    - Filtro de búsqueda.
+    Mejoras V3: 
+    - Layout: Grid de Ladrillos en contenedor con Scroll (fixed height).
+    - Visual: Zero Icons. Solo texto.
+    - Lógica 1-Click: Si nombre contiene 'Anexo' -> Selecciona. Si no -> Navega.
     """
     
     # 1. Configuración de Session State
@@ -478,153 +478,104 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     current_id = st.session_state[nav_key_id]
     current_name = st.session_state[nav_key_name]
     
-    # --- A. HEADER & BREADCRUMBS ---
-    # Layout: [ Label ]
-    #         [ Btn1 > Btn2 > BtnCurrent ]
-    
-    st.markdown(f"**{label}**")
-    
-    # Breadcrumbs construction
-    # History + Current
-    # We render them as a sequence of small buttons
-    
-    # Full history including current for rendering
+    # --- A. SIMPLE PATH HEADER ---
+    # Path: Cliente > Contrato > Anexo
     full_history = st.session_state[nav_key_history] + [(current_id, current_name)]
     
-    cols = st.columns(len(full_history) + 2) # dynamic columns
+    # Simple String Path (No visual noise)
+    path_names = [h[1] for h in full_history]
+    # Remove 'Inicio' redundancy if present for display? kept for clarity.
+    path_str = " > ".join(path_names)
     
-    # Always show "Root" button if history is empty? 
-    # Logic: iterate history and make buttons
-    
-    # Better: Use a single container and horizontal scroll or just wrap buttons? 
-    # Streamlit columns are strict. Let's try to put them in a dedicated container with columns.
-    
-    # To avoid column explosion, we'll just put "Up" button + Current text, 
-    # OR explicit buttons for the last 3 levels.
-    # User wanted "breadcrumb buttons".
-    
-    # Let's try a different approach for breadcrumbs: standard columns for elements
-    bc_cols = st.columns([1] * len(full_history) + [8 - len(full_history)] if len(full_history) < 8 else [1]*8)
-    
-    for i, (fid, fname) in enumerate(full_history):
-        # Prevent index out of bounds if deep nesting (basic protection)
-        if i >= 8: break 
-        
-        with bc_cols[i]:
-            # If it's the last one (current), maybe just text? OR disabled button?
-            is_current = (i == len(full_history) - 1)
-            
-            if st.button(fname, key=f"bc_{key}_{i}_{fid}", disabled=is_current, type="secondary" if not is_current else "primary", use_container_width=True):
-                # Navigate to this level
-                # Need to slice history
-                # If I click index i, I want to keep history up to i-1
-                new_history = full_history[:i]
-                target_id = fid
-                target_name = fname
-                
-                st.session_state[nav_key_history] = new_history
-                st.session_state[nav_key_id] = target_id
-                st.session_state[nav_key_name] = target_name
-                st.rerun()
+    st.markdown(f"**{label}**")
+    st.text(f"Ruta: {path_str}")
 
+    # Back Button (Only if not at root)
+    if st.session_state[nav_key_history]:
+        if st.button("Subir Nivel", key=f"btn_up_{key}", type="secondary"):
+            last_id, last_name = st.session_state[nav_key_history].pop()
+            st.session_state[nav_key_id] = last_id
+            st.session_state[nav_key_name] = last_name
+            st.rerun()
+
+    # --- B. CONTENT (Scrollable Grid) ---
     st.markdown("---")
-
-    # --- B. SEARCH FILTER ---
-    filter_text = st.text_input("Filtrar carpetas...", key=f"filter_{key}", placeholder="Escribe para buscar...")
-
-    # --- C. CONTENT LIST (Vertical) ---
-    with st.spinner(f"Cargando..."):
-        try:
-            sa_creds = st.secrets["google_drive"]
-            subfolders = list_folders_with_sa(current_id, sa_creds)
-        except Exception as e:
-            st.error(f"Error: {e}")
-            subfolders = []
-            
-    if not subfolders:
-        st.caption("(Vacío)")
-    else:
-        # Filter logic
-        if filter_text:
-            subfolders = [f for f in subfolders if filter_text.lower() in f['name'].lower()]
-
-        # Header of List
-        h1, h2, h3 = st.columns([6, 2, 2])
-        with h1: st.caption("Nombre")
-        with h2: st.caption("Acción")
-        with h3: st.caption("Selección")
+    
+    # Use a fixed height container for scrolling
+    with st.container(height=400, border=True):
         
-        for folder in subfolders:
-            c1, c2, c3 = st.columns([6, 2, 2])
-            f_name = folder['name']
-            f_id = folder['id']
+        # Load content
+        with st.spinner("Cargando..."):
+            try:
+                sa_creds = st.secrets["google_drive"]
+                subfolders = list_folders_with_sa(current_id, sa_creds)
+            except Exception as e:
+                st.error(f"Error: {e}")
+                subfolders = []
+        
+        if not subfolders:
+            st.write("(Carpeta vacía)")
+        else:
+            # Sort alpha
+            subfolders = sorted(subfolders, key=lambda x: x['name'])
             
-            with c1:
-                # Name as button to enter? Or simple text? User said "Click en nombre = Entrar"
-                if st.button(f_name, key=f"nav_to_{f_id}_{key}", use_container_width=True):
-                     st.session_state[nav_key_history].append((current_id, current_name))
-                     st.session_state[nav_key_id] = f_id
-                     st.session_state[nav_key_name] = f_name
-                     st.rerun()
+            # Grid Layout (3 items per row)
+            cols_per_row = 3
+            rows = [subfolders[i:i + cols_per_row] for i in range(0, len(subfolders), cols_per_row)]
             
-            with c2:
-                # Redundant "Open"? User said "Remove redundancy". 
-                # Maybe just keep metadata? Or empty?
-                # Let's keep it clean, maybe empty or date if we had it.
-                pass
-
-            with c3:
-                # Select Button
-                # Check if currently selected
-                current_selection = st.session_state.get(sel_key)
-                is_selected = current_selection and current_selection['id'] == f_id
-                
-                label_sel = "Seleccionado" if is_selected else "Seleccionar"
-                type_sel = "primary" if is_selected else "secondary"
-                
-                if st.button(label_sel, key=f"sel_{f_id}_{key}", type=type_sel, use_container_width=True):
-                    # Capture Full Path explicitly at moment of selection
-                    # Path = History + Current + Child
-                    child_path = st.session_state[nav_key_history] + [(current_id, current_name), (f_id, f_name)]
+            for row in rows:
+                cols = st.columns(cols_per_row)
+                for i, folder in enumerate(row):
+                    f_name = folder['name']
+                    f_id = folder['id']
                     
-                    st.session_state[sel_key] = {
-                        'id': f_id, 
-                        'name': f_name, 
-                        'full_path': child_path
-                    }
-                    st.rerun()
+                    with cols[i]:
+                        # SMART LOGIC:
+                        # If 'anexo' in name -> SELECT action
+                        # Else -> NAVIGATE action
+                        is_leaf_target = "anexo" in f_name.lower()
+                        
+                        btn_label = f_name # CLEAN TEXT
+                        btn_key = f"brick_{f_id}_{key}"
+                        
+                        # Style distinction? Maybe leaf is primary?
+                        btn_type = "primary" if is_leaf_target else "secondary"
+                        
+                        if st.button(btn_label, key=btn_key, type=btn_type, use_container_width=True):
+                            
+                            if is_leaf_target:
+                                # SELECT ACTION
+                                # Path = History + Current + This Child
+                                child_path = full_history + [(f_id, f_name)]
+                                
+                                st.session_state[sel_key] = {
+                                    'id': f_id, 
+                                    'name': f_name, 
+                                    'full_path': child_path
+                                }
+                                st.rerun()
+                            else:
+                                # NAVIGATE ACTION
+                                st.session_state[nav_key_history].append((current_id, current_name))
+                                st.session_state[nav_key_id] = f_id
+                                st.session_state[nav_key_name] = f_name
+                                st.rerun()
 
-    # --- D. ACTION FOOTER ---
-    st.markdown("---")
-    
-    # 1. footer layout
-    c_info, c_main_action = st.columns([7, 3])
-    
+    # --- C. SELECTED FOOTER (Minimal) ---
     selected_data = st.session_state.get(sel_key)
+    if selected_data:
+        st.markdown("---")
+        c1, c2 = st.columns([8, 2])
+        with c1:
+            # Just the path string
+            sel_path_str = " > ".join([h[1] for h in selected_data['full_path']])
+            st.write(f"Selection: **{sel_path_str}**")
+        with c2:
+            if st.button("Limpiar", key=f"clear_sel_{key}"):
+                del st.session_state[sel_key]
+                st.rerun()
+        
+        return selected_data
     
-    with c_info:
-        if selected_data:
-             st.success(f"✅ Destino final: **{selected_data['name']}**")
-        else:
-             st.info(f"📂 Estás en: **{current_name}**")
-
-    with c_main_action:
-        if selected_data:
-             if st.button("Cambiar / Borrar", key=f"clear_sel_{key}", use_container_width=True):
-                 del st.session_state[sel_key]
-                 st.rerun()
-        else:
-             # Allow selecting the CURRENT folder itself (e.g. if I am inside 'Anexo 1')
-             if st.button(f"Seleccionar '{current_name}'", key=f"sel_curr_{key}", type="primary", use_container_width=True):
-                 # Path = History + Current
-                 cur_path = st.session_state[nav_key_history] + [(current_id, current_name)]
-                 
-                 st.session_state[sel_key] = {
-                     'id': current_id, 
-                     'name': current_name, 
-                     'full_path': cur_path
-                 }
-                 st.rerun()
-                
-    return selected_data
+    return None
 
