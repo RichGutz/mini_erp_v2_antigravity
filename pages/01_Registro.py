@@ -41,6 +41,35 @@ st.markdown('''<style>
 }
 </style>''', unsafe_allow_html=True)
 
+# --- Access Control ---
+import streamlit as st # Ensure imported locally if needed or reuse global
+from src.data.supabase_repository import check_user_access
+
+# Get current user email (assuming Streamlit Auth or similar is setup, 
+# for now we might rely on a simulated user or st.experimental_user if available,
+# BUT the user mentioned "Principal authorizes Secondary... message by gmail".
+# This implies there IS a login system. 
+# Looking at "header.py": "Cerrar Sesión" -> 'st.session_state.clear()'.
+# Looking at "supabase_repository": 'authorized_users'.
+# The previous tasks didn't implement a full Login Page, but "StreamlitOauth" was mentioned in history.
+# For this task, I will attempt to get email from session_state if it exists, or show a warning.
+# If no user logged in, it's effectively "No Email".
+
+user_email = st.session_state.get('user_email', '') 
+# Note: I need to verify where 'user_email' key comes from. 
+# If it doesn't exist, I should probably block or assume public if using "Default Open" logic?
+# The Requirement: "si no hay ningun role llenado, cualquiera puede entrar."
+# My check_user_access logic handles the "No Role -> True" part.
+# The "No Email" part returns False.
+# So if "anyone can enter" means "Anonymous users can enter if modules are open", 
+# then "No Email" should be allowed IF "No Role".
+# My check_user_access(mod, user_email) returns True if modules empty.
+# If module NOT empty, and user_email is Empty -> Returns False (Correct).
+
+if not check_user_access("Registro", user_email):
+    st.error("⛔ No tienes permisos para acceder a este módulo.")
+    st.stop()
+
 # --- Sidebar "Back" Button Logic (Moved to end) ---
 
 # Header

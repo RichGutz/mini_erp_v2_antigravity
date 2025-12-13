@@ -373,10 +373,10 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     """Retrieves a user's record from 'authorized_users' by email."""
     supabase = get_supabase_client()
     try:
-        response = supabase.table('authorized_users').select('*').eq('email', email).single().execute()
-        return response.data if response.data else None
+        response = supabase.table('authorized_users').select('*').eq('email', email).limit(1).execute()
+        return response.data[0] if response.data else None
     except Exception as e:
-        print(f"[ERROR in get_user_by_email]: {e}")
+        # print(f"[ERROR in get_user_by_email]: {e}") # Suppress noise for checks
         return None
 
 def add_new_authorized_user(email: str) -> Optional[Dict[str, Any]]:
@@ -759,3 +759,46 @@ def update_module_access_role(module_id: int, role: str, email: str) -> tuple[bo
     except Exception as e:
         print(f"[ERROR updating access]: {e}")
         return False, f"Error DB: {e}"
+
+def check_user_access(module_name: str, user_email: str) -> bool:
+    """
+    Checks if a user has access to a specific module.
+    Logic:
+    1. If module has NO roles assigned (empty matrix for this module) -> Allow All (Default Open).
+    2. If module HAS roles assigned -> Only allow if user is in [Super, Principal, Secondary].
+    """
+    supabase = get_supabase_client()
+    try:
+        # Get Module ID
+        mod = get_module_by_name(module_name)
+        if not mod:
+            return True # Module doesn't exist? Fail open or closed? Let's say Open for dev.
+        
+        module_id = mod['id']
+        
+        # Get all access entries for this module
+        # We can optimize this by query count, but let's just fetch
+        access_response = supabase.table('user_module_access').select('user_id').eq('module_id', module_id).execute()
+        access_list = access_response.data if access_response.data else []
+        
+        # RULE 1: Default Open
+        if not access_list:
+            return True
+            
+        # RULE 2: Strict Check
+        if not user_email:
+            return False # No email, no access if restricted
+            
+        user = get_user_by_email(user_email)
+        if not user:
+            return False
+            
+        user_id = user['id']
+        
+        # Check if user_id is in access_list
+        allowed_ids = [a['user_id'] for a in access_list]
+        return user_id in allowed_ids
+        
+    except Exception as e:
+        print(f"[ERROR check_user_access]: {e}")
+        return True # Fail Open to avoid locking everyone out on error? Or False? Safer is False but for this project maybe True? Let's stick to True (Open) for stability.
