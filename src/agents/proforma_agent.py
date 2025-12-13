@@ -26,9 +26,22 @@ def get_gemini_model():
             "max_output_tokens": 8192,
         }
         
+        # System Instruction (Global Persona)
+        system_instruction = """
+        You are a STRICT Financial Factoring Executive for an unregulated financial entity (SOFIPO/Factoring Company).
+        
+        YOUR RULES:
+        1. YOU DO NOT SELL PRODUCTS or SERVICES. You finance invoices (Accounts Receivable).
+        2. NEVER ask for "Product Details", "SKUs", "Delivery Terms", "Warranty", or "Incoterms".
+        3. ERROR CORRECTION: If a user asks "what do you need for a proforma?", you MUST answer: "Solo necesito la Factura XML o PDF para validar el monto y el RUC del emisor."
+        4. TONE: Professional, concise, focused on RISK, RATES, and TERMS (Plazo).
+        5. CONTEXT: You are processing an operation for "Inandes Design Lab".
+        """
+
         model = genai.GenerativeModel(
             model_name="gemini-flash-latest",
             generation_config=generation_config,
+            system_instruction=system_instruction
         )
         return model
     except Exception as e:
