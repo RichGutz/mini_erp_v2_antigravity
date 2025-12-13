@@ -344,11 +344,34 @@ def render_proforma_agent():
                      key=f"dl_{datetime.now().timestamp()}"
                  )
 
-            # CASE 3: Normal Chat
+            # CASE 3: Normal Chat (BUT WITH CONTEXT)
             else:
+                # Critical Fix: Inject Context if we have a file loaded!
+                history = []
+                data_context = ""
+                
+                if st.session_state.get("extracted_proposal"):
+                    ep = st.session_state.extracted_proposal['extracted_data']
+                    pp = st.session_state.extracted_proposal['proposed_params']
+                    data_context = f"""
+                    CONTEXT - LOADED INVOICE:
+                    - Issuer: {ep.get('emisor_nombre')}
+                    - Amount: {ep.get('moneda')} {ep.get('monto_neto')}
+                    - Current Rate: {pp.get('tasa_interes_mensual_percent')}%
+                    - Current Term: {pp.get('plazo_dias')} days
+                    
+                    USER INSTRUCTION:
+                    If the user gives you a value (e.g. "60 days", "Rate 1.5%"), UPDATE the parameters conceptually in your reply 
+                    and tell them to confirm to proceed.
+                    """
+                
+                # Create a specialized chat for this turn
+                specialized_chat_model = get_gemini_model() # Re-instantiate to ensure fresh start or strict system prompt
+                
+                full_prompt = f"{data_context}\n\nUser says: {prompt}"
+                
                 try:
-                    chat = model.start_chat(history=[]) 
-                    r = chat.send_message(prompt)
+                    r = specialized_chat_model.generate_content(full_prompt)
                     response_text = r.text
                 except Exception as e:
                     response_text = f"Error: {e}"
