@@ -625,3 +625,137 @@ def search_proposals_advanced(
     except Exception as e:
         print(f"[ERROR in search_proposals_advanced]: {e}")
         return []
+
+# --- Enhanced User Management & Roles ---
+
+def get_all_modules() -> List[Dict[str, Any]]:
+    """Retrieves all modules from the 'modules' table."""
+    supabase = get_supabase_client()
+    try:
+        response = supabase.table('modules').select('*').order('id').execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"[ERROR in get_all_modules]: {e}")
+        return []
+
+def get_all_authorized_users() -> List[Dict[str, Any]]:
+    """Retrieves all authorized users."""
+    supabase = get_supabase_client()
+    try:
+        response = supabase.table('authorized_users').select('*').execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"[ERROR in get_all_authorized_users]: {e}")
+        return []
+
+def get_full_permissions_matrix() -> List[Dict[str, Any]]:
+    """
+    Retrieves a joined Matrix of Modules -> Users per Role.
+    Returns a list of dicts: 
+    [
+        {
+            'module_id': 1, 
+            'module_name': 'Registro', 
+            'super_user': 'super@example.com', 
+            'principal': 'boss@example.com', 
+            'secondary': 'worker@example.com'
+        }, ...
+    ]
+    Note: For this MVP, if multiple users share a role, we might only show one or comma separate.
+    We will assume SINGLE assignment per role/module for the simplified Matrix UI.
+    """
+    modules = get_all_modules()
+    users = get_all_authorized_users()
+    user_map = {u['id']: u['email'] for u in users} # ID -> Email
+    
+    # Get all access records
+    supabase = get_supabase_client()
+    try:
+        access_response = supabase.table('user_module_access').select('*').execute()
+        access_list = access_response.data if access_response.data else []
+    except Exception as e:
+        print(f"[ERROR getting user_module_access]: {e}")
+        access_list = []
+
+    matrix = []
+    for mod in modules:
+        row = {
+            'module_id': mod['id'],
+            'module_name': mod['name'],
+            'super_user': '',
+            'principal': '',
+            'secondary': ''
+        }
+        
+        # Filter access for this module
+        mod_access = [a for a in access_list if a['module_id'] == mod['id']]
+        
+        for acc in mod_access:
+            role = acc.get('hierarchy_level', '').lower()
+            uid = acc.get('user_id')
+            email = user_map.get(uid, '')
+            
+            if role == 'super_user':
+                row['super_user'] = email # Last one wins if multiple
+            elif role == 'principal':
+                row['principal'] = email
+            elif role == 'secondary':
+                row['secondary'] = email
+                
+        matrix.append(row)
+        
+    return matrix
+
+def update_module_access_role(module_id: int, role: str, email: str) -> tuple[bool, str]:
+    """
+    Updates who holds a specific role (super_user, principal, secondary) for a module.
+    If email is empty, removes the role assignment.
+    If email is new, creates authorized_user if needed (optional) or errors.
+    This Implementation assumes ONE user per role per module (replaces existing).
+    """
+    supabase = get_supabase_client()
+    
+    # 1. Resolve User
+    if not email:
+        # Removal logic: Delete all entries for this module + role
+        try:
+            # We need to find IDs to delete? Or just delete by filter
+            supabase.table('user_module_access').delete().eq('module_id', module_id).eq('hierarchy_level', role).execute()
+            return True, f"Rol {role} removido del módulo."
+        except Exception as e:
+            return False, f"Error removiendo rol: {e}"
+
+    clean_email = email.lower().strip()
+    user = get_user_by_email(clean_email)
+    
+    if not user:
+        # Option: Auto-create user? Let's say yes for smooth UX, or block.
+        # Plan said "Assign Users", implying they might need to exist. 
+        # But 'authorized_users' table feels like the whitelist.
+        # Let's auto-add to authorized_users if not exists?
+        # User prompt: "El secundario podra entrar solo si el principal lo autoriza".
+        # This implies adding them effectively authorizes them.
+        new_user = add_new_authorized_user(clean_email)
+        if not new_user:
+            return False, f"No se pudo crear/encontrar usuario {clean_email}"
+        user_id = new_user['id']
+    else:
+        user_id = user['id']
+
+    # 2. Update Access
+    # Strategy: Delete old user for this role/module, Insert new one.
+    try:
+        # Remove old holder of this role
+        supabase.table('user_module_access').delete().eq('module_id', module_id).eq('hierarchy_level', role).execute()
+        
+        # Insert new holder
+        new_access = {
+            'user_id': user_id,
+            'module_id': module_id,
+            'hierarchy_level': role
+        }
+        supabase.table('user_module_access').insert(new_access).execute()
+        return True, f"Usuario {clean_email} asignado como {role}."
+    except Exception as e:
+        print(f"[ERROR updating access]: {e}")
+        return False, f"Error DB: {e}"

@@ -11,3 +11,25 @@
 - [INFRA] Local Setup Attempt: Created `docs/GUIA_EJECUCION_LOCAL.md` & `secrets.toml` generator. Reverted to Web workflow due to Windows dependency issues.
 - Status: Web Deployment Updated & Stable. Ready for User Testing.
 - [END SESSION]
+
+- [ux-change] Redesigned Google Drive Navigator: Minimalist V2, no icons, interactive breadcrumbs, improved selection logic.
+- [git] Pushed UX redesign to main.
+
+- [ux-change] Redesigned Google Drive Navigator: V3 Brick Grid, scrollable, no icons, smart selection logic.
+- [git] Pushed V3 redesign to main.
+
+- [ux-change] Refined Drive Navigator V4: Dynamic height, clean top path, removed all icons/noise. Confirmed by user as 'MUCHISIMO MEJOR'.
+
+- [ux-change] Refined Drive Navigator V4: Dynamic height, clean top path, removed all icons/noise. Confirmed by user as 'MUCHISIMO MEJOR'.
+
+- [ui-fix] Removed global CSS alignment hack in Desembolso to fix button positioning issues.
+
+- [git] Created backup branch 'UI.al.90.percent' to snapshot UI progress.
+
+# SESSION SUMMARY - 2025-12-12
+- Achieved major UI/UX refinements across Originación, Aprobación, and Desembolso modules.
+- Standardized 'Red Buttons' to sidebar.
+- Cleaned up visual noise (icons, duplicates, instructional text).
+- Corrected vertical alignment issues in Desembolso.
+- Created backup branch 'UI.al.90.percent'.
+- System state: Stable and visually polished.
