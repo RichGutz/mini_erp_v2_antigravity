@@ -131,9 +131,8 @@ if st.session_state.reload_data:
 # --- Mostrar Facturas Pendientes ---
 if not st.session_state.facturas_activas:
     st.info("✅ No hay facturas pendientes de aprobación en este momento.")
-    if st.button("🔄 Recargar Lista"):
-        st.session_state.reload_data = True
-        st.rerun()
+    st.info("✅ No hay facturas pendientes de aprobación en este momento.")
+    # Button moved to Sidebar
 else:
     # Agrupar por Lote
     grouped_invoices = defaultdict(list)
@@ -144,9 +143,9 @@ else:
     st.container(border=True)
     st.subheader(f"1. Facturas Pendientes de Aprobación ({len(st.session_state.facturas_activas)})")
     
-    if st.button("🔄 Recargar Lista", help="Actualizar la lista de facturas pendientes"):
-        st.session_state.reload_data = True
-        st.rerun()
+    st.subheader(f"1. Facturas Pendientes de Aprobación ({len(st.session_state.facturas_activas)})")
+    
+    # Button moved to Sidebar
     
     st.markdown("---")
     
@@ -365,3 +364,11 @@ with st.container(border=True):
         default_subject=f"Notificación de Aprobación - {st.session_state.last_approved_emisor}" if st.session_state.last_approved_emisor else "Notificación de Aprobación",
         default_body=body_text
     )
+
+
+# --- Sidebar Recargar Data ---
+with st.sidebar:
+    st.markdown('---')
+    if st.button(' Recargar Data', type='primary', use_container_width=True, help='Actualizar la lista de facturas pendientes'):
+        st.session_state.reload_data = True
+        st.rerun()
