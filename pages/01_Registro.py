@@ -29,12 +29,6 @@ st.markdown('''<style>
 [data-testid="stHorizontalBlock"] { 
     align-items: center; 
 }
-.campo-obligatorio {
-    background-color: #fff3cd;
-    padding: 10px;
-    border-radius: 5px;
-    border-left: 4px solid #ffc107;
-}
 /* Red Button Style (Standardized) */
 .stButton>button.red-button {
     background-color: #FF4B4B;
@@ -106,8 +100,7 @@ def mostrar_formulario_crear():
     ruc_precargado = st.session_state.registro_encontrado.get('RUC', '') if st.session_state.registro_encontrado else ''
     
     with st.form("form_crear"):
-        st.markdown("### 📋 Campos Obligatorios")
-        st.markdown('<div class="campo-obligatorio">', unsafe_allow_html=True)
+        st.markdown("### Campos Obligatorios")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -116,9 +109,8 @@ def mostrar_formulario_crear():
             tipo = st.selectbox("Tipo *", ["EMISOR", "ACEPTANTE"])
         
         razon_social = st.text_input("Razón Social *")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        st.markdown("### 📝 Campos Opcionales")
+
+        st.markdown("### Campos Opcionales")
         st.markdown("---")
         
         # Depositarios
@@ -280,16 +272,14 @@ def mostrar_formulario_editar():
     st.info(f"**RUC:** {registro.get('RUC', 'N/A')} (no se puede modificar)")
     
     with st.form("form_editar"):
-        st.markdown("### 📋 Campos Obligatorios")
-        st.markdown('<div class="campo-obligatorio">', unsafe_allow_html=True)
+        st.markdown("### Campos Obligatorios")
         
         razon_social = st.text_input("Razón Social *", value=registro.get('Razon Social', ''))
         tipo = st.selectbox("Tipo *", ["EMISOR", "ACEPTANTE"], 
                            index=0 if registro.get('TIPO') == 'EMISOR' else 1)
         
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        st.markdown("### 📝 Campos Opcionales")
+
+        st.markdown("### Campos Opcionales")
         st.markdown("---")
         
         # Depositarios
@@ -454,7 +444,7 @@ if st.session_state.vista_registro != 'busqueda':
         st.markdown("---")
         # Spacer to push to bottom if needed, or just append
         st.write("") 
-        if st.button("⬅️ Volver a Búsqueda", type="primary", use_container_width=True):
+        if st.button("Volver a Búsqueda", type="primary", use_container_width=True):
             st.session_state.vista_registro = 'busqueda'
             st.session_state.registro_encontrado = None
             st.rerun()
