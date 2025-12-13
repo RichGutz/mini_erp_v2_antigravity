@@ -161,18 +161,6 @@ else:
         # IDs de este lote
         batch_pids = [inv['proposal_id'] for inv in invoices_in_batch]
         
-        # Calcular estado actual del "Select All" para este lote
-        # True si TODOS los del lote están en True
-        all_selected = all(st.session_state.facturas_seleccionadas_aprobacion.get(pid, False) for pid in batch_pids)
-        
-        with st.container(border=True):
-            # Header del Lote
-            st.markdown(f"**📦 Lote:** `{lote_id}` | **Emisor:** {emisor_name} | **Cant:** {len(invoices_in_batch)}")
-            
-            # Header de la Tablita
-            # Adjusted Columns: Added 'Cavali' and 'Letra'
-            col_check, col_factura, col_aceptante, col_monto, col_desembolso, col_cavali, col_letra = st.columns([0.4, 1.2, 1.8, 1.0, 1.0, 1.1, 1.1])
-            
             with col_check: 
                 # Checkbox Maestro para este lote
                 batch_key = f"select_all_{lote_id}"
