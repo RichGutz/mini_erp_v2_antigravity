@@ -84,8 +84,6 @@ def mostrar_busqueda():
                     st.session_state.registro_encontrado = {'RUC': ruc_buscar}
                     st.session_state.vista_registro = 'crear'
                     st.rerun()
-    else:
-        st.info("💡 Ingresa un RUC para buscar o crea un nuevo registro")
 
 
 def mostrar_formulario_crear():
