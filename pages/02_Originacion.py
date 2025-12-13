@@ -644,6 +644,10 @@ with st.container(border=True):
             st.rerun()
 
 
+
+# Initialize flag to prevent NameError
+has_results = False
+
 # ==============================================================================
 # SECCIÓN 2: CONFIGURACIÓN GLOBAL (Full Width)
 # ==============================================================================
