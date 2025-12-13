@@ -35,7 +35,19 @@ st.markdown('''<style>
     border-radius: 5px;
     border-left: 4px solid #ffc107;
 }
+/* Red Button Style (Standardized) */
+.stButton>button.red-button {
+    background-color: #FF4B4B;
+    color: white;
+    border-color: #FF4B4B;
+}
+.stButton>button.red-button:hover {
+    background-color: #FF6F6F;
+    border-color: #FF6F6F;
+}
 </style>''', unsafe_allow_html=True)
+
+# --- Sidebar "Back" Button Logic (Moved to end) ---
 
 # Header
 # Replacing manual layout with shared component
@@ -89,11 +101,6 @@ def mostrar_busqueda():
 def mostrar_formulario_crear():
     """Vista de creación de nuevo registro con TODOS los campos"""
     st.header("Crear Nuevo Emisor/Aceptante")
-    
-    if st.button("← Volver a la búsqueda"):
-        st.session_state.vista_registro = 'busqueda'
-        st.session_state.registro_encontrado = None
-        st.rerun()
     
     # Obtener RUC pre-cargado si viene de búsqueda
     ruc_precargado = st.session_state.registro_encontrado.get('RUC', '') if st.session_state.registro_encontrado else ''
@@ -263,12 +270,7 @@ def mostrar_formulario_crear():
 
 def mostrar_formulario_editar():
     """Vista de edición mostrando TODOS los campos"""
-    st.header("Editar Emisor/Aceptante")
-    
-    if st.button("← Volver a la búsqueda"):
-        st.session_state.vista_registro = 'busqueda'
-        st.session_state.registro_encontrado = None
-        st.rerun()
+    st.header("Editar Emisor/Deudor")
     
     registro = st.session_state.registro_encontrado
     if not registro:
@@ -445,3 +447,14 @@ elif st.session_state.vista_registro == 'crear':
     mostrar_formulario_crear()
 elif st.session_state.vista_registro == 'editar':
     mostrar_formulario_editar()
+
+# --- Sidebar "Back" Button Logic (Bottom) ---
+if st.session_state.vista_registro != 'busqueda':
+    with st.sidebar:
+        st.markdown("---")
+        # Spacer to push to bottom if needed, or just append
+        st.write("") 
+        if st.button("⬅️ Volver a Búsqueda", type="primary", use_container_width=True):
+            st.session_state.vista_registro = 'busqueda'
+            st.session_state.registro_encontrado = None
+            st.rerun()
