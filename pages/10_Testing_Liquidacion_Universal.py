@@ -35,6 +35,13 @@ st.set_page_config(
 from src.ui.header import render_header
 render_header("Testing Liquidación Universal")
 
+# --- CSS Alignment Fix ---
+st.markdown('''<style>
+[data-testid="stHorizontalBlock"] { 
+    align-items: center; 
+}
+</style>''', unsafe_allow_html=True)
+
 # ============================================================================
 # FUNCIONES DE CÁLCULO CON INTERÉS COMPUESTO
 # ============================================================================
@@ -193,7 +200,7 @@ if 'facturas_seleccionadas' not in st.session_state:
 # SECCIÓN 1: INPUT DE LOTE
 # ============================================================================
 
-st.header("1️⃣ Cargar Lote")
+st.header("Cargar Lote")
 
 col1, col2 = st.columns([3, 1])
 
