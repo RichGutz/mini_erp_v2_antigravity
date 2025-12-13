@@ -225,7 +225,11 @@ def render_proforma_agent():
                 current = st.session_state.extracted_proposal
                 
                 context_prompt = f"""
-                Act as a Financial Analyst.
+                Act as a STRICT Financial Factoring Executive. 
+                DO NOT act as a commercial salesperson. 
+                DO NOT ask for SKUs, Product Descriptions, Delivery Terms, or Incoterms.
+                Your ONLY concern is Financial Risk: Rates, Dates, Amounts.
+
                 Current State: WAITING_FOR_USER_CONFIRMATION.
                 
                 Data: {json.dumps(current, default=str)}
@@ -235,24 +239,28 @@ def render_proforma_agent():
                 GOAL: Secure a precise 'plazo_dias' (term in days).
                 
                 Logic:
-                1. If user provides Dates (e.g. "Payment on Dec 30"), calculate days from 'fecha_desembolso' (default today).
-                2. If user provides explicit Days (e.g. "30 days"), use that.
-                3. If 'plazo_dias' is still Unknown/None, DO NOT CONFIRM. Ask again.
+                1. If user provides Dates, calculate days from 'fecha_desembolso' (default today).
+                2. If user provides explicit Days, use that.
+                3. If 'plazo_dias' is still Unknown, ask ONLY for "Fecha de Pago" or "Plazo".
                 
                 Output JSON:
                 {{
-                    "confirmed": boolean, (Only true if we have specific plazo_dias AND user said yes/confirm)
+                    "confirmed": boolean,
                     "final_params": {{
                         "monto_neto": float,
                         "tasa_avance_percent": float,
                         "tasa_interes_mensual_percent": float,
-                        "plazo_dias": int, (MUST BE INTEGER)
+                        "plazo_dias": int,
                         "comision_minima": float,
                         "emisor_nombre": str,
                         "emisor_ruc": str,
-                        "numero_factura": str
+                        "cliente_nombre": str,
+                        "moneda": str,
+                        "numero_factura": str,
+                        "fecha_emision": str,
+                        "fecha_vencimiento_pdf": str
                     }},
-                    "reply_to_user": "Message. If not confirmed, ask for the missing data clearly."
+                    "reply_to_user": "Short professional confirmation or specific question about dates."
                 }}
                 """
                 
@@ -265,11 +273,41 @@ def render_proforma_agent():
                         # PERFORM CALCULATION
                         calc_result = tool_calculate_factoring(decision["final_params"])
                         
+                        # PREPARE PDF DATA
+                        fp = decision["final_params"]
+                        invoice_wrapper = {
+                            "lote_id": "PROFORMA-v1",
+                            "emisor_nombre": fp.get('emisor_nombre'),
+                            "aceptante_nombre": fp.get('cliente_nombre', 'Cliente'),
+                            "numero_factura": fp.get('numero_factura'),
+                            "fecha_emision_factura": fp.get('fecha_emision', 'N/A'),
+                            # Calculate expected payment date based on plazo if needed, or use today + plazo
+                            "fecha_pago_calculada": (datetime.now() + pd.Timedelta(days=fp['plazo_dias'])).strftime("%d/%m/%Y"), 
+                            "moneda_factura": fp.get('moneda', 'PEN'),
+                            "monto_total_factura": fp['monto_neto'], # Assuming Net=Total for proforma simplicity
+                            "monto_neto_factura": fp['monto_neto'],
+                            "detraccion_monto": 0.0,
+                            "detraccion_porcentaje": 0.0,
+                            "interes_mensual": fp['tasa_interes_mensual_percent'],
+                            "interes_moratorio": 0.0,
+                            "comision_de_estructuracion_global": 0.0, # Defaulting for display
+                            "recalculate_result": calc_result
+                        }
+                        
+                        try:
+                            pdf_bytes = generate_perfil_operacion_pdf([invoice_wrapper])
+                            st.session_state.current_proforma_pdf = pdf_bytes
+                            st.session_state.current_proforma_name = f"Proforma_{fp.get('numero_factura')}.pdf"
+                        except Exception as pdf_err:
+                            st.error(f"Error generando PDF: {pdf_err}")
+                            st.session_state.current_proforma_pdf = None
+
+                        # Generate Presentation
                         final_prompt = f"""
                         Act as Financial Analyst.
                         Calculation Result: {json.dumps(calc_result, default=str)}
-                        Create a Proforma Table (Markdown). Use MONEY format (S/ or $).
-                        End with: "Para guardar esta operación, confirma con 'Guardar'."
+                        Create a concise summary in Markdown (Money in {fp.get('moneda')}).
+                        State the Net Disbursement Amount clearly.
                         """
                         final_gen = model.generate_content(final_prompt)
                         response_text = final_gen.text
@@ -278,7 +316,20 @@ def render_proforma_agent():
                         response_text = decision["reply_to_user"]
                         
                 except Exception as e:
-                    response_text = f"Error: {e}. Por favor, indica explícitamente la Fecha de Pago."
+                    response_text = f"Error: {e}. Por favor, confirma explicitamente los datos."
+
+            message_placeholder.markdown(response_text)
+            st.session_state.messages.append({"role": "assistant", "content": response_text})
+
+            # Render Download Button if Calculated
+            if st.session_state.agent_state == "CALCULATED" and st.session_state.get("current_proforma_pdf"):
+                 st.download_button(
+                     label="📄 Descargar Proforma Oficial (PDF)",
+                     data=st.session_state.current_proforma_pdf,
+                     file_name=st.session_state.current_proforma_name,
+                     mime="application/pdf",
+                     key=f"dl_{datetime.now().timestamp()}"
+                 )
 
             # CASE 3: Normal Chat
             else:
