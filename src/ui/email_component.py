@@ -19,8 +19,6 @@ def render_email_sender(key_suffix: str, documents: list, default_email: str = "
     
     if has_documents:
         st.info("Selecciona los documentos adjuntos y envía el correo directamente al cliente.")
-    else:
-        st.info("Redacta y envía la notificación por correo.")
 
     with st.expander("✉️ Redactar Correo", expanded=True):
         selected_docs = []
