@@ -453,12 +453,14 @@ def render_simple_folder_selector(key, label="Seleccionar Carpeta Destino"):
     return None
 
 
-# --- NATIVE BROWSER V2 (Breadcrumbs + Grid) ---
+# --- NATIVE BROWSER V2 (Minimalist) ---
 def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     """
     Renderiza un navegador de carpetas nativo (Streamlit puro) usando list_folders_with_sa.
-    Mejoras V2: Breadcrumbs visuales, Layout en Grid, Botones unificados abajo.
-    Retorna el dict de la carpeta seleccionada {'id': '...', 'name': '...'} o None.
+    Mejoras V2 Minimalista: 
+    - Breadcrumbs interactivos (botones).
+    - Lista vertical simple (sin iconos).
+    - Filtro de búsqueda.
     """
     
     # 1. Configuración de Session State
@@ -476,81 +478,153 @@ def render_folder_navigator_v2(key, label="Navegador del Repositorio"):
     current_id = st.session_state[nav_key_id]
     current_name = st.session_state[nav_key_name]
     
-    # --- A. BREADCRUMBS (Título / Ruta) ---
-    # st.caption(f"📍 Ruta: **{' / '.join([h[1] for h in st.session_state[nav_key_history]] + [current_name])}**")
-    st.markdown(f"📂 **Explorando:** `{' / '.join([h[1] for h in st.session_state[nav_key_history]] + [current_name])}`")
+    # --- A. HEADER & BREADCRUMBS ---
+    # Layout: [ Label ]
+    #         [ Btn1 > Btn2 > BtnCurrent ]
+    
+    st.markdown(f"**{label}**")
+    
+    # Breadcrumbs construction
+    # History + Current
+    # We render them as a sequence of small buttons
+    
+    # Full history including current for rendering
+    full_history = st.session_state[nav_key_history] + [(current_id, current_name)]
+    
+    cols = st.columns(len(full_history) + 2) # dynamic columns
+    
+    # Always show "Root" button if history is empty? 
+    # Logic: iterate history and make buttons
+    
+    # Better: Use a single container and horizontal scroll or just wrap buttons? 
+    # Streamlit columns are strict. Let's try to put them in a dedicated container with columns.
+    
+    # To avoid column explosion, we'll just put "Up" button + Current text, 
+    # OR explicit buttons for the last 3 levels.
+    # User wanted "breadcrumb buttons".
+    
+    # Let's try a different approach for breadcrumbs: standard columns for elements
+    bc_cols = st.columns([1] * len(full_history) + [8 - len(full_history)] if len(full_history) < 8 else [1]*8)
+    
+    for i, (fid, fname) in enumerate(full_history):
+        # Prevent index out of bounds if deep nesting (basic protection)
+        if i >= 8: break 
+        
+        with bc_cols[i]:
+            # If it's the last one (current), maybe just text? OR disabled button?
+            is_current = (i == len(full_history) - 1)
+            
+            if st.button(fname, key=f"bc_{key}_{i}_{fid}", disabled=is_current, type="secondary" if not is_current else "primary", use_container_width=True):
+                # Navigate to this level
+                # Need to slice history
+                # If I click index i, I want to keep history up to i-1
+                new_history = full_history[:i]
+                target_id = fid
+                target_name = fname
+                
+                st.session_state[nav_key_history] = new_history
+                st.session_state[nav_key_id] = target_id
+                st.session_state[nav_key_name] = target_name
+                st.rerun()
 
-    # --- B. GRID DE CARPETAS (Contenido) ---
-    with st.spinner(f"Cargando contenido de '{current_name}'..."):
+    st.markdown("---")
+
+    # --- B. SEARCH FILTER ---
+    filter_text = st.text_input("Filtrar carpetas...", key=f"filter_{key}", placeholder="Escribe para buscar...")
+
+    # --- C. CONTENT LIST (Vertical) ---
+    with st.spinner(f"Cargando..."):
         try:
             sa_creds = st.secrets["google_drive"]
             subfolders = list_folders_with_sa(current_id, sa_creds)
         except Exception as e:
-            st.error(f"Error accediendo a drive: {e}")
+            st.error(f"Error: {e}")
             subfolders = []
             
     if not subfolders:
-        pass # Empty state handled silently to avoid ribbon clutter
+        st.caption("(Vacío)")
     else:
+        # Filter logic
+        if filter_text:
+            subfolders = [f for f in subfolders if filter_text.lower() in f['name'].lower()]
 
-        # GRID LAYOUT: 3 columnas para carpetas
-        cols = st.columns(3)
-        for i, folder in enumerate(subfolders):
-            col = cols[i % 3]
-            with col:
-                with st.container(border=True):
-                    st.write(f"📁 **{folder['name']}**")
-                    if st.button("Abrir ➡️", key=f"open_{folder['id']}_{key}", use_container_width=True):
-                        st.session_state[nav_key_history].append((current_id, current_name))
-                        st.session_state[nav_key_id] = folder['id']
-                        st.session_state[nav_key_name] = folder['name']
-                        st.rerun()
+        # Header of List
+        h1, h2, h3 = st.columns([6, 2, 2])
+        with h1: st.caption("Nombre")
+        with h2: st.caption("Acción")
+        with h3: st.caption("Selección")
+        
+        for folder in subfolders:
+            c1, c2, c3 = st.columns([6, 2, 2])
+            f_name = folder['name']
+            f_id = folder['id']
+            
+            with c1:
+                # Name as button to enter? Or simple text? User said "Click en nombre = Entrar"
+                if st.button(f_name, key=f"nav_to_{f_id}_{key}", use_container_width=True):
+                     st.session_state[nav_key_history].append((current_id, current_name))
+                     st.session_state[nav_key_id] = f_id
+                     st.session_state[nav_key_name] = f_name
+                     st.rerun()
+            
+            with c2:
+                # Redundant "Open"? User said "Remove redundancy". 
+                # Maybe just keep metadata? Or empty?
+                # Let's keep it clean, maybe empty or date if we had it.
+                pass
 
+            with c3:
+                # Select Button
+                # Check if currently selected
+                current_selection = st.session_state.get(sel_key)
+                is_selected = current_selection and current_selection['id'] == f_id
+                
+                label_sel = "Seleccionado" if is_selected else "Seleccionar"
+                type_sel = "primary" if is_selected else "secondary"
+                
+                if st.button(label_sel, key=f"sel_{f_id}_{key}", type=type_sel, use_container_width=True):
+                    # Capture Full Path explicitly at moment of selection
+                    # Path = History + Current + Child
+                    child_path = st.session_state[nav_key_history] + [(current_id, current_name), (f_id, f_name)]
+                    
+                    st.session_state[sel_key] = {
+                        'id': f_id, 
+                        'name': f_name, 
+                        'full_path': child_path
+                    }
+                    st.rerun()
+
+    # --- D. ACTION FOOTER ---
     st.markdown("---")
-
-    # --- C. BOTONES DE ACCIÓN (Fila Única: Atrás | Cancelar | Seleccionar) ---
-    c_back, c_cancel, c_select = st.columns([1, 1, 2])
     
-    # 1. ATRÁS
-    with c_back:
-        if st.session_state[nav_key_history]:
-            if st.button("Atrás", key=f"btn_back_{key}", use_container_width=True, type="primary"):
-                last_id, last_name = st.session_state[nav_key_history].pop()
-                st.session_state[nav_key_id] = last_id
-                st.session_state[nav_key_name] = last_name
-                st.rerun()
-        else:
-            st.button("Inicio", disabled=True, key=f"btn_root_{key}", use_container_width=True, type="primary")
-
-    # 2. CANCELAR SELECCIÓN
-    with c_cancel:
-        is_selected = sel_key in st.session_state
-        if st.button("Cancelar", key=f"btn_cancel_{key}", disabled=not is_selected, use_container_width=True, type="primary"):
-            if is_selected:
-                del st.session_state[sel_key]
-                st.rerun()
-
-    # 3. SELECCIONAR ACTUAL
-    with c_select:
-        # Texto dinámico según si ya está seleccionada esta carpeta específica
-        current_selection = st.session_state.get(sel_key)
-        is_current_selected = current_selection and current_selection['id'] == current_id
-        
-        btn_label = f"Seleccionado: {current_name}" if is_current_selected else f"Seleccionar: {current_name}"
-        btn_type = "primary" if not is_current_selected else "secondary" # Highlight action if NOT selected
-        
-        if st.button(btn_label, key=f"btn_sel_{key}", type="primary", use_container_width=True):
-            st.session_state[sel_key] = {'id': current_id, 'name': current_name}
-            st.rerun()
-
-    # Retornamos la selección actual (sin bloquear el renderizado anterior)
-    # Build Full Path List for Return
-    full_path_list = st.session_state.get(nav_key_history, []) + [(current_id, current_name)] if st.session_state.get(sel_key) else []
+    # 1. footer layout
+    c_info, c_main_action = st.columns([7, 3])
     
-    # Retornamos la selección actual con info enriquecida
     selected_data = st.session_state.get(sel_key)
-    if selected_data:
-        selected_data['full_path'] = full_path_list
-        
+    
+    with c_info:
+        if selected_data:
+             st.success(f"✅ Destino final: **{selected_data['name']}**")
+        else:
+             st.info(f"📂 Estás en: **{current_name}**")
+
+    with c_main_action:
+        if selected_data:
+             if st.button("Cambiar / Borrar", key=f"clear_sel_{key}", use_container_width=True):
+                 del st.session_state[sel_key]
+                 st.rerun()
+        else:
+             # Allow selecting the CURRENT folder itself (e.g. if I am inside 'Anexo 1')
+             if st.button(f"Seleccionar '{current_name}'", key=f"sel_curr_{key}", type="primary", use_container_width=True):
+                 # Path = History + Current
+                 cur_path = st.session_state[nav_key_history] + [(current_id, current_name)]
+                 
+                 st.session_state[sel_key] = {
+                     'id': current_id, 
+                     'name': current_name, 
+                     'full_path': cur_path
+                 }
+                 st.rerun()
+                
     return selected_data
 
