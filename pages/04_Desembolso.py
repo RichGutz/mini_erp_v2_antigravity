@@ -131,13 +131,7 @@ if st.session_state.reload_data:
 # SECCIÓN 1: FACTURAS PENDIENTES (Full Width)
 # ==============================================================================
 with st.container(border=True):
-    c_head, c_btn = st.columns([5, 1])
-    with c_head:
-        st.subheader("1. Facturas Pendientes")
-    with c_btn:
-        if st.button("🔄 Actualizar", key="btn_refresh_desembolso", help="Recargar lista desde Base de Datos"):
-            st.session_state.reload_data = True
-            st.rerun()
+    st.subheader("1. Facturas Pendientes")
     
     # Filtrar seleccionadas
     facturas_seleccionadas = [
@@ -500,3 +494,11 @@ else:
     
     elif facturas_seleccionadas and not selected_folder:
         pass # Warning already shown above
+
+
+# --- Sidebar Boton Rojo ---
+with st.sidebar:
+    st.markdown('---')
+    if st.button(' Actualizar', key='sidebar_refresh_btn', type='primary', use_container_width=True, help='Recargar lista desde Base de Datos'):
+        st.session_state.reload_data = True
+        st.rerun()
