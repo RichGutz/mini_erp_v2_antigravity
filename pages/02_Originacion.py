@@ -397,7 +397,7 @@ with st.container(border=True):
     # st.info("ℹ️ Distribuye las facturas en los 4 grupos según sus fechas de desembolso y pago.") (Removed by user request)
     
     # Dynamic Group Configuration
-    num_groups = st.number_input("Número de Grupos", min_value=1, max_value=8, value=1, key="num_groups_config")
+    num_groups = st.number_input("Número de Grupos", min_value=1, max_value=8, value=1, key="num_groups_config_v2")
     
     # Store temporary bucket config
     buckets_config = {} 
