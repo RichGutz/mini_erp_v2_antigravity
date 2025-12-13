@@ -12,7 +12,15 @@ st.set_page_config(page_title="Reportes", page_icon="📊", layout="wide")
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 # --- Header ---
-render_header("Reporte de Operaciones")
+from src.ui.header import render_header
+render_header("Módulo de Reporte")
+
+# --- CSS Alignment Fix ---
+st.markdown('''<style>
+[data-testid="stHorizontalBlock"] { 
+    align-items: center; 
+}
+</style>''', unsafe_allow_html=True)
 
 # --- Filters ---
 st.markdown("### 🔍 Filtros de Búsqueda")

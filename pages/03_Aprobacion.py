@@ -20,6 +20,17 @@ st.set_page_config(
     page_icon="✅"
 )
 
+# --- Header ---
+from src.ui.header import render_header
+render_header("Módulo de Aprobación")
+
+# --- CSS Alignment Fix ---
+st.markdown('''<style>
+[data-testid="stHorizontalBlock"] { 
+    align-items: center; 
+}
+</style>''', unsafe_allow_html=True)
+
 # --- Auto-Reload Logic on Entry ---
 if st.session_state.get('last_page') != '03_Aprobacion':
     st.session_state.reload_data = True
@@ -90,15 +101,7 @@ def render_status_brick(text, is_green):
     """
 
 # --- UI: CSS ---
-st.markdown('''<style>
-[data-testid="stHorizontalBlock"] { 
-    align-items: center; 
-}
-</style>''', unsafe_allow_html=True)
-
-# --- UI: Header con Logos ---
-from src.ui.header import render_header
-render_header("Módulo de Aprobación")
+# --- UI: CSS & Header (Moved to top) ---
 
 # --- Cargar Facturas Activas Automáticamente ---
 if st.session_state.reload_data:
