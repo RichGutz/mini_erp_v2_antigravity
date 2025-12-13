@@ -222,55 +222,55 @@ else:
                     stat = factura.get('status_letra', 'PENDIENTE')
                     st.markdown(render_status_brick(stat, stat=='FIRMADA'), unsafe_allow_html=True)
 
-    st.markdown("---")
-    
-    # Botón Maestro
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        # Checkbox "Forzar" hidden logic or always visible? 
-        # Requirement: "The user could approve even without both in green with a WARNING... User must check 'Confirmar aprobación forzada'"
-        force_approval = st.checkbox("⚠️ Confirmar aprobación forzada (Ignorar estados incompletos)", 
-                                     help="Marcar para proceder con la aprobación aunque Cavali o Letras no estén confirmados.")
+        st.markdown("---")
         
-        submit_button = st.button(
-            "✅ Aprobar Facturas Seleccionadas",
-            type="primary",
-            use_container_width=True
-        )
+        # Botón Maestro
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            # Checkbox "Forzar" hidden logic or always visible? 
+            # Requirement: "The user could approve even without both in green with a WARNING... User must check 'Confirmar aprobación forzada'"
+            force_approval = st.checkbox("⚠️ Confirmar aprobación forzada (Ignorar estados incompletos)", 
+                                         help="Marcar para proceder con la aprobación aunque Cavali o Letras no estén confirmados.")
             
-    # Procesar Aprobaciones
-    if submit_button:
-        # Recuperar objetos completos de facturas seleccionadas para calcular totales
-        # Tenemos que buscarlas en facturas_activas
-        selected_ids = [
-            pid for pid, selected in st.session_state.facturas_seleccionadas_aprobacion.items()
-            if selected
-        ]
-        
-        selected_invoices_objs = [
-            f for f in st.session_state.facturas_activas 
-            if f['proposal_id'] in selected_ids
-        ]
-        
-        if not selected_invoices_objs:
-            st.warning("⚠️ No has seleccionado ninguna factura para aprobar.")
-        else:
-            # --- Validar Estados Cavali/Letras ---
-            issues_found = []
-            for inv in selected_invoices_objs:
-                cavali = inv.get('status_cavali', 'ENVIADO')
-                letra = inv.get('status_letra', 'ENVIADA')
-                inv_num = parse_invoice_number(inv['proposal_id'])
+            submit_button = st.button(
+                "✅ Aprobar Facturas Seleccionadas",
+                type="primary",
+                use_container_width=True
+            )
                 
-                if cavali != 'CONFIRMADA' or letra != 'FIRMADA':
-                    issues_found.append(f"{inv_num} (Cavali: {cavali}, Letra: {letra})")
+        # Procesar Aprobaciones
+        if submit_button:
+            # Recuperar objetos completos de facturas seleccionadas para calcular totales
+            # Tenemos que buscarlas en facturas_activas
+            selected_ids = [
+                pid for pid, selected in st.session_state.facturas_seleccionadas_aprobacion.items()
+                if selected
+            ]
             
-            if issues_found and not force_approval:
-                st.error("⛔ DETENIDO: Las siguientes facturas no tienen los estados confirmados:")
-                for issue in issues_found:
-                    st.markdown(f"- {issue}")
-                st.warning("👉 Si desea proceder de todos modos, marque la casilla 'Confirmar aprobación forzada' arriba y presione Aprobar nuevamente.")
-                st.stop() # Detener ejecución aquí
+            selected_invoices_objs = [
+                f for f in st.session_state.facturas_activas 
+                if f['proposal_id'] in selected_ids
+            ]
+            
+            if not selected_invoices_objs:
+                st.warning("⚠️ No has seleccionado ninguna factura para aprobar.")
+            else:
+                # --- Validar Estados Cavali/Letras ---
+                issues_found = []
+                for inv in selected_invoices_objs:
+                    cavali = inv.get('status_cavali', 'ENVIADO')
+                    letra = inv.get('status_letra', 'ENVIADA')
+                    inv_num = parse_invoice_number(inv['proposal_id'])
+                    
+                    if cavali != 'CONFIRMADA' or letra != 'FIRMADA':
+                        issues_found.append(f"{inv_num} (Cavali: {cavali}, Letra: {letra})")
+                
+                if issues_found and not force_approval:
+                    st.error("⛔ DETENIDO: Las siguientes facturas no tienen los estados confirmados:")
+                    for issue in issues_found:
+                        st.markdown(f"- {issue}")
+                    st.warning("👉 Si desea proceder de todos modos, marque la casilla 'Confirmar aprobación forzada' arriba y presione Aprobar nuevamente.")
+                    st.stop() # Detener ejecución aquí
                 
             st.markdown("---")
             st.subheader("Procesando Aprobaciones...")
